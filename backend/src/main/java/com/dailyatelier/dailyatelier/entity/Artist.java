@@ -4,22 +4,24 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "artist")
 @Getter @Setter
 public class Artist {
     @Id
-    @Column(name = "artist_code", length = 50)
+    @UuidGenerator
+    @Column(name = "artist_code", length = 36, updatable = false, nullable = false)
     private String artistCode;
 
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(length = 10)
+    @Column(length = 50)
     private String artistName;
-
+    // 작가 전용 활동명 (미입력 시 nickname으로 자동 세팅)
     @Column(length = 300)
     private String artistIntro;
 
