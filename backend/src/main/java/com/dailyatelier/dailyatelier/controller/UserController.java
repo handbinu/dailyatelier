@@ -1,71 +1,53 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
+import com.dailyatelier.dailyatelier.dto.LoginRequestDto;
+import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@Controller
+@RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    //로그인
-    @GetMapping("/login")
-    public String loginForm(){
-        return "login";
+    // POST /api/auth/login
+    @PostMapping("/auth/login")
+    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto dto){
+        LoginResponseDto response = userService.login(dto);
+        return ResponseEntity.ok(response);
     }
 
-    //회원 유형 선택
-    @GetMapping("/register")
-    public String registerSelect(){
-        return  "register-select";
+    //POST /api/auth/register/user
+    @PostMapping("/auth/register/user")
+    public ResponseEntity<Map<String, String>> registerUser(@RequestBody User user){
+        userService.registerUser(user);
+        return ResponseEntity.ok(Map.of("message","회원가입이 완료되었습니다."));
     }
 
-    //일반 회원가입
-    @GetMapping("/register/user")
-    public String userRegisterForm(Model model){
-        model.addAttribute("user", new User());
-        return "register-user";
-    }
-
-    @PostMapping("/register/user")
-    public String userRegister(@ModelAttribute User user){
-            userService.registerUser(user);
-            return "redirect:/login";
-    }
-
-    //작가 회원가입
-    @GetMapping("/register/artist")
-    public String artistRegisterForm(Model model){
-        model.addAttribute("artistDto", new ArtistRegisterDto());
-        return "register-artist";
-    }
-
-    @PostMapping("/register/artist")
-    public String artistRegister(@ModelAttribute ArtistRegisterDto dto){
+    //POST /api/auth/register/artist
+    @PostMapping("/auth/register/artist")
+    public ResponseEntity<Map<String, String>> registerArtist(@RequestBody ArtistRegisterDto dto){
         userService.registerArtist(dto);
-        return "redirect:/login";
+        return ResponseEntity.ok(Map.of("message","작가 회원가입이 완료되었습니다."));
     }
 
-    //Ajax 중복확인 REST API
-    @GetMapping("/api/check/userId")
-    @ResponseBody
-    public ResponseEntity<Map<String, Boolean>> checkUserId(@RequestParam String value) {
+    //GET /api/check/userId?value=aaa
+    @GetMapping("/check/userId")
+    public ResponseEntity<Map<String, Boolean>> checkUserId(@RequestParam String value){
         boolean duplicate = userService.isUserIdDuplicate(value);
         return ResponseEntity.ok(Map.of("duplicate", duplicate));
     }
 
-    @GetMapping("/api/check/nickname")
-    @ResponseBody
+    //GET /api/check/nickname?value=홍길동
+    @GetMapping("/check/nickname")
     public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String value){
         boolean duplicate = userService.isNicknameDuplicate(value);
         return ResponseEntity.ok(Map.of("duplicate", duplicate));

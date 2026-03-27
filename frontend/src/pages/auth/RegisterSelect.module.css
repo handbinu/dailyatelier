@@ -1,0 +1,139 @@
+/* ============================================================
+   RegisterSelect.module.css  —  회원 유형 선택 페이지
+   ============================================================ */
+
+/* ── 전체 래퍼 ───────────────────────────────────────────── */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height, 4.5rem));
+  padding: var(--space-16) var(--space-4) var(--space-12);
+  text-align: center;
+}
+
+/* ── 타이틀 ─────────────────────────────────────────────── */
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  letter-spacing: -0.025em;
+}
+
+.hr {
+  width: min(24rem, 80%);
+  border: none;
+  border-top: 1px solid var(--color-primary);
+  margin-block: var(--space-4);
+}
+
+/* ── 안내 문구 ───────────────────────────────────────────── */
+.sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: 28rem;
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-10);
+}
+
+/* ── 카드 그리드 ─────────────────────────────────────────── */
+.cardWrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 36rem;           /* 576px */
+}
+
+/* ── 개별 카드 ───────────────────────────────────────────── */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-10) var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base),
+              transform var(--transition-fast);
+  /* float 완전 제거 — flex로 대체 */
+}
+
+.card:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ── 카드 내 아이콘 이미지 ───────────────────────────────── */
+.card img {
+  width: 4.5rem;             /* 72px — px → rem */
+  height: 4.5rem;
+  object-fit: contain;
+  /* 불필요한 margin 제거 → gap으로 대체 */
+}
+
+/* ── 카드 버튼 ───────────────────────────────────────────── */
+.cardBtn {
+  width: 100%;
+  padding: 0.6875rem var(--space-4);
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  transition: background var(--transition-base),
+              color var(--transition-base),
+              border-color var(--transition-base);
+  /* pointer-events none: 클릭은 카드 전체로 처리 */
+  pointer-events: none;
+}
+
+.card:hover .cardBtn {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+/* ── 반응형 ─────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .wrap {
+    padding-top: var(--space-10);
+  }
+
+  .cardWrap {
+    grid-template-columns: 1fr;   /* 세로 스택 */
+    max-width: 22rem;
+  }
+
+  .card {
+    flex-direction: row;          /* 아이콘 + 버튼 가로 배치 */
+    padding: var(--space-5) var(--space-6);
+    gap: var(--space-4);
+  }
+
+  .card img {
+    width: 3rem;
+    height: 3rem;
+    flex-shrink: 0;
+  }
+
+  .cardBtn {
+    text-align: left;
+  }
+}
+
+@media (max-width: 360px) {
+  .title { font-size: var(--font-size-xl); }
+  .card { padding: var(--space-4) var(--space-4); }
+}

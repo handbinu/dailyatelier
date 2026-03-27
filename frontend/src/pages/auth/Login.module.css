@@ -1,0 +1,161 @@
+/* ============================================================
+   Login.module.css  —  로그인 페이지
+   ============================================================ */
+
+/* ── 전체 래퍼 ───────────────────────────────────────────── */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height, 4.5rem));
+  padding: var(--space-8) var(--space-4);
+}
+
+/* ── 카드 컨테이너 ───────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 26rem;         /* 416px — 고정 px 제거 */
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-10) var(--space-8);
+}
+
+/* ── 타이틀 ─────────────────────────────────────────────── */
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  text-align: center;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-8);
+}
+
+/* ── 폼 ─────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── 인풋 필드 래퍼 ─────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.75rem var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base),
+              background var(--transition-base);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.18);
+  background: var(--color-accent-light);
+}
+
+/* ── 에러 메시지 ─────────────────────────────────────────── */
+.error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border: 1px solid rgba(217, 48, 37, 0.2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  text-align: center;
+}
+
+/* ── 제출 버튼 ───────────────────────────────────────────── */
+.btnSubmit {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: 0.8125rem;       /* 13px — 눌림감 있는 높이 */
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  transition: background var(--transition-base),
+              transform var(--transition-fast),
+              box-shadow var(--transition-base);
+}
+
+.btnSubmit:hover:not(:disabled) {
+  background: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.btnSubmit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btnSubmit:disabled {
+  background: var(--color-border-dark);
+  cursor: not-allowed;
+}
+
+/* ── 하단 링크 ───────────────────────────────────────────── */
+.links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.links a {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-base);
+}
+
+.links a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+/* ── 구분선 ─────────────────────────────────────────────── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── 반응형 ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .card {
+    border: none;
+    box-shadow: none;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .title { font-size: var(--font-size-2xl); }
+}
