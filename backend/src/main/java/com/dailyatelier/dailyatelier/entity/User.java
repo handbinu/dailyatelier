@@ -39,4 +39,7 @@ public class User {
 
     @Column
     private Integer reserve = 0;
+
+    @Column(name = "email_agree")
+    private Boolean emailAgree = true;
 }

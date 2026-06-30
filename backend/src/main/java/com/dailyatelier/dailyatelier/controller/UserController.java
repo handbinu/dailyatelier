@@ -3,10 +3,13 @@ package com.dailyatelier.dailyatelier.controller;
 import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
 import com.dailyatelier.dailyatelier.dto.LoginRequestDto;
 import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
+import com.dailyatelier.dailyatelier.dto.UserProfileDto;
+import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -51,5 +54,21 @@ public class UserController {
     public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String value){
         boolean duplicate = userService.isNicknameDuplicate(value);
         return ResponseEntity.ok(Map.of("duplicate", duplicate));
+    }
+
+    //GET /api/users/me
+    @GetMapping("/users/me")
+    public ResponseEntity<UserProfileDto> getUserProfile(@AuthenticationPrincipal String userId) {
+        UserProfileDto profile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(profile);
+    }
+
+    //PUT /api/users/me
+    @PutMapping("/users/me")
+    public ResponseEntity<Map<String, String>> updateUserProfile(
+            @AuthenticationPrincipal String userId,
+            @RequestBody ProfileUpdateDto dto) {
+        userService.updateUserProfile(userId, dto);
+        return ResponseEntity.ok(Map.of("message", "회원 정보가 성공적으로 수정되었습니다."));
     }
 }
