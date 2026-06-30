@@ -1,7 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import styles from './RegisterSelect.module.css'
-import userIcon from '../../assets/user.png';
-import artistIcon from '../../assets/artist.png';
 
 function RegisterSelect() {
     const navigate = useNavigate()
@@ -16,12 +14,12 @@ function RegisterSelect() {
 
             <div className={styles.cardWrap}>
                 <div className={styles.card} onClick={() => navigate('/register/user')}>
-                    <img src={userIcon} alt="일반회원"/>
+                    <img src="/img/user.png" alt="일반회원"/>
                     <button className={styles.cardBtn}>일반 회원</button>
                 </div>
 
                 <div className={styles.card} onClick={() => navigate('/register/artist')}>
-                    <img src={artistIcon} alt="작가회원"/>
+                    <img src="/img/artist.png" alt="작가회원"/>
                     <button className={styles.cardBtn}>작가 회원</button>
                 </div>
 
