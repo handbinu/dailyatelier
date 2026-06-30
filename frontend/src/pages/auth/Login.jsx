@@ -80,6 +80,10 @@ function Login() {
           <span>계정이 없으신가요?</span>
           <Link to="/register">회원가입</Link>
         </div>
+        <div className={styles.quickLinks}>
+          <Link to="/">홈으로</Link>
+          <Link to="/auction/total">경매 둘러보기</Link>
+        </div>
       </div>
     </div>
   )

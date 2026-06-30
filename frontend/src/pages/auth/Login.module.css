@@ -131,6 +131,25 @@
   text-decoration: underline;
 }
 
+.quickLinks {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.quickLinks a {
+  color: var(--color-text-muted);
+  transition: color var(--transition-base);
+}
+
+.quickLinks a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 /* ── 구분선 ─────────────────────────────────────────────── */
 .divider {
   display: flex;
