@@ -43,3 +43,6 @@ backend/src/main/resources/application.properties
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+
+# Local-only reference materials
+/_local/
