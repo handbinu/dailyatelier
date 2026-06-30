@@ -1,0 +1,210 @@
+/* atoms.module.css */
+
+/* ── PageBanner ─────────────────────────────────────────────── */
+.banner {
+    background: var(--color-primary);
+    padding: var(--space-10) 0 var(--space-8);
+    margin-top: var(--header-height, 4.5rem); /* Layout Header 높이만큼 밀어냄 */
+  }
+  .bannerInner {
+    max-width: var(--container-xl);
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .breadcrumb {
+    font-size: var(--font-size-xs);
+    color: rgba(255,255,255,.45);
+    letter-spacing: .06em;
+  }
+  .title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: .04em;
+    line-height: 1.1;
+  }
+  
+  /* ── Badge ──────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.6;
+  }
+  .badge_green  { background: rgba(30,140,79,.12);  color: #1e7a46; }
+  .badge_orange { background: rgba(192,98,42,.12);  color: #a8521e; }
+  .badge_blue   { background: rgba(42,117,199,.12); color: #1a5fa8; }
+  .badge_gray   { background: rgba(0,0,0,.06);      color: var(--color-text-muted); }
+  .badge_red    { background: rgba(217,48,37,.1);   color: #b02a23; }
+  
+  /* ── StarDisplay ────────────────────────────────────────────── */
+  .star {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    color: #e8a020;
+    font-size: .82rem;
+    letter-spacing: -1px;
+  }
+  .starNum {
+    font-style: normal;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-left: 5px;
+    letter-spacing: 0;
+  }
+  
+  /* ── Empty ──────────────────────────────────────────────────── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-16) var(--space-6);
+    text-align: center;
+  }
+  .emptyIcon {
+    width: 48px;
+    height: 48px;
+    color: var(--color-border-dark);
+    opacity: .5;
+  }
+  .emptyMsg {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+  
+  /* ── FilterBar ──────────────────────────────────────────────── */
+  .filterBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .filterBtn {
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+  .filterBtn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .filterBtnActive {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+  }
+  .filterBtnActive:hover { color: #fff; }
+  
+  /* ── SortSelect ─────────────────────────────────────────────── */
+  .sortSelect {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    background: var(--color-surface);
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+  .sortSelect:focus { border-color: var(--color-accent); }
+  
+  /* ── ArtThumb ───────────────────────────────────────────────── */
+  .thumb {
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    flex-shrink: 0;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .4s ease;
+    display: block;
+  }
+  
+  /* ── PageWrap ───────────────────────────────────────────────── */
+  .pageWrap {
+    min-height: 100vh;
+    background: var(--color-bg);
+  }
+  
+  /* ── CardGrid ───────────────────────────────────────────────── */
+  .cardGrid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    gap: var(--space-5);
+  }
+  @media (max-width: 1024px) { .cardGrid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px)  { .cardGrid { grid-template-columns: 1fr; } }
+  
+  /* ── ActionBtn ──────────────────────────────────────────────── */
+  .actionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background var(--transition-fast), color var(--transition-fast),
+                border-color var(--transition-fast), opacity var(--transition-fast);
+    border: 1px solid transparent;
+  }
+  .actionBtn:disabled { opacity: .4; cursor: not-allowed; }
+  
+  .actionBtn_outline {
+    background: var(--color-surface);
+    color: var(--color-text-sub);
+    border-color: var(--color-border);
+  }
+  .actionBtn_outline:hover {
+    background: var(--color-surface-alt);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .actionBtn_fill {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+  }
+  .actionBtn_fill:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .actionBtn_accent {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .actionBtn_accent:hover {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+  }
+  .actionBtn_danger {
+    background: var(--color-surface);
+    color: var(--color-error);
+    border-color: var(--color-border);
+  }
+  .actionBtn_danger:hover {
+    background: var(--color-error-bg);
+    border-color: var(--color-error);
+  }

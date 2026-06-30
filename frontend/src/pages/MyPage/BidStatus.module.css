@@ -1,0 +1,157 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.summaryCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.summaryValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--c, var(--color-primary));
+}
+
+.summaryValue small {
+  font-size: 0.8rem;
+  margin-left: 0.2rem;
+}
+
+.summaryLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.cardEnded {
+  opacity: 0.88;
+}
+
+.cardImg {
+  position: relative;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cardTitle {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cardArtist {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.leading {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.leadingYes {
+  background: #e8f5ef;
+  color: #1d7c51;
+}
+
+.leadingNo {
+  background: #fdf1e8;
+  color: #b45e2c;
+}
+
+.priceGrid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.priceItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.priceLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.priceValue {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.priceHighlight {
+  color: var(--color-accent);
+}
+
+.priceDivider {
+  width: 1px;
+  height: 30px;
+  background: var(--color-border);
+}
+
+.closingTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    grid-template-columns: 1fr;
+  }
+}

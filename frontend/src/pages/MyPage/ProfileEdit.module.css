@@ -1,0 +1,198 @@
+/* ProfileEdit.module.css */
+.body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+/* 저장 완료 배너 */
+.savedBanner {
+  padding: var(--space-3) var(--space-5);
+  background: rgba(30,140,79,.1);
+  border: 1px solid rgba(30,140,79,.25);
+  border-radius: var(--radius-md);
+  color: #1e8c4f;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+  text-align: center;
+  animation: slideDown .3s ease;
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+.form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* 카드 섹션 */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-7);
+}
+.cardTitle {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.optional { font-size: var(--font-size-xs); color: var(--color-text-muted); font-weight: 400; }
+
+/* 프로필 아바타 */
+.avatarRow { display: flex; align-items: center; gap: var(--space-5); }
+.avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent), #4a7a72);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.avatarInitial { font-size: 2rem; font-weight: 700; color: #fff; }
+.avatarInfo { display: flex; flex-direction: column; gap: var(--space-2); }
+.avatarGuide { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.fileLabel:hover { background: var(--color-border); }
+.fileInput { display: none; }
+
+/* 필드 그리드 */
+.fieldGrid { display: flex; flex-direction: column; gap: var(--space-5); }
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.fieldLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* 인풋 공통 */
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+.input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(119,140,134,.18); }
+.inputOk  { border-color: #1e8c4f !important; }
+.inputErr { border-color: var(--color-error) !important; }
+
+.select {
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.select:focus { border-color: var(--color-accent); }
+
+/* 복합 인풋 행 */
+.inlineRow { display: flex; gap: var(--space-2); align-items: center; }
+.inlineRow .input { flex: 1; }
+
+.telRow { display: flex; align-items: center; gap: var(--space-2); }
+.telPart { width: 80px; flex-shrink: 0; }
+.telDash { color: var(--color-text-muted); flex-shrink: 0; }
+
+.emailRow { display: flex; align-items: center; gap: var(--space-2); }
+.emailRow .input { flex: 1; }
+
+.emailPreview {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-weight: 600;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+/* 중복확인 버튼 */
+.checkBtn {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.checkBtn:hover { background: var(--color-accent); }
+
+/* 라디오 */
+.radioRow { display: flex; gap: var(--space-5); }
+.radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+/* 피드백 메시지 */
+.fieldMsg { font-size: var(--font-size-xs); padding-left: 2px; min-height: 1.1em; }
+.fieldOk  { color: #1e8c4f; }
+.fieldErr { color: var(--color-error); }
+
+/* 하단 버튼 */
+.btnRow { display: flex; gap: var(--space-3); }
+.submitBtn {
+  flex: 1;
+  padding: var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.submitBtn:hover:not(:disabled) { background: var(--color-accent); }
+.submitBtn:active:not(:disabled) { transform: translateY(1px); }
+.submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
+
+.cancelBtn {
+  padding: var(--space-4) var(--space-7);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.cancelBtn:hover { background: var(--color-surface-alt); }
+
+@media (max-width: 560px) {
+  .card { padding: var(--space-5) var(--space-4); }
+  .telRow { flex-wrap: wrap; }
+  .emailRow { flex-wrap: wrap; }
+}

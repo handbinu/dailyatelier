@@ -1,0 +1,983 @@
+/* ============================================================
+   MyPage.module.css  —  데일리 아틀리에 마이페이지
+   Aesthetic: Gallery-editorial. Clean vertical rhythm,
+   muted earth tones with accent green, generous whitespace.
+   ============================================================ */
+
+/* ── 페이지 래퍼 ─────────────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+/* ── 히어로 배너 ─────────────────────────────────────────── */
+.heroBanner {
+  background: var(--color-primary);
+  padding: var(--space-10) 0 var(--space-8);
+}
+
+.heroBannerInner {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.heroBreadcrumb {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.06em;
+}
+
+.heroTitle {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.artistBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  background: rgba(119, 140, 134, 0.35);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: #b8d4cf;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+/* ── 메인 레이아웃 ───────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-6);
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+  align-items: start;
+}
+
+/* ── 사이드바 ────────────────────────────────────────────── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+}
+
+/* 프로필 카드 */
+.profileCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-bottom: var(--space-1);
+}
+
+.avatar img,
+.avatarInitial {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarInitial {
+  background: linear-gradient(135deg, var(--color-accent), #4a7a72);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.avatarEditBtn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+  line-height: 1;
+  transition: background var(--transition-fast);
+}
+.avatarEditBtn:hover { background: var(--color-accent); }
+
+.profileNickname {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+
+.profileEmail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.profileArtistTag {
+  padding: 2px var(--space-2);
+  background: rgba(119, 140, 134, 0.12);
+  border: 1px solid rgba(119, 140, 134, 0.3);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.editProfileBtn {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  cursor: pointer;
+  width: 100%;
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.editProfileBtn:hover { background: var(--color-surface-alt); border-color: var(--color-accent); }
+
+/* 프로필 수정 폼 */
+.editForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.editLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.editInput {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.editInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.18);
+}
+
+.editActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.saveBtn, .cancelBtn {
+  flex: 1;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.saveBtn { background: var(--color-primary); color: #fff; border: none; }
+.saveBtn:hover { background: var(--color-accent); }
+.cancelBtn { background: var(--color-surface-alt); color: var(--color-text-sub); border: 1px solid var(--color-border); }
+
+/* 포인트 카드 */
+.pointCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pointRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.pointLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pointValue {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.pointBar {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pointBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), #4a7a72);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.pointSubRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pointSub {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.chargeBtn {
+  display: block;
+  text-align: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast);
+}
+.chargeBtn:hover { background: var(--color-accent); color: #fff; }
+
+/* 퀵 액션 */
+.quickActions {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.quickBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.quickBtn:last-child { border-bottom: none; }
+.quickBtn:hover { background: var(--color-accent-light); color: var(--color-accent); }
+.quickBtn span { font-size: 1.1rem; }
+
+/* ── 메인 콘텐츠 ─────────────────────────────────────────── */
+.content {
+  min-width: 0;
+}
+
+/* 탭 바 */
+.tabBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-6);
+  background: var(--color-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: var(--space-2) var(--space-2) 0;
+}
+
+.tabBtn {
+  position: relative;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.tabBtn:hover { color: var(--color-text); background: var(--color-surface-alt); }
+
+.tabBtnActive {
+  color: var(--color-primary);
+  font-weight: 700;
+  background: var(--color-bg);
+}
+.tabBtnActive::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+/* 작가 전용 탭 */
+.tabBtnArtist { color: var(--color-accent); }
+.tabBtnArtist.tabBtnActive { color: var(--color-accent); }
+.tabBtnArtist.tabBtnActive::after { background: var(--color-accent); }
+
+/* 탭 뱃지 */
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* 탭 패널 */
+.tabPanel {
+  animation: fadeSlideIn 0.2s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 활동 개요 탭 ─────────────────────────────────────────── */
+.overviewWrap { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-4);
+}
+
+.statCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--stat-color, var(--color-accent));
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+.statCard:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+.statValue small { font-size: 0.7em; font-weight: 500; color: var(--color-text-muted); margin-left: 2px; }
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.overviewSection {}
+.overviewSectionTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.02em;
+}
+
+.miniList { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.miniRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-fast);
+}
+.miniRow:hover { box-shadow: var(--shadow-sm); }
+
+.miniRowImg {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.miniRowInfo { flex: 1; min-width: 0; }
+
+.miniRowTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniRowSub { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+/* ── 공통: 아트 카드 그리드 ──────────────────────────────── */
+.artCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+/* ── 입찰 카드 ───────────────────────────────────────────── */
+.bidCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+.bidCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+
+.bidImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.bidImgWrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+.bidCard:hover .bidImgWrap img { transform: scale(1.05); }
+
+.bidCardBody { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+
+.bidCardTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.bidCardArtist { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+.bidPriceRow { display: flex; justify-content: space-between; align-items: center; }
+.bidMyPrice { font-size: var(--font-size-xs); color: var(--color-text-sub); }
+.bidMyPrice strong { font-weight: 700; color: var(--color-text); }
+
+.bidLeading { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: var(--radius-full); }
+.bidLeadingYes { background: rgba(30, 140, 79, 0.12); color: var(--color-success); }
+.bidLeadingNo  { background: rgba(217, 48, 37, 0.1);  color: var(--color-error); }
+
+.bidCurrentPrice { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.bidCurrentPrice strong { color: var(--color-primary); font-weight: 700; }
+
+.bidTime { font-size: 11px; color: var(--color-text-muted); }
+
+.bidRaiseBtn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  transition: background var(--transition-fast);
+  width: fit-content;
+}
+.bidRaiseBtn:hover { background: var(--color-accent); color: #fff; }
+
+/* ── 찜 카드 ─────────────────────────────────────────────── */
+.likeCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+.likeCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+
+.likeImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.likeImgWrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.likeCard:hover .likeImgWrap img { transform: scale(1.05); }
+
+.likeHeartBtn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  color: #e05555;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.likeHeartBtn:hover { background: #fff; transform: scale(1.15); }
+
+.likeEndedOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.likeInfo { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.likeTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.likeArtist { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.likePrice { font-size: var(--font-size-sm); color: var(--color-primary); font-weight: 600; }
+.likeBidBtn {
+  margin-top: var(--space-2);
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  width: fit-content;
+  transition: background var(--transition-fast);
+}
+.likeBidBtn:hover { background: var(--color-accent); color: #fff; }
+
+/* ── 낙찰 카드 ───────────────────────────────────────────── */
+.successCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+.successCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+
+.successImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.successImgWrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease, filter 0.3s ease; }
+
+.successHoverLayer {
+  position: absolute;
+  inset: 0;
+  background: rgba(35,31,34,0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+.successCard:hover .successHoverLayer { opacity: 1; }
+.successCard:hover .successImgWrap img { filter: brightness(0.7); }
+
+.successHoverBtn {
+  padding: var(--space-2) var(--space-5);
+  background: rgba(255,255,255,0.9);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  transform: translateY(8px);
+  transition: transform var(--transition-base), background var(--transition-fast);
+}
+.successCard:hover .successHoverBtn { transform: translateY(0); }
+.successHoverBtn:hover { background: #fff; color: var(--color-accent); }
+
+.successInfo { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.successTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.successArtist { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.successPrice { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-primary); }
+.successDate { font-size: 11px; color: var(--color-text-muted); }
+
+.successReviewTag {
+  margin-top: var(--space-1);
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  width: fit-content;
+}
+.reviewDone    { background: rgba(30,140,79,0.12); color: var(--color-success); }
+.reviewPending { background: rgba(180,83,9,0.1); color: var(--color-warning); }
+
+/* ── 리뷰 리스트 ─────────────────────────────────────────── */
+.reviewList { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.reviewItem {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-base);
+}
+.reviewItem:hover { box-shadow: var(--shadow-sm); }
+
+.reviewItemImg {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.reviewItemBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.reviewItemTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.reviewItemTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+
+.starDisplay {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #f5a623;
+  font-size: 0.85rem;
+  letter-spacing: -1px;
+}
+.starNum { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-left: 4px; letter-spacing: 0; }
+
+.reviewItemBuyer { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.reviewItemContent { font-size: var(--font-size-sm); color: var(--color-text-sub); line-height: 1.6; }
+.reviewItemDate { font-size: 11px; color: var(--color-text-muted); }
+
+.reviewItemActions { display: flex; align-items: flex-start; }
+.reviewEditBtn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.reviewEditBtn:hover { background: var(--color-surface-alt); border-color: var(--color-accent); color: var(--color-accent); }
+
+/* ── 주문 리스트 ─────────────────────────────────────────── */
+.orderList { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.orderHeader {
+  display: grid;
+  grid-template-columns: 1fr 120px 100px 100px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.orderRow {
+  display: grid;
+  grid-template-columns: 1fr 120px 100px 100px;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--transition-fast);
+}
+.orderRow:hover { box-shadow: var(--shadow-sm); }
+
+.orderInfo { display: flex; align-items: center; gap: var(--space-3); }
+.orderImg { width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0; }
+.orderArtName { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.orderArtist  { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.orderNo      { font-size: 11px; color: var(--color-text-muted); font-family: monospace; }
+.orderDate    { font-size: 11px; color: var(--color-text-muted); }
+.orderPrice   { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-primary); }
+
+.orderCancelBtn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.orderCancelBtn:hover { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
+
+/* ── 문의 현황 ───────────────────────────────────────────── */
+.inquiryHead { margin-bottom: var(--space-4); }
+.inquiryNewBtn {
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast);
+  display: inline-block;
+}
+.inquiryNewBtn:hover { background: var(--color-accent); color: #fff; }
+
+.inquiryList { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.inquiryItem {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.inquiryTrigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+.inquiryTrigger:hover { background: var(--color-surface-alt); }
+
+.inquiryType {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.inquiryTitle { flex: 1; font-size: var(--font-size-sm); color: var(--color-text); font-weight: 500; }
+.inquiryDate { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+.inquiryChevron { font-size: 10px; color: var(--color-text-muted); transition: transform var(--transition-base); }
+
+.inquiryBadge {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.inquiryAnswered { background: rgba(30,140,79,0.12); color: var(--color-success); }
+.inquiryPending  { background: rgba(180,83,9,0.1);   color: var(--color-warning); }
+
+.inquiryBody {
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+.inquiryAnswer { font-size: var(--font-size-sm); color: var(--color-text-sub); line-height: 1.7; }
+.inquiryNoAnswer { font-size: var(--font-size-sm); color: var(--color-text-muted); font-style: italic; }
+
+/* ── 작품 관리 탭 (작가) ─────────────────────────────────── */
+.artManageHead { margin-bottom: var(--space-5); }
+.artUploadBtn {
+  display: inline-block;
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  transition: background var(--transition-fast);
+}
+.artUploadBtn:hover { background: var(--color-accent-hover); color: #fff; }
+
+.artManageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-5);
+}
+
+.manageCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+.manageCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+
+.manageImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.manageImgWrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.manageCard:hover .manageImgWrap img { transform: scale(1.05); }
+
+.manageCardBody { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.manageCardTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.manageCardType  { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.managePriceRow  { display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-text-sub); margin-top: var(--space-1); }
+.manageBidCount  { font-size: var(--font-size-xs); color: var(--color-accent); font-weight: 600; }
+.manageCloseTime { font-size: 11px; color: var(--color-text-muted); }
+
+/* ── 공통 뱃지 ───────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge_green  { background: rgba(30,140,79,0.12);  color: #1e8c4f; }
+.badge_orange { background: rgba(224,123,84,0.12); color: #c0622a; }
+.badge_blue   { background: rgba(74,144,217,0.12); color: #2a75c7; }
+.badge_gray   { background: rgba(0,0,0,0.06);      color: var(--color-text-muted); }
+
+/* 절대 배치 뱃지 (카드 이미지 위) */
+.bidImgWrap .badge,
+.manageImgWrap .badge {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+}
+
+/* ── 필터 행 ─────────────────────────────────────────────── */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.filterBtn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.filterBtn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.filterBtnActive {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.filterBtnActive:hover { color: #fff; border-color: var(--color-primary); }
+
+/* ── 빈 상태 ─────────────────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16) var(--space-6);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.emptyIcon { font-size: 3rem; opacity: 0.4; }
+.empty p { font-size: var(--font-size-sm); }
+
+/* ── 반응형 ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .layout { grid-template-columns: 240px 1fr; }
+  .orderHeader, .orderRow { grid-template-columns: 1fr 100px 90px 90px; }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: var(--space-4) var(--space-4) var(--space-12);
+  }
+  .sidebar { position: static; }
+  .tabBar { overflow-x: auto; flex-wrap: nowrap; }
+  .tabBtn { flex-shrink: 0; }
+  .artCardGrid { grid-template-columns: repeat(2, 1fr); }
+  .orderHeader { display: none; }
+  .orderRow { grid-template-columns: 1fr; gap: var(--space-3); }
+}
+
+@media (max-width: 480px) {
+  .statGrid { grid-template-columns: repeat(2, 1fr); }
+  .artCardGrid { grid-template-columns: 1fr; }
+  .artManageGrid { grid-template-columns: 1fr; }
+}
