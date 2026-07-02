@@ -1,96 +1,122 @@
-// src/pages/MyPage/UploadSell.jsx  —  작품 등록 (작가 전용)
-import { useState, useRef, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createArt } from '../../api/artApi'
 import { PageBanner, PageWrap } from './components/atoms'
 import s from './UploadSell.module.css'
 
-const ART_TYPES   = ['실물', '디지털', '오브제']
-const THEME_TAGS  = ['풍경', '인물', '정물', '동물', '추상', '팝아트', '오브제', '미디어', '기타']
+const DEFAULT_FORM = {
+  name: '',
+  descript: '',
+  wIntro: '',
+  startPrice: '',
+  bidStartTime: '',
+  closingTime: '',
+  imgPath: '',
+  artStatus: 2,
+}
+
+const STATUS_OPTIONS = [
+  { value: 2, label: '승인 대기' },
+  { value: 0, label: '진행 중' },
+]
 
 export default function UploadSell() {
   const navigate = useNavigate()
-  const token      = localStorage.getItem('token')
-  const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
+  const [form, setForm] = useState(DEFAULT_FORM)
+  const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [createdArt, setCreatedArt] = useState(null)
 
-  if (!token) { alert('로그인이 필요합니다.'); navigate('/login', { replace: true }); return null }
-  if (userStatus !== 1) { alert('작가 회원만 접근할 수 있습니다.'); navigate('/', { replace: true }); return null }
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
 
-  const [preview,   setPreview]   = useState(null)
-  const [dragging,  setDragging]  = useState(false)
-  const [form, setForm] = useState({
-    name:      '',
-    artType:   '실물',
-    material:  '',
-    descript:  '',
-    tags:      [],
-    price:     '',
-    startTime: '',
-    endTime:   '',
-  })
-  const [errors,   setErrors]   = useState({})
-  const [submitting, setSub]    = useState(false)
-  const [done,      setDone]    = useState(false)
-  const fileRef = useRef()
+    if (!token) {
+      alert('로그인이 필요합니다.')
+      navigate('/login', { replace: true })
+      return
+    }
+    if (userStatus !== 1) {
+      alert('작가 회원만 접근할 수 있습니다.')
+      navigate('/', { replace: true })
+    }
+  }, [navigate])
 
-  const set = (key) => (e) => {
-    setForm(f => ({ ...f, [key]: e.target.value }))
-    setErrors(er => ({ ...er, [key]: '' }))
+  const previewPath = useMemo(() => form.imgPath.trim(), [form.imgPath])
+
+  const setValue = (key) => (e) => {
+    const value = key === 'artStatus' ? Number(e.target.value) : e.target.value
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setErrors((prev) => ({ ...prev, [key]: '' }))
   }
 
-  const toggleTag = (tag) => {
-    setForm(f => ({
-      ...f,
-      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag],
-    }))
+  const resetForm = () => {
+    setForm(DEFAULT_FORM)
+    setErrors({})
+    setCreatedArt(null)
   }
-
-  const loadFile = (file) => {
-    if (!file || !file.type.startsWith('image/')) { alert('이미지 파일만 업로드 가능합니다.'); return }
-    if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하여야 합니다.'); return }
-    const reader = new FileReader()
-    reader.onload = (e) => setPreview(e.target.result)
-    reader.readAsDataURL(file)
-  }
-
-  const onDrop   = useCallback((e) => { e.preventDefault(); setDragging(false); loadFile(e.dataTransfer.files[0]) }, [])
-  const onDragOv = (e) => { e.preventDefault(); setDragging(true) }
-  const onDragLv = () => setDragging(false)
 
   const validate = () => {
-    const er = {}
-    if (!preview)            er.img      = '작품 이미지를 업로드해주세요.'
-    if (!form.name.trim())   er.name     = '작품명을 입력해주세요.'
-    if (!form.descript.trim()) er.descript = '작품 설명을 입력해주세요.'
-    if (!form.price || Number(form.price) < 1000) er.price = '시작가를 1,000원 이상 입력해주세요.'
-    if (!form.startTime)     er.startTime = '경매 시작 시간을 선택해주세요.'
-    if (!form.endTime)       er.endTime   = '경매 종료 시간을 선택해주세요.'
-    if (form.startTime && form.endTime && new Date(form.endTime) <= new Date(form.startTime))
-      er.endTime = '종료 시간은 시작 시간보다 미래여야 합니다.'
-    setErrors(er)
-    return Object.keys(er).length === 0
+    const nextErrors = {}
+    const startPrice = Number(form.startPrice)
+    const bidStart = new Date(form.bidStartTime)
+    const closing = new Date(form.closingTime)
+
+    if (!form.name.trim()) nextErrors.name = '작품명을 입력해 주세요.'
+    if (!Number.isFinite(startPrice) || startPrice < 1) {
+      nextErrors.startPrice = '시작가는 1원 이상이어야 합니다.'
+    }
+    if (!form.bidStartTime) nextErrors.bidStartTime = '입찰 시작 시간을 선택해 주세요.'
+    if (!form.closingTime) nextErrors.closingTime = '입찰 종료 시간을 선택해 주세요.'
+    if (form.bidStartTime && form.closingTime && closing <= bidStart) {
+      nextErrors.closingTime = '입찰 종료 시간은 시작 시간보다 이후여야 합니다.'
+    }
+    if (!form.imgPath.trim()) nextErrors.imgPath = '이미지 경로를 입력해 주세요.'
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
-    setSub(true)
-    // TODO: POST /api/arts  (multipart/form-data)
-    await new Promise(r => setTimeout(r, 1000))
-    setSub(false)
-    setDone(true)
+
+    setSubmitting(true)
+    try {
+      const payload = {
+        ...form,
+        name: form.name.trim(),
+        descript: form.descript.trim(),
+        wIntro: form.wIntro.trim(),
+        imgPath: form.imgPath.trim(),
+        startPrice: Number(form.startPrice),
+      }
+      const { data } = await createArt(payload)
+      setCreatedArt(data)
+    } catch (err) {
+      const message = err.response?.data?.message || '작품 등록에 실패했습니다.'
+      setErrors((prev) => ({ ...prev, submit: message }))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  if (done) {
+  if (createdArt) {
     return (
       <PageWrap>
         <PageBanner title="작품 등록 완료" crumb="작품 등록" />
         <div className={s.doneWrap}>
-          <span className={s.doneIcon}>🖼️</span>
-          <h2 className={s.doneTitle}>작품이 등록되었습니다!</h2>
-          <p className={s.doneSub}>경매 시작 시간이 되면 자동으로 진행됩니다.</p>
+          <h2 className={s.doneTitle}>{createdArt.name}</h2>
+          <p className={s.doneSub}>작품이 등록되었습니다. 현재가는 시작가와 동일하게 설정됩니다.</p>
+          <div className={s.doneMeta}>
+            <span>작품 번호 {createdArt.artId}</span>
+            <span>현재가 {Number(createdArt.currentPrice).toLocaleString()}원</span>
+          </div>
           <div className={s.doneActions}>
-            <button className={s.doneBtn} onClick={() => navigate('/mypage')}>마이페이지로</button>
-            <button className={`${s.doneBtn} ${s.doneBtnOutline}`} onClick={() => { setDone(false); setPreview(null); setForm({ name:'', artType:'실물', material:'', descript:'', tags:[], price:'', startTime:'', endTime:'' }) }}>
+            <button className={s.doneBtn} onClick={() => navigate(`/auction/${createdArt.artId}`)}>
+              상세 보기
+            </button>
+            <button className={`${s.doneBtn} ${s.doneBtnOutline}`} onClick={resetForm}>
               추가 등록
             </button>
           </div>
@@ -101,107 +127,75 @@ export default function UploadSell() {
 
   return (
     <PageWrap>
-      <PageBanner title="내 작품 판매하기" crumb="작품 등록" />
-
+      <PageBanner title="작품 등록" crumb="작품 등록" />
       <div className={s.body}>
         <form onSubmit={handleSubmit} className={s.form}>
-          {/* 이미지 업로드 */}
           <section className={s.card}>
-            <h2 className={s.cardTitle}>작품 이미지 <span className={s.req}>*</span></h2>
-            <div
-              className={`${s.dropZone} ${dragging ? s.dropZoneDragging : ''} ${preview ? s.dropZoneHasImg : ''}`}
-              onDrop={onDrop}
-              onDragOver={onDragOv}
-              onDragLeave={onDragLv}
-              onClick={() => fileRef.current?.click()}
-            >
-              {preview
-                ? <img src={preview} alt="미리보기" className={s.preview} />
-                : <>
-                    <span className={s.dropIcon}>📁</span>
-                    <p className={s.dropText}>클릭하거나 이미지를 드래그해서 업로드</p>
-                    <p className={s.dropSub}>JPG, PNG · 최대 5MB</p>
-                  </>
-              }
+            <h2 className={s.cardTitle}>작품 이미지</h2>
+            <FormField label="이미지 경로 *" error={errors.imgPath}>
               <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className={s.fileInput}
-                onChange={e => loadFile(e.target.files[0])}
+                className={s.input}
+                value={form.imgPath}
+                onChange={setValue('imgPath')}
+                placeholder="/img/auction/new_1.jpg"
               />
-            </div>
-            {preview && (
-              <button type="button" className={s.removeImg} onClick={() => setPreview(null)}>이미지 제거</button>
+            </FormField>
+            {previewPath && (
+              <div className={s.previewBox}>
+                <img src={previewPath} alt="작품 미리보기" className={s.preview} />
+              </div>
             )}
-            {errors.img && <p className={s.errMsg}>{errors.img}</p>}
           </section>
 
-          {/* 작품 정보 */}
           <section className={s.card}>
             <h2 className={s.cardTitle}>작품 정보</h2>
             <div className={s.fieldGrid}>
               <FormField label="작품명 *" error={errors.name}>
-                <input className={s.input} value={form.name} onChange={set('name')} placeholder="작품명을 입력해주세요" />
+                <input
+                  className={s.input}
+                  value={form.name}
+                  onChange={setValue('name')}
+                  maxLength={30}
+                  placeholder="작품명을 입력해 주세요"
+                />
               </FormField>
 
-              <FormField label="종류 *">
-                <div className={s.typeRow}>
-                  {ART_TYPES.map(t => (
-                    <button
-                      key={t} type="button"
-                      className={`${s.typeBtn} ${form.artType === t ? s.typeBtnActive : ''}`}
-                      onClick={() => setForm(f => ({ ...f, artType: t }))}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </FormField>
-
-              <FormField label="재료">
-                <input className={s.input} value={form.material} onChange={set('material')} placeholder="사용 재료 (예: 유채, 수채화, 디지털 드로잉)" />
-              </FormField>
-
-              <FormField label="테마 태그">
-                <div className={s.tagGrid}>
-                  {THEME_TAGS.map(tag => (
-                    <button
-                      key={tag} type="button"
-                      className={`${s.tagBtn} ${form.tags.includes(tag) ? s.tagBtnActive : ''}`}
-                      onClick={() => toggleTag(tag)}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
-              </FormField>
-
-              <FormField label="작품 설명 *" error={errors.descript}>
+              <FormField label="작품 설명">
                 <textarea
                   className={s.textarea}
                   value={form.descript}
-                  onChange={set('descript')}
-                  placeholder="작품에 대한 설명을 자세히 입력해주세요. (작품의 의미, 제작 배경 등)"
+                  onChange={setValue('descript')}
+                  maxLength={300}
+                  rows={4}
+                  placeholder="작품의 소재, 분위기, 특징을 입력해 주세요"
+                />
+              </FormField>
+
+              <FormField label="작가 노트">
+                <textarea
+                  className={s.textarea}
+                  value={form.wIntro}
+                  onChange={setValue('wIntro')}
+                  maxLength={500}
                   rows={5}
+                  placeholder="작품 제작 배경이나 소개 문구를 입력해 주세요"
                 />
               </FormField>
             </div>
           </section>
 
-          {/* 경매 설정 */}
           <section className={s.card}>
             <h2 className={s.cardTitle}>경매 설정</h2>
             <div className={s.fieldGrid}>
-              <FormField label="시작가 *" error={errors.price}>
+              <FormField label="시작가 *" error={errors.startPrice}>
                 <div className={s.priceRow}>
                   <input
                     className={s.input}
                     type="number"
-                    min={1000}
+                    min={1}
                     step={1000}
-                    value={form.price}
-                    onChange={set('price')}
+                    value={form.startPrice}
+                    onChange={setValue('startPrice')}
                     placeholder="0"
                   />
                   <span className={s.priceUnit}>원</span>
@@ -209,42 +203,42 @@ export default function UploadSell() {
               </FormField>
 
               <div className={s.timeGrid}>
-                <FormField label="경매 시작 시간 *" error={errors.startTime}>
+                <FormField label="입찰 시작 시간 *" error={errors.bidStartTime}>
                   <input
                     className={s.input}
                     type="datetime-local"
-                    value={form.startTime}
-                    onChange={set('startTime')}
-                    min={new Date().toISOString().slice(0, 16)}
+                    value={form.bidStartTime}
+                    onChange={setValue('bidStartTime')}
                   />
                 </FormField>
-                <FormField label="경매 종료 시간 *" error={errors.endTime}>
+                <FormField label="입찰 종료 시간 *" error={errors.closingTime}>
                   <input
                     className={s.input}
                     type="datetime-local"
-                    value={form.endTime}
-                    onChange={set('endTime')}
-                    min={form.startTime || new Date().toISOString().slice(0, 16)}
+                    value={form.closingTime}
+                    onChange={setValue('closingTime')}
                   />
                 </FormField>
               </div>
 
-              {form.startTime && form.endTime && !errors.endTime && (
-                <div className={s.durationInfo}>
-                  경매 기간: {calcDuration(form.startTime, form.endTime)}
-                </div>
-              )}
+              <FormField label="등록 상태">
+                <select className={s.input} value={form.artStatus} onChange={setValue('artStatus')}>
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </FormField>
             </div>
           </section>
 
-          {/* 유의사항 */}
           <div className={s.notice}>
-            ※ 등록된 작품은 경매 시작 후 삭제가 불가능합니다. 낙찰 후에는 작가가 직접 배송을 진행해야 합니다.
-            AI 생성 이미지 등록 시 계정이 정지될 수 있습니다.
+            이미지 파일 업로드는 아직 연결하지 않고, 현재 프로젝트의 정적 리소스 경로를 입력해 등록합니다.
           </div>
 
+          {errors.submit && <p className={s.submitError}>{errors.submit}</p>}
+
           <button type="submit" className={s.submitBtn} disabled={submitting}>
-            {submitting ? '등록 중…' : '작품 등록하기'}
+            {submitting ? '등록 중' : '작품 등록하기'}
           </button>
         </form>
       </div>
@@ -260,11 +254,4 @@ function FormField({ label, error, children }) {
       {error && <p className={s.errMsg}>{error}</p>}
     </div>
   )
-}
-
-function calcDuration(start, end) {
-  const ms   = new Date(end) - new Date(start)
-  const days = Math.floor(ms / 86400000)
-  const hrs  = Math.floor((ms % 86400000) / 3600000)
-  return `${days}일 ${hrs}시간`
 }
