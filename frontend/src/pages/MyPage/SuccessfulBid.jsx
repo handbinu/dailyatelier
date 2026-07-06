@@ -15,6 +15,21 @@ export default function SuccessfulBid() {
     <PageWrap>
       <PageBanner title="낙찰 작품" crumb="낙찰 작품" />
       <div className={s.body}>
+        <div style={{
+          backgroundColor: '#fff9db',
+          border: '1px solid #ffe066',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          color: '#f08c00',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '20px',
+          lineHeight: '1.5'
+        }}>
+          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
+        </div>
         {MOCK_SUCCESSFUL.length === 0 ? (
           <Empty msg="낙찰된 작품이 없습니다." />
         ) : (

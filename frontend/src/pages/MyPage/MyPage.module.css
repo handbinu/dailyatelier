@@ -981,3 +981,18 @@
   .artCardGrid { grid-template-columns: 1fr; }
   .artManageGrid { grid-template-columns: 1fr; }
 }
+
+/* ── Mock 안내 배너 ───────────────────────────────────────── */
+.mockAlertBanner {
+  background-color: #fff9db;
+  border: 1px solid #ffe066;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: #f08c00;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  line-height: 1.5;
+}

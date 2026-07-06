@@ -28,6 +28,7 @@ import InquiryWrite   from './pages/MyPage/InquiryWrite'
 
 // ── 마이페이지 세부 — 작가 전용
 import UploadSell   from './pages/MyPage/UploadSell'
+import ManageArts   from './pages/MyPage/ManageArts'
 import ArtistReview from './pages/MyPage/ArtistReview.jsx'
 
 function PreparingPage({ title }) {
@@ -95,6 +96,7 @@ function App() {
 
             {/* 작가 전용 */}
             <Route path="/upload"                element={<UploadSell />} />
+            <Route path="/mypage/manage-arts"    element={<ManageArts />} />
             <Route path="/mypage/artist-review"  element={<ArtistReview />} />
 
           </Route>

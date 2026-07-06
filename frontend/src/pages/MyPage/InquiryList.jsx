@@ -34,6 +34,21 @@ export default function InquiryList() {
       <PageBanner title="문의 현황" crumb="문의 현황" />
 
       <div className={s.body}>
+        <div style={{
+          backgroundColor: '#fff9db',
+          border: '1px solid #ffe066',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          fontSize: '14px',
+          color: '#f08c00',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '20px',
+          lineHeight: '1.5'
+        }}>
+          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
+        </div>
         {/* 상단 통계 + 작성 버튼 */}
         <div className={s.topRow}>
           <div className={s.stats}>

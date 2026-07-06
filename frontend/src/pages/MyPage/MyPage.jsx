@@ -1,10 +1,10 @@
 // src/pages/MyPage/MyPage.jsx  —  마이페이지 허브
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { getUserProfile, updateUserProfile } from '../../api/userApi'
 // ── mockData: 인라인 중복 선언 제거, 여기서만 import ──────────────
 import {
-  MOCK_USER, MOCK_BIDS, MOCK_LIKES, MOCK_SUCCESSFUL,
+  MOCK_BIDS, MOCK_LIKES, MOCK_SUCCESSFUL,
   MOCK_REVIEWS, MOCK_ORDERS, MOCK_INQUIRIES,
   MOCK_MY_ARTS, MOCK_ARTIST_REVIEWS,
   fmt, STATUS_META, ORDER_STATUS_COLOR,
@@ -14,14 +14,27 @@ import {
 import { Badge, StarDisplay, FilterBar } from './components/atoms'
 import styles from './MyPage.module.css'
 
-// ── 탭 정의 ──────────────────────────────────────────────────────
-const USER_TABS   = ['활동 개요', '입찰 현황', '찜한 작품', '낙찰 작품', '나의 리뷰', '주문 조회', '문의 현황']
-const ARTIST_TABS = [...USER_TABS, '내 작품 관리', '작품 리뷰']
+// ── 탭 정의 (경로 매핑) ───────────────────────────────────────────
+const USER_TABS = [
+  { name: '활동 개요', path: '/mypage' },
+  { name: '입찰 현황', path: '/mypage/bid-status' },
+  { name: '찜한 작품', path: '/mypage/likes' },
+  { name: '낙찰 작품', path: '/mypage/successful-bid' },
+  { name: '나의 리뷰', path: '/mypage/my-review' },
+  { name: '주문 조회', path: '/mypage/order-status' },
+  { name: '문의 현황', path: '/mypage/inquiry' }
+]
+
+const ARTIST_TABS = [
+  ...USER_TABS,
+  { name: '내 작품 관리', path: '/mypage/manage-arts' },
+  { name: '작품 리뷰', path: '/mypage/artist-review' }
+]
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────
 export default function MyPage() {
   const navigate    = useNavigate()
-  const [activeTab, setActiveTab] = useState(0)
+  const location    = useLocation()
   const [editMode,  setEditMode]  = useState(false)
   const [user,      setUser]      = useState(null)
   const [loading,   setLoading]   = useState(true)
@@ -39,6 +52,11 @@ export default function MyPage() {
       .catch(err => {
         console.error('프로필 로딩 실패:', err)
         setLoading(false)
+        if (err.response?.status === 403) {
+          alert('세션이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.')
+          ;['token', 'userId', 'nickname', 'userStatus'].forEach(k => localStorage.removeItem(k))
+          navigate('/login', { replace: true })
+        }
       })
   }
 
@@ -55,7 +73,7 @@ export default function MyPage() {
   if (loading) return <div style={{ textAlign: 'center', padding: '5rem 0' }}>로딩 중...</div>
 
   const tabs = isArtist ? ARTIST_TABS : USER_TABS
-  const profileUser = user || MOCK_USER
+  const profileUser = user
 
   return (
     <div className={styles.page}>
@@ -71,14 +89,16 @@ export default function MyPage() {
       <div className={styles.layout}>
         {/* 사이드바 */}
         <aside className={styles.sidebar}>
-          <ProfileCard
-            user={profileUser}
-            isArtist={isArtist}
-            editMode={editMode}
-            setEditMode={setEditMode}
-            onUpdate={fetchProfile}
-          />
-          <PointCard user={profileUser} />
+          {profileUser && (
+            <ProfileCard
+              user={profileUser}
+              isArtist={isArtist}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              onUpdate={fetchProfile}
+            />
+          )}
+          {profileUser && <PointCard user={profileUser} />}
           <QuickActions isArtist={isArtist} navigate={navigate} />
         </aside>
 
@@ -86,40 +106,35 @@ export default function MyPage() {
         <main className={styles.content}>
           {/* 탭 바 */}
           <div className={styles.tabBar} role="tablist">
-            {tabs.map((tab, idx) => (
-              <button
-                key={tab}
-                role="tab"
-                aria-selected={activeTab === idx}
-                className={`${styles.tabBtn} ${activeTab === idx ? styles.tabBtnActive : ''} ${idx >= 7 ? styles.tabBtnArtist : ''}`}
-                onClick={() => setActiveTab(idx)}
-              >
-                {tab}
-                {tab === '입찰 현황' && (
-                  <span className={styles.tabBadge}>
-                    {MOCK_BIDS.filter(b => b.status !== 'ended').length}
-                  </span>
-                )}
-                {tab === '문의 현황' && (
-                  <span className={styles.tabBadge}>
-                    {MOCK_INQUIRIES.filter(q => !q.answered).length}
-                  </span>
-                )}
-              </button>
-            ))}
+            {tabs.map((tab, idx) => {
+              const isActive = location.pathname === tab.path
+              return (
+                <button
+                  key={tab.name}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''} ${idx >= 7 ? styles.tabBtnArtist : ''}`}
+                  onClick={() => navigate(tab.path)}
+                >
+                  {tab.name}
+                  {tab.name === '입찰 현황' && (
+                    <span className={styles.tabBadge}>
+                      {MOCK_BIDS.filter(b => b.status !== 'ended').length}
+                    </span>
+                  )}
+                  {tab.name === '문의 현황' && (
+                    <span className={styles.tabBadge}>
+                      {MOCK_INQUIRIES.filter(q => !q.answered).length}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* 탭 패널 */}
           <div className={styles.tabPanel}>
-            {activeTab === 0 && <OverviewTab  bids={MOCK_BIDS} successful={MOCK_SUCCESSFUL} isArtist={isArtist} myArts={MOCK_MY_ARTS} />}
-            {activeTab === 1 && <BidTab       bids={MOCK_BIDS} />}
-            {activeTab === 2 && <LikesTab     likes={MOCK_LIKES} />}
-            {activeTab === 3 && <SuccessfulTab items={MOCK_SUCCESSFUL} />}
-            {activeTab === 4 && <ReviewTab    reviews={MOCK_REVIEWS} />}
-            {activeTab === 5 && <OrderTab     orders={MOCK_ORDERS} />}
-            {activeTab === 6 && <InquiryTab   inquiries={MOCK_INQUIRIES} />}
-            {isArtist && activeTab === 7 && <ArtManageTab arts={MOCK_MY_ARTS} navigate={navigate} />}
-            {isArtist && activeTab === 8 && <ArtistReviewTab reviews={MOCK_ARTIST_REVIEWS} />}
+            <OverviewTab bids={MOCK_BIDS} successful={MOCK_SUCCESSFUL} isArtist={isArtist} myArts={MOCK_MY_ARTS} />
           </div>
         </main>
       </div>
@@ -131,18 +146,18 @@ export default function MyPage() {
 //  사이드바 컴포넌트
 // ══════════════════════════════════════════════════════════════════
 function ProfileCard({ user, isArtist, editMode, setEditMode, onUpdate }) {
-  const initial = user.nickname?.[0] ?? '?'
+  const initial = user?.nickname?.[0] ?? '?'
   return (
     <div className={styles.profileCard}>
       <div className={styles.avatar}>
-        {user.profileImg
+        {user?.profileImg
           ? <img src={user.profileImg} alt="프로필" />
           : <span className={styles.avatarInitial}>{initial}</span>
         }
         <button className={styles.avatarEditBtn} aria-label="프로필 사진 변경">+</button>
       </div>
-      <p className={styles.profileNickname}>{user.nickname} 님</p>
-      <p className={styles.profileEmail}>{user.email}</p>
+      <p className={styles.profileNickname}>{user?.nickname || '사용자'} 님</p>
+      <p className={styles.profileEmail}>{user?.email || '이메일 정보 없음'}</p>
       {isArtist && <span className={styles.profileArtistTag}>작가</span>}
       <button className={styles.editProfileBtn} onClick={() => setEditMode(v => !v)}>
         {editMode ? '닫기' : '프로필 수정'}
@@ -154,9 +169,9 @@ function ProfileCard({ user, isArtist, editMode, setEditMode, onUpdate }) {
 
 function ProfileEditForm({ user, onClose, onUpdate }) {
   const [form, setForm] = useState({
-    nickname: user.nickname || '',
-    email: user.email || '',
-    phoneNumber: user.phoneNumber || '',
+    nickname: user?.nickname || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
   })
   const [saving, setSaving] = useState(false)
   const handle = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -169,13 +184,13 @@ function ProfileEditForm({ user, onClose, onUpdate }) {
         nickname: form.nickname,
         email: form.email,
         phoneNumber: form.phoneNumber,
-        zipCode: user.zipCode,
-        userAddress1: user.userAddress1,
-        userAddress2: user.userAddress2,
-        artistIntro: user.artistIntro,
-        homepage: user.homepage,
-        artistSns: user.artistSns,
-        artistName: user.artistName
+        zipCode: user?.zipCode,
+        userAddress1: user?.userAddress1,
+        userAddress2: user?.userAddress2,
+        artistIntro: user?.artistIntro,
+        homepage: user?.homepage,
+        artistSns: user?.artistSns,
+        artistName: user?.artistName
       })
       alert('회원 정보가 수정되었습니다.')
       if (onUpdate) onUpdate()
@@ -209,20 +224,11 @@ function ProfileEditForm({ user, onClose, onUpdate }) {
 }
 
 function PointCard({ user }) {
-  const total = user.reserve + user.usedReserve
-  const usedPct = total > 0 ? Math.min((user.usedReserve / total) * 100, 100) : 0
   return (
     <div className={styles.pointCard}>
       <div className={styles.pointRow}>
         <span className={styles.pointLabel}>보유 적립금</span>
-        <span className={styles.pointValue}>{fmt(user.reserve)}원</span>
-      </div>
-      <div className={styles.pointBar}>
-        <div className={styles.pointBarFill} style={{ width: `${usedPct}%` }} />
-      </div>
-      <div className={styles.pointSubRow}>
-        <span className={styles.pointSub}>사용 {fmt(user.usedReserve)}원</span>
-        <span className={styles.pointSub}>총 {fmt(total)}원</span>
+        <span className={styles.pointValue}>{fmt(user?.reserve || 0)}원</span>
       </div>
       <Link to="/charge" className={styles.chargeBtn}>충전하기</Link>
     </div>
@@ -262,6 +268,9 @@ function OverviewTab({ bids, successful, isArtist, myArts }) {
   ]
   return (
     <div className={styles.overviewWrap}>
+      <div className={styles.mockAlertBanner}>
+        ⚠️ 개요 페이지의 입찰 및 낙찰 현황은 임시 목업 데이터입니다. '찜한 작품' 메뉴에서 실제 API 연동을 확인하실 수 있습니다.
+      </div>
       <div className={styles.statGrid}>
         {stats.map(st => (
           <div key={st.label} className={styles.statCard} style={{ '--stat-color': st.color }}>
