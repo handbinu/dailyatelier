@@ -4,7 +4,6 @@
 .banner {
     background: var(--color-primary);
     padding: var(--space-10) 0 var(--space-8);
-    margin-top: var(--header-height, 4.5rem); /* Layout Header 높이만큼 밀어냄 */
   }
   .bannerInner {
     max-width: var(--container-xl);
@@ -20,11 +19,11 @@
     letter-spacing: .06em;
   }
   .title {
-    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-size: clamp(1.2rem, 3vw, 2.4rem);
     font-weight: 800;
     color: #fff;
-    letter-spacing: .04em;
-    line-height: 1.1;
+    letter-spacing: .08em;
+    line-height: 1;
   }
   
   /* ── Badge ──────────────────────────────────────────────────── */

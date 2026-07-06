@@ -67,8 +67,16 @@
   background: var(--color-accent-light);
 }
 
+/* ── 에러 래퍼 (공간 선확보 → 레이아웃 시프트 방지) ── */
+.errorWrap {
+  min-height: 2.4rem;   /* 에러 p 한 줄 높이 이상 확보 */
+  display: flex;
+  align-items: center;
+}
+
 /* ── 에러 메시지 ─────────────────────────────────────────── */
 .error {
+  width: 100%;
   font-size: var(--font-size-sm);
   color: var(--color-error);
   background: var(--color-error-bg);

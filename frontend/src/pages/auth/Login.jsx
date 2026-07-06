@@ -65,7 +65,9 @@ function Login() {
             />
           </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+          <div className={styles.errorWrap}>
+            {error && <p className={styles.error}>{error}</p>}
+          </div>
 
           <button
             type="submit"
