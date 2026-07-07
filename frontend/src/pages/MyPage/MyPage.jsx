@@ -52,11 +52,6 @@ export default function MyPage() {
       .catch(err => {
         console.error('프로필 로딩 실패:', err)
         setLoading(false)
-        if (err.response?.status === 403) {
-          alert('세션이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.')
-          ;['token', 'userId', 'nickname', 'userStatus'].forEach(k => localStorage.removeItem(k))
-          navigate('/login', { replace: true })
-        }
       })
   }
 

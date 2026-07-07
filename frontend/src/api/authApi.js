@@ -15,16 +15,20 @@ api.interceptors.request.use((config) => {
     return config
 })
 
+// 중복 실행 방지 플래그
+let isHandling = false
+
 //응답 인터셉터
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401){
-            localStorage.removeItem('token')
-            localStorage.removeItem('userId')
-            localStorage.removeItem('nickname')
-            localStorage.removeItem('userStatus')
+        const status = error.response?.status
+        if ((status === 401 || status === 403) && !isHandling) {
+            isHandling = true
+            ;['token', 'userId', 'nickname', 'userStatus'].forEach(k => localStorage.removeItem(k))
+            alert('세션이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.')
             window.location.href = '/login'
+            setTimeout(() => { isHandling = false }, 3000)
         }
         return Promise.reject(error)
     }
