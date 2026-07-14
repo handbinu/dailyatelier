@@ -30,6 +30,7 @@ import InquiryWrite   from './pages/MyPage/InquiryWrite'
 import UploadSell   from './pages/MyPage/UploadSell'
 import ManageArts   from './pages/MyPage/ManageArts'
 import ArtistReview from './pages/MyPage/ArtistReview.jsx'
+import ArtDetail    from './pages/Auction/ArtDetail'
 
 function PreparingPage({ title }) {
   return (
@@ -65,7 +66,7 @@ function App() {
           <Route path="/auction/digital" element={<PreparingPage title="디지털 경매" />} />
           <Route path="/auction/analog"  element={<PreparingPage title="실물 경매" />} />
           <Route path="/auction/artist"  element={<PreparingPage title="작가별 작품" />} />
-          <Route path="/auction/:id"     element={<PreparingPage title="작품 상세" />} />
+          <Route path="/auction/:id"     element={<ArtDetail />} />
           <Route path="/artist-introduce" element={<PreparingPage title="작가소개" />} />
           <Route path="/developer"       element={<PreparingPage title="개발자 소개" />} />
           <Route path="/info"            element={<PreparingPage title="경매 진행방법" />} />
