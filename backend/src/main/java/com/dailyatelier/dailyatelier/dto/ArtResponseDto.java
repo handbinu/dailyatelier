@@ -13,6 +13,7 @@ public class ArtResponseDto {
     private String artistName;
     private String name;
     private String descript;
+    private String material;
     private String wIntro;
     private Integer startPrice;
     private Integer currentPrice;

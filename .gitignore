@@ -38,6 +38,8 @@ out/
 
 ### Security ###
 backend/src/main/resources/application.properties
+backend/.env
+backend/daliyatelier.env
 
 # Frontend
 frontend/node_modules/

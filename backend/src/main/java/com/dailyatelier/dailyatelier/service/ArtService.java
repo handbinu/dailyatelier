@@ -42,13 +42,14 @@ public class ArtService {
         art.setArtist(artist);
         art.setName(dto.getName().trim());
         art.setDescript(blankToNull(dto.getDescript()));
+        art.setMaterial(blankToNull(dto.getMaterial()));
         art.setWIntro(blankToNull(dto.getWIntro()));
         art.setStartPrice(dto.getStartPrice());
         art.setCurrentPrice(dto.getStartPrice());
         art.setBidStartTime(dto.getBidStartTime());
         art.setClosingTime(dto.getClosingTime());
         art.setImgPath(dto.getImgPath().trim());
-        art.setArtStatus(dto.getArtStatus() == null ? 2 : dto.getArtStatus());
+        art.setArtStatus(0);
 
         return toResponse(artRepository.save(art));
     }
@@ -61,6 +62,7 @@ public class ArtService {
                 artist.getArtistName(),
                 art.getName(),
                 art.getDescript(),
+                art.getMaterial(),
                 art.getWIntro(),
                 art.getStartPrice(),
                 art.getCurrentPrice(),

@@ -26,6 +26,9 @@ public class Art {
     @Column(length = 300)
     private String descript;
 
+    @Column(length = 120)
+    private String material;
+
     @Column(length = 500)
     private String wIntro;
 

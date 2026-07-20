@@ -17,6 +17,8 @@ public class ArtCreateRequestDto {
 
     private String descript;
 
+    private String material;
+
     private String wIntro;
 
     @NotNull
@@ -33,5 +35,5 @@ public class ArtCreateRequestDto {
     @NotBlank
     private String imgPath;
 
-    private Integer artStatus = 2;
+    private Integer artStatus = 0;
 }
