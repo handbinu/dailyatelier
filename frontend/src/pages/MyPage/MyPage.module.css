@@ -60,7 +60,7 @@
   gap: var(--space-6);
   max-width: var(--container-xl);
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6) var(--space-16);
+  padding: var(--space-10) var(--space-6) var(--space-12);
   align-items: start;
 }
 
@@ -71,6 +71,11 @@
   gap: var(--space-4);
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
+  max-height: calc(100dvh - var(--header-height) - var(--space-8));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: var(--space-2);
 }
 
 /* 프로필 카드 */
@@ -297,9 +302,9 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .quickBtn {
@@ -316,9 +321,31 @@
   text-align: left;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.quickBtn:last-child { border-bottom: none; }
+.quickActions .quickBtn:last-of-type { border-bottom: none; }
 .quickBtn:hover { background: var(--color-accent-light); color: var(--color-accent); }
 .quickBtn span { font-size: 1.1rem; }
+
+.quickBtnLogout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-sm);
+  color: #a94442;
+  background: rgba(217, 83, 79, 0.08);
+  border: none;
+  border-top: 1px solid rgba(217, 83, 79, 0.18);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quickBtnLogout:hover {
+  background: rgba(217, 83, 79, 0.14);
+  color: #8d2c2a;
+  border-top-color: rgba(217, 83, 79, 0.28);
+}
 
 /* ── 메인 콘텐츠 ─────────────────────────────────────────── */
 .content {
@@ -461,17 +488,24 @@
 }
 .miniRow:hover { box-shadow: var(--shadow-sm); }
 
-.miniRowImg {
-  width: 52px;
-  height: 52px;
+.miniImg {
+  width: 72px;
+  height: 72px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
-.miniRowInfo { flex: 1; min-width: 0; }
+.miniInfo { flex: 1; min-width: 0; }
 
-.miniRowTitle {
+.miniTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.miniInfo strong {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
@@ -480,12 +514,12 @@
   text-overflow: ellipsis;
 }
 
-.miniRowSub { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.miniSub { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px; }
 
 /* ── 공통: 아트 카드 그리드 ──────────────────────────────── */
 .artCardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--space-5);
 }
 
@@ -496,6 +530,9 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   transition: box-shadow var(--transition-base), transform var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 .bidCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 
@@ -503,6 +540,7 @@
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
+  background: var(--color-surface-alt);
 }
 .bidImgWrap img {
   width: 100%; height: 100%;
@@ -511,12 +549,28 @@
 }
 .bidCard:hover .bidImgWrap img { transform: scale(1.05); }
 
-.bidCardBody { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+.bidCardBody {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
 
-.bidCardTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
+.bidCardTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .bidCardArtist { font-size: var(--font-size-xs); color: var(--color-text-muted); }
 
-.bidPriceRow { display: flex; justify-content: space-between; align-items: center; }
+.bidPriceRow { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); min-width: 0; }
 .bidMyPrice { font-size: var(--font-size-xs); color: var(--color-text-sub); }
 .bidMyPrice strong { font-weight: 700; color: var(--color-text); }
 
@@ -524,7 +578,7 @@
 .bidLeadingYes { background: rgba(30, 140, 79, 0.12); color: var(--color-success); }
 .bidLeadingNo  { background: rgba(217, 48, 37, 0.1);  color: var(--color-error); }
 
-.bidCurrentPrice { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.bidCurrentPrice { font-size: var(--font-size-xs); color: var(--color-text-muted); min-width: 0; }
 .bidCurrentPrice strong { color: var(--color-primary); font-weight: 700; }
 
 .bidTime { font-size: 11px; color: var(--color-text-muted); }
@@ -968,7 +1022,12 @@
     grid-template-columns: 1fr;
     padding: var(--space-4) var(--space-4) var(--space-12);
   }
-  .sidebar { position: static; }
+  .sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
   .tabBar { overflow-x: auto; flex-wrap: nowrap; }
   .tabBtn { flex-shrink: 0; }
   .artCardGrid { grid-template-columns: repeat(2, 1fr); }
