@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import styles from './Header.module.css'
 
 const NAV_ITEMS = [
@@ -20,14 +20,14 @@ const NAV_ITEMS = [
     ],
   },
   {
-    label: '소개글',
+    label: '작가 소개',
     children: [
-      { label: '작가소개', to: '/artist-introduce' },
+      { label: '작가 소개', to: '/artist-introduce' },
       { label: '개발자 소개', to: '/developer' },
     ],
   },
   {
-    label: '서비스',
+    label: '고객센터',
     children: [
       { label: '경매 진행방법', to: '/info' },
       { label: '고객센터', to: '/qna' },
@@ -39,28 +39,21 @@ const NAV_ITEMS = [
 export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
+  const headerRef = useRef(null)
   const [openIdx, setOpenIdx] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const headerRef = useRef(null)
 
   const token = localStorage.getItem('token')
+  const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
   const nickname = localStorage.getItem('nickname')
 
-  /* 스크롤 감지 */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  /* 라우트 변경 시 메뉴 닫기 */
-  useEffect(() => {
-    setOpenIdx(null)
-    setMobileOpen(false)
-  }, [location.pathname])
-
-  /* 외부 클릭 시 닫기 */
   useEffect(() => {
     const handler = (e) => {
       if (headerRef.current && !headerRef.current.contains(e.target)) {
@@ -71,74 +64,45 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const handleLogout = () => {
-    if (!confirm('로그아웃 하시겠습니까?')) return
-    ;['token', 'userId', 'nickname', 'userStatus'].forEach((k) =>
-      localStorage.removeItem(k)
-    )
+  const logout = () => {
+    if (!window.confirm('로그아웃 하시겠습니까?')) return
+    ;['token', 'userId', 'nickname', 'userStatus'].forEach((key) => localStorage.removeItem(key))
     navigate('/login')
   }
 
-  const toggleMenu = (idx) =>
-    setOpenIdx((prev) => (prev === idx ? null : idx))
-  const isDesktop = () => window.matchMedia('(min-width: 769px)').matches
-
   return (
-    <header
-      ref={headerRef}
-      className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}
-    >
+    <header ref={headerRef} className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
       <div className={styles.inner}>
-        {/* 로고 */}
         <Link to="/" className={styles.logo}>
-          <img src="/img/Logo_2.png" alt="데일리 아틀리에" />
+          <img src="/img/Logo_2.png" alt="Daily Atelier" />
         </Link>
 
-        {/* 데스크톱 GNB */}
         <nav className={styles.gnb} aria-label="주 메뉴">
           {NAV_ITEMS.map((item, idx) => (
             <div
               key={item.label}
               className={`${styles.gnbItem} ${openIdx === idx ? styles.open : ''}`}
-              onMouseEnter={() => {
-                if (isDesktop()) setOpenIdx(idx)
-              }}
-              onMouseLeave={() => {
-                if (isDesktop()) setOpenIdx(null)
-              }}
+              onMouseEnter={() => setOpenIdx(idx)}
+              onMouseLeave={() => setOpenIdx(null)}
             >
               <button
                 className={styles.gnbTrigger}
-                onClick={() => toggleMenu(idx)}
+                onClick={() => setOpenIdx((prev) => (prev === idx ? null : idx))}
                 aria-expanded={openIdx === idx}
-                onFocus={() => {
-                  if (isDesktop()) setOpenIdx(idx)
-                }}
-                onBlur={(e) => {
-                  if (!e.currentTarget.parentElement?.contains(e.relatedTarget)) {
-                    setOpenIdx(null)
-                  }
-                }}
               >
                 {item.label}
                 <span className={styles.chevron} aria-hidden="true">
-                  ›
+                  ▾
                 </span>
               </button>
 
-              {/* 드롭다운 */}
-              <div
-                className={styles.dropdown}
-                aria-hidden={openIdx !== idx}
-              >
+              <div className={styles.dropdown} aria-hidden={openIdx !== idx}>
                 <ul className={styles.dropdownList}>
                   {item.children.map((child) => (
                     <li key={child.to}>
                       <Link
                         to={child.to}
-                        className={`${styles.dropdownLink} ${
-                          location.pathname === child.to ? styles.active : ''
-                        }`}
+                        className={`${styles.dropdownLink} ${location.pathname === child.to ? styles.active : ''}`}
                         onClick={() => setOpenIdx(null)}
                       >
                         {child.label}
@@ -151,14 +115,13 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* 검색 */}
         <div className={styles.searchWrap}>
           <input
             type="text"
             placeholder="작품 검색"
             className={styles.searchInput}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') navigate(`/search?q=${e.target.value}`)
+              if (e.key === 'Enter') navigate(`/search?q=${encodeURIComponent(e.target.value)}`)
             }}
           />
           <button className={styles.searchBtn} aria-label="검색">
@@ -166,18 +129,22 @@ export default function Header() {
           </button>
         </div>
 
-        {/* 사용자 메뉴 */}
         <div className={styles.userMenu}>
           {token ? (
             <>
               <span className={styles.nickname}>{nickname}</span>
               <Link to="/reliable-status" className={styles.userLink}>
-                입찰현황
+                입찰 현황
               </Link>
               <Link to="/mypage" className={styles.userLink}>
                 마이페이지
               </Link>
-              <button onClick={handleLogout} className={styles.userLink}>
+              {userStatus === 1 && (
+                <Link to="/upload" className={`${styles.userLink} ${styles.artistLink}`}>
+                  작품 등록
+                </Link>
+              )}
+              <button onClick={logout} className={styles.userLink}>
                 로그아웃
               </button>
             </>
@@ -189,37 +156,30 @@ export default function Header() {
               <Link to="/register" className={`${styles.userLink} ${styles.registerBtn}`}>
                 회원가입
               </Link>
-              <Link to="/qna" className={styles.userLink}>
-                고객센터
-              </Link>
             </>
           )}
         </div>
 
-        {/* 모바일 햄버거 */}
         <button
           className={`${styles.hamburger} ${mobileOpen ? styles.hamburgerOpen : ''}`}
           onClick={() => setMobileOpen((v) => !v)}
           aria-label="모바일 메뉴"
         >
-          <span /><span /><span />
+          <span />
+          <span />
+          <span />
         </button>
       </div>
 
-      {/* 드롭다운 배경 (hover 영역 유지) */}
-      <div
-        className={`${styles.hdBg} ${openIdx !== null ? styles.hdBgVisible : ''}`}
-        aria-hidden="true"
-      />
+      <div className={`${styles.hdBg} ${openIdx !== null ? styles.hdBgVisible : ''}`} aria-hidden="true" />
 
-      {/* 모바일 메뉴 */}
       {mobileOpen && (
         <div className={styles.mobileMenu}>
           {NAV_ITEMS.map((item) => (
             <div key={item.label} className={styles.mobileSection}>
               <p className={styles.mobileSectionLabel}>{item.label}</p>
               {item.children.map((child) => (
-                <Link key={child.to} to={child.to} className={styles.mobileLink}>
+                <Link key={child.to} to={child.to} className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
                   {child.label}
                 </Link>
               ))}
@@ -228,20 +188,29 @@ export default function Header() {
           <div className={styles.mobileDivider} />
           {token ? (
             <>
-              <Link to="/reliable-status" className={styles.mobileLink}>
-                입찰현황
+              <Link to="/reliable-status" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
+                입찰 현황
               </Link>
-              <Link to="/mypage" className={styles.mobileLink}>
+              <Link to="/mypage" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
                 마이페이지
               </Link>
-              <button onClick={handleLogout} className={styles.mobileLink}>
+              {userStatus === 1 && (
+                <Link to="/upload" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
+                  작품 등록
+                </Link>
+              )}
+              <button onClick={logout} className={styles.mobileLink}>
                 로그아웃
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className={styles.mobileLink}>로그인</Link>
-              <Link to="/register" className={styles.mobileLink}>회원가입</Link>
+              <Link to="/login" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
+                로그인
+              </Link>
+              <Link to="/register" className={styles.mobileLink} onClick={() => setMobileOpen(false)}>
+                회원가입
+              </Link>
             </>
           )}
         </div>
@@ -252,8 +221,7 @@ export default function Header() {
 
 function SearchIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>

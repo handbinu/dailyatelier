@@ -45,10 +45,10 @@ public class SecurityConfig {
                 )
                 //요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register/user").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register/artist").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/check/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                        .requestMatchers("/api/check/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 //JWT 필터를  UsernamePasswordAuthenticationFilter 앞에 추가

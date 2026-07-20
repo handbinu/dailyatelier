@@ -64,7 +64,6 @@ public class UserService {
         user.setJoinDate(LocalDateTime.now());
         user.setUserStatus(1);
         user.setReserve(0);
-        userRepository.save(user);
 
         Artist artist = new Artist();
         artist.setUser(user);
@@ -74,7 +73,7 @@ public class UserService {
         artist.setHomepage(dto.getHomepage());
         artist.setArtistSns(dto.getArtistSns());
         artist.setArtistIntro("");
-        artistRepository.save(artist);
+        artistRepository.saveAndFlush(artist);
     }
 
 

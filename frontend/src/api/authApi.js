@@ -8,6 +8,10 @@ const api = axios.create({
 
 //요청 인터셉터 - 토큰 자동 첨부
 api.interceptors.request.use((config) => {
+    const url = config.url || ''
+    if (url.startsWith('/api/auth/') || url.startsWith('/api/check/')) {
+        return config
+    }
     const token = localStorage.getItem('token')
     if(token){
         config.headers.Authorization = `Bearer ${token}`
