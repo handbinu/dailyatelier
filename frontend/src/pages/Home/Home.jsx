@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { getArts } from '../../api/artApi'
+import { formatClosingTime, formatPrice, getDeadlineMeta } from '../../utils/artDisplay'
+import {
+  applyArtImageFallback,
+  applyArtImageFallbackIfBlank,
+  getArtImageSrc,
+} from '../../utils/artImage'
 import styles from './Home.module.css'
 
 /* ── 슬라이드 데이터 ───────────────────────────────────── */
@@ -20,8 +27,11 @@ const ART_FILTERS = [
 
 export default function Home() {
   const [slideIdx, setSlideIdx] = useState(0)
-  const [newFilter, setNewFilter] = useState('all')
   const [endFilter, setEndFilter] = useState('all')
+  const [newArts, setNewArts] = useState([])
+  const [newArtsLoading, setNewArtsLoading] = useState(true)
+  const [newArtsError, setNewArtsError] = useState('')
+  const [newArtsRetryKey, setNewArtsRetryKey] = useState(0)
   const timerRef = useRef(null)
 
   /* 자동 슬라이드 */
@@ -31,6 +41,29 @@ export default function Home() {
     }, 4000)
     return () => clearInterval(timerRef.current)
   }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const loadNewArts = async () => {
+      setNewArtsLoading(true)
+      setNewArtsError('')
+
+      try {
+        const { data } = await getArts({ page: 0, size: 6, signal: controller.signal })
+        setNewArts(data.content ?? [])
+      } catch (requestError) {
+        if (requestError.code === 'ERR_CANCELED') return
+        setNewArts([])
+        setNewArtsError(requestError.response?.data?.message || '신규 작품을 불러오지 못했습니다.')
+      } finally {
+        if (!controller.signal.aborted) setNewArtsLoading(false)
+      }
+    }
+
+    loadNewArts()
+    return () => controller.abort()
+  }, [newArtsRetryKey])
 
   const goSlide = (idx) => {
     clearInterval(timerRef.current)
@@ -133,13 +166,14 @@ export default function Home() {
       <section className={styles.section} aria-label="신규 작품">
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>신규 작품</h2>
-          <FilterTabs
-            options={ART_FILTERS}
-            value={newFilter}
-            onChange={setNewFilter}
-          />
+          <Link to="/auction/total?page=1" className={styles.sectionMore}>전체 작품 보기 →</Link>
         </div>
-        <ArtGrid filter={newFilter} type="new" />
+        <NewArtGrid
+          arts={newArts}
+          loading={newArtsLoading}
+          error={newArtsError}
+          onRetry={() => setNewArtsRetryKey((key) => key + 1)}
+        />
       </section>
 
       {/* ── 종료 작품 ────────────────────────────────── */}
@@ -204,14 +238,6 @@ function FilterTabs({ options, value, onChange }) {
 
 /* ── 작품 그리드 (정적 목업 데이터) ─────────────────── */
 const MOCK_ARTS = {
-  new: [
-    { id: 'a1', img: '/img/auction/new_1.jpg', title: '엎질러진 자연', price: '209,001', time: '18:49:12', type: '실물' },
-    { id: 'a2', img: '/img/auction/new_2.jpg', title: '노을', price: '360,064', time: '67:33:57', type: '실물' },
-    { id: 'a3', img: '/img/auction/new_3.jpg', title: '목도리냥', price: '278,200', time: '65:04:28', type: '디지털' },
-    { id: 'a4', img: '/img/auction/new_4.png', title: '우리 집 앞', price: '459,768', time: '62:39:39', type: '실물' },
-    { id: 'a5', img: '/img/auction/new_5.png', title: '멍때림', price: '203,200', time: '58:12:00', type: '디지털' },
-    { id: 'a6', img: '/img/auction/new_6.png', title: '골목', price: '195,000', time: '44:30:10', type: '실물' },
-  ],
   end: [
     { id: 'e1', img: '/img/auction/done_digi_1.jpg', title: '연예인 병', price: '530,000', type: '디지털' },
     { id: 'e2', img: '/img/auction/done_digi_2.jpg', title: '세사람', price: '430,000', type: '디지털' },
@@ -220,6 +246,73 @@ const MOCK_ARTS = {
     { id: 'e5', img: '/img/auction/done_digi_3.jpg', title: '우주비행사', price: '380,000', type: '디지털' },
     { id: 'e6', img: '/img/auction/done_real_3.jpg', title: '내 속마음', price: '850,000', type: '실물' },
   ],
+}
+
+function NewArtGrid({ arts, loading, error, onRetry }) {
+  if (loading) {
+    return (
+      <div className={styles.artGrid} aria-label="신규 작품을 불러오는 중" aria-busy="true">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className={styles.homeSkeletonCard}>
+            <div className={styles.homeSkeletonImage} />
+            <div className={styles.homeSkeletonBody}><span /><span /><span /></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.homeFeedback} role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      </div>
+    )
+  }
+
+  if (arts.length === 0) {
+    return <p className={styles.empty}>표시할 작품이 없습니다.</p>
+  }
+
+  return (
+    <div className={styles.artGrid}>
+      {arts.map((art) => {
+        const deadline = getDeadlineMeta(art.closingTime)
+        return (
+          <Link
+            key={art.artId}
+            to={`/auction/${art.artId}`}
+            state={{ from: '/auction/total?page=1' }}
+            className={styles.artCard}
+          >
+            <div className={styles.artImgWrap}>
+              <img
+                src={getArtImageSrc(art.imgPath)}
+                alt={art.name}
+                loading="lazy"
+                onError={applyArtImageFallback}
+                onLoad={applyArtImageFallbackIfBlank}
+              />
+              <span className={`${styles.homeStatusBadge} ${deadline.isUrgent ? styles.homeStatusUrgent : ''} ${deadline.isClosed ? styles.homeStatusClosed : ''}`}>
+                {deadline.label}
+              </span>
+              <div className={styles.artOverlay}>
+                <span className={styles.artBidBtn}>작품 보기</span>
+              </div>
+            </div>
+            <div className={styles.artInfo}>
+              <p className={styles.artTitle}>{art.name}</p>
+              <p className={styles.artPrice}>현재가: {formatPrice(art.currentPrice)}원</p>
+              <p className={`${styles.artTime} ${deadline.isUrgent ? styles.artTimeUrgent : ''}`}>
+                마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
+              </p>
+            </div>
+          </Link>
+        )
+      })}
+    </div>
+  )
 }
 
 function ArtGrid({ filter, type }) {

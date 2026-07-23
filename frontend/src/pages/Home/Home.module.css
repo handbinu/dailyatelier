@@ -263,6 +263,14 @@
   border-color: var(--color-primary);
 }
 
+.sectionMore {
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sectionMore:hover { color: var(--color-accent); }
+
 /* ── 베스트 아트 그리드 ──────────────────────────────── */
 .bestGrid {
   display: grid;
@@ -363,6 +371,27 @@
   transition: transform 0.5s ease;
 }
 
+.homeStatusBadge {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: 0.34rem 0.68rem;
+  border-radius: var(--radius-full);
+  color: #fff;
+  background: rgba(35, 31, 34, 0.76);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.homeStatusUrgent {
+  border: 2px solid #fff;
+  background: #c2410c;
+  box-shadow: 0 5px 16px rgba(194, 65, 12, 0.34);
+}
+
+.homeStatusClosed { background: rgba(35, 31, 34, 0.72); }
+
 .artCard:hover .artImgWrap img {
   transform: scale(1.05);
 }
@@ -420,6 +449,55 @@
   font-size: var(--font-size-xs);
   color: var(--color-accent);
   font-weight: var(--font-weight-medium);
+}
+
+.artTimeUrgent { color: #c2410c; font-weight: var(--font-weight-bold); }
+
+.homeFeedback {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.homeFeedback button {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--color-primary);
+  font-family: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.homeSkeletonCard {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.homeSkeletonImage,
+.homeSkeletonBody span {
+  background: linear-gradient(90deg, var(--color-surface-alt), #fff, var(--color-surface-alt));
+  background-size: 200% 100%;
+  animation: homeSkeleton 1.4s ease infinite;
+}
+
+.homeSkeletonImage { aspect-ratio: 4 / 3; }
+.homeSkeletonBody { display: grid; gap: var(--space-2); padding: var(--space-4); }
+.homeSkeletonBody span { display: block; height: 12px; border-radius: var(--radius-sm); }
+.homeSkeletonBody span:nth-child(2) { width: 65%; }
+.homeSkeletonBody span:nth-child(3) { width: 82%; }
+
+@keyframes homeSkeleton {
+  to { background-position: -200% 0; }
 }
 
 /* 빈 상태 */
@@ -480,4 +558,9 @@
 
 @media (max-width: 400px) {
   .artGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeSkeletonImage,
+  .homeSkeletonBody span { animation: none; }
 }
