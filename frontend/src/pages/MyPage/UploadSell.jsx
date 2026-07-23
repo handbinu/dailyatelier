@@ -103,8 +103,8 @@ export default function UploadSell() {
 
     if (!form.name.trim()) nextErrors.name = '작품명을 입력해 주세요.'
     if (!form.material.trim()) nextErrors.material = '재료를 입력해 주세요.'
-    if (!Number.isFinite(startPrice) || startPrice < 1) {
-      nextErrors.startPrice = '시작가격은 1원 이상이어야 합니다.'
+    if (!Number.isInteger(startPrice) || startPrice < 1) {
+      nextErrors.startPrice = '시작가격은 1원 이상의 정수로 입력해 주세요.'
     }
     if (!form.bidStartTime) nextErrors.bidStartTime = '입찰 시작 시간을 선택해 주세요.'
     if (!form.closingTime) nextErrors.closingTime = '입찰 종료 시간을 선택해 주세요.'
@@ -278,7 +278,7 @@ export default function UploadSell() {
                     className={s.input}
                     type="number"
                     min={1}
-                    step={1000}
+                    step={1}
                     value={form.startPrice}
                     onChange={setValue('startPrice')}
                     placeholder="0"
