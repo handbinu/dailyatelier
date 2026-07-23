@@ -31,6 +31,7 @@ import UploadSell   from './pages/MyPage/UploadSell'
 import ManageArts   from './pages/MyPage/ManageArts'
 import ArtistReview from './pages/MyPage/ArtistReview.jsx'
 import ArtDetail    from './pages/Auction/ArtDetail'
+import AuctionTotal from './pages/Auction/AuctionTotal'
 
 function PreparingPage({ title }) {
   return (
@@ -62,7 +63,7 @@ function App() {
           <Route path="/"                element={<Home />} />
           <Route path="/notice"          element={<PreparingPage title="공지 사항" />} />
           <Route path="/event"           element={<PreparingPage title="이벤트 안내" />} />
-          <Route path="/auction/total"   element={<PreparingPage title="전체 경매" />} />
+          <Route path="/auction/total"   element={<AuctionTotal />} />
           <Route path="/auction/digital" element={<PreparingPage title="디지털 경매" />} />
           <Route path="/auction/analog"  element={<PreparingPage title="실물 경매" />} />
           <Route path="/auction/artist"  element={<PreparingPage title="작가별 작품" />} />

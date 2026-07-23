@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title description">
+  <title id="title">작품 이미지 준비 중</title>
+  <desc id="description">작품 이미지를 불러올 수 없을 때 표시되는 대체 이미지</desc>
+  <rect width="800" height="600" fill="#f3f1ec"/>
+  <rect x="196" y="108" width="408" height="300" rx="18" fill="#ffffff" stroke="#d8d3ca" stroke-width="8"/>
+  <circle cx="310" cy="210" r="36" fill="#c9b9aa"/>
+  <path d="M236 350l112-104 76 68 52-44 88 80z" fill="#778c86" opacity=".8"/>
+  <path d="M270 452h260" stroke="#d8d3ca" stroke-width="8" stroke-linecap="round"/>
+  <text x="400" y="510" text-anchor="middle" fill="#655f5a" font-family="Arial, sans-serif" font-size="28">DAILY ATELIER</text>
+</svg>

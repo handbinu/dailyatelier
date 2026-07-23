@@ -4,6 +4,19 @@
   padding: var(--space-8) var(--space-6) var(--space-16);
 }
 
+.backLink {
+  display: inline-flex;
+  margin-bottom: var(--space-5);
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-fast);
+}
+
+.backLink:hover {
+  color: var(--color-accent);
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
@@ -49,6 +62,35 @@
   text-transform: uppercase;
 }
 
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.statusBadge {
+  padding: 0.28rem 0.66rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.status_active {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.status_ended {
+  color: var(--color-text-sub);
+  background: var(--color-surface-alt);
+}
+
+.status_won {
+  color: #315c8a;
+  background: #edf4fb;
+}
+
 .title {
   font-size: clamp(1.6rem, 2.2vw, 2.2rem);
   font-weight: 800;
@@ -91,6 +133,11 @@
   color: var(--color-text);
 }
 
+.urgentText {
+  color: var(--color-warning);
+  font-weight: var(--font-weight-bold);
+}
+
 .price {
   display: flex;
   flex-direction: column;
@@ -112,6 +159,11 @@
   color: var(--color-accent);
   font-weight: 900;
   letter-spacing: -.03em;
+}
+
+.price small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .likeRow {
@@ -151,6 +203,12 @@
   transform: translateY(-1px);
 }
 
+.likeButton:disabled {
+  opacity: 0.58;
+  cursor: wait;
+  transform: none;
+}
+
 .likeIcon {
   font-size: 1rem;
   line-height: 1;
@@ -158,6 +216,22 @@
 
 .likeText {
   letter-spacing: -0.01em;
+}
+
+.likeError {
+  margin-top: var(--space-2);
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+}
+
+.ownerNotice {
+  align-self: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-hover);
+  background: var(--color-accent-light);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .descriptionSection {
@@ -230,12 +304,95 @@
   cursor: pointer;
 }
 
-.notFound {
+.statePage {
+  display: flex;
+  min-height: 520px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   max-width: var(--container-xl);
   margin: 0 auto;
-  padding: var(--space-10) var(--space-6);
-  font-size: var(--font-size-base);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.stateIcon {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  border-radius: var(--radius-lg);
+}
+
+.stateIcon svg {
+  width: 30px;
+  height: 30px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stateIcon_loading {
+  color: var(--color-accent-hover);
+  background: var(--color-accent-light);
+}
+
+.stateIcon_loading svg {
+  animation: stateSpin 1.1s linear infinite;
+}
+
+.stateIcon_notFound {
   color: var(--color-text-sub);
+  background: var(--color-surface-alt);
+}
+
+.stateIcon_error {
+  border-color: rgba(217, 48, 37, 0.2);
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.statePage h1 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+}
+
+.statePage p {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.stateAction {
+  margin-top: var(--space-5);
+}
+
+.stateAction a,
+.stateAction button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+@keyframes stateSpin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 900px) {
@@ -277,4 +434,8 @@
     flex-direction: column;
     gap: var(--space-1);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stateIcon_loading svg { animation: none; }
 }
