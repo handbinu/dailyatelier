@@ -1,13 +1,16 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
+import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.dto.LoginRequestDto;
 import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.service.UserService;
+import com.dailyatelier.dailyatelier.service.ArtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final ArtService artService;
 
     // POST /api/auth/login
     @PostMapping("/auth/login")
@@ -61,6 +65,15 @@ public class UserController {
     public ResponseEntity<UserProfileDto> getUserProfile(@AuthenticationPrincipal String userId) {
         UserProfileDto profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(profile);
+    }
+
+    // GET /api/users/me/arts
+    @GetMapping("/users/me/arts")
+    public ResponseEntity<Page<ArtResponseDto>> getMyArts(
+            @AuthenticationPrincipal String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(artService.getMyArts(userId, page, size));
     }
 
     //PUT /api/users/me
