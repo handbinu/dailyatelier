@@ -920,14 +920,16 @@
 
 .artManageGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
 }
 
 .manageCard {
+  display: block;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  color: inherit;
   overflow: hidden;
   transition: box-shadow var(--transition-base), transform var(--transition-fast);
 }
@@ -940,13 +942,82 @@
 }
 .manageImgWrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
 .manageCard:hover .manageImgWrap img { transform: scale(1.05); }
+.manageStatusBadge {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-3);
+  left: var(--space-3);
+}
 
 .manageCardBody { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
 .manageCardTitle { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
 .manageCardType  { font-size: var(--font-size-xs); color: var(--color-text-muted); }
-.managePriceRow  { display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-text-sub); margin-top: var(--space-1); }
+.managePriceRow  { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-sub); margin-top: var(--space-1); }
+.managePriceRow strong { color: var(--color-text); }
 .manageBidCount  { font-size: var(--font-size-xs); color: var(--color-accent); font-weight: 600; }
 .manageCloseTime { font-size: 11px; color: var(--color-text-muted); }
+
+.managePage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-12);
+}
+.manageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.manageResultCount { color: var(--color-text-sub); font-size: var(--font-size-sm); }
+.manageLoading,
+.manageFeedback {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.manageFeedback button,
+.manageFirstPageButton {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--color-primary);
+  font-family: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.manageEmpty { text-align: center; }
+.manageFirstPageButton { margin-top: calc(var(--space-4) * -1); }
+.managePagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+}
+.managePagination button {
+  min-width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.managePagination button:hover:not(:disabled),
+.managePagination .managePageButtonActive {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
+}
+.managePagination button:disabled { opacity: 0.4; cursor: default; }
 
 /* ── 공통 뱃지 ───────────────────────────────────────────── */
 .badge {
@@ -1054,4 +1125,13 @@
   gap: var(--space-2);
   margin-bottom: var(--space-6);
   line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .artManageGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .artManageGrid { grid-template-columns: 1fr; }
+  .managePage { padding-right: var(--space-4); padding-left: var(--space-4); }
 }
