@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { clearStoredAuth } from '../utils/authStorage'
 
 //Axios 기본 인스턴스
 const api = axios.create({
@@ -19,21 +20,39 @@ api.interceptors.request.use((config) => {
     return config
 })
 
-// 중복 실행 방지 플래그
-let isHandling = false
+const isPublicArtGetRequest = (config = {}) => {
+    const method = (config.method || 'get').toLowerCase()
+    const url = config.url || ''
+    return method === 'get' && /^\/api\/arts(?:\/\d+)?$/.test(url)
+}
+
+const removeAuthorizationHeader = (config) => {
+    if (!config.headers) return
+
+    if (typeof config.headers.delete === 'function') {
+        config.headers.delete('Authorization')
+        return
+    }
+    delete config.headers.Authorization
+}
 
 //응답 인터셉터
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         const status = error.response?.status
-        if ((status === 401 || status === 403) && !isHandling) {
-            isHandling = true
-            ;['token', 'userId', 'nickname', 'userStatus'].forEach(k => localStorage.removeItem(k))
-            alert('세션이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.')
-            window.location.href = '/login'
-            setTimeout(() => { isHandling = false }, 3000)
+        const originalRequest = error.config
+
+        if (status === 401) {
+            clearStoredAuth()
+
+            if (originalRequest && isPublicArtGetRequest(originalRequest) && !originalRequest._retriedWithoutAuth) {
+                originalRequest._retriedWithoutAuth = true
+                removeAuthorizationHeader(originalRequest)
+                return api(originalRequest)
+            }
         }
+
         return Promise.reject(error)
     }
 )

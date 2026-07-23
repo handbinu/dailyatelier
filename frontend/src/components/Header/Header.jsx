@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AUTH_STATE_CHANGED_EVENT, clearStoredAuth } from '../../utils/authStorage'
 import styles from './Header.module.css'
 
 const NAV_ITEMS = [
@@ -43,6 +44,7 @@ export default function Header() {
   const [openIdx, setOpenIdx] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [, setAuthVersion] = useState(0)
 
   const token = localStorage.getItem('token')
   const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
@@ -52,6 +54,12 @@ export default function Header() {
     const onScroll = () => setScrolled(window.scrollY > 10)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const handleAuthChange = () => setAuthVersion((version) => version + 1)
+    window.addEventListener(AUTH_STATE_CHANGED_EVENT, handleAuthChange)
+    return () => window.removeEventListener(AUTH_STATE_CHANGED_EVENT, handleAuthChange)
   }, [])
 
   useEffect(() => {
@@ -66,7 +74,7 @@ export default function Header() {
 
   const logout = () => {
     if (!window.confirm('로그아웃 하시겠습니까?')) return
-    ;['token', 'userId', 'nickname', 'userStatus'].forEach((key) => localStorage.removeItem(key))
+    clearStoredAuth()
     navigate('/login')
   }
 
