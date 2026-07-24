@@ -11,3 +11,6 @@ export const getMyArts = ({ page = 0, size = 12, signal } = {}) =>
 
 export const createArt = (data) =>
   api.post('/api/arts', data)
+
+export const createBid = (artId, bidPrice) =>
+  api.post(`/api/arts/${artId}/bids`, { bidPrice })

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getArt } from '../../api/artApi'
+import { createBid, getArt } from '../../api/artApi'
 import { addArtLike, getArtLikeStatus, removeArtLike } from '../../api/userApi'
 import { formatClosingTime, formatPrice, getDeadlineMeta } from '../../utils/artDisplay'
 import {
@@ -16,6 +16,8 @@ const STATUS_META = {
   2: { label: '낙찰', tone: 'won' },
 }
 
+const MAX_BID_PRICE = 2_100_000_000
+
 export default function ArtDetail() {
   const { id } = useParams()
   const location = useLocation()
@@ -29,6 +31,10 @@ export default function ArtDetail() {
   const [isLiked, setIsLiked] = useState(false)
   const [likeLoading, setLikeLoading] = useState(false)
   const [likeError, setLikeError] = useState('')
+  const [bidPrice, setBidPrice] = useState('')
+  const [bidSubmitting, setBidSubmitting] = useState(false)
+  const [bidFeedback, setBidFeedback] = useState(null)
+  const [now, setNow] = useState(() => Date.now())
 
   const listPath = useMemo(() => {
     const previousPath = location.state?.from
@@ -49,6 +55,8 @@ export default function ArtDetail() {
       setIsLiked(false)
       setLikeError('')
       setIsModalOpen(false)
+      setBidPrice('')
+      setBidFeedback(null)
 
       if (!/^\d+$/.test(id)) {
         setNotFound(true)
@@ -94,6 +102,11 @@ export default function ArtDetail() {
   }, [id, retryKey])
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
     if (!isModalOpen) return undefined
 
     const originalOverflow = document.body.style.overflow
@@ -136,6 +149,79 @@ export default function ArtDetail() {
     }
   }
 
+  const refreshArtAfterBidError = async () => {
+    try {
+      const { data } = await getArt(id)
+      setArt(data)
+    } catch {
+      // 기존 상세 정보를 유지하고 사용자가 다시 시도할 수 있게 한다.
+    }
+  }
+
+  const handleBidSubmit = async (event) => {
+    event.preventDefault()
+    if (bidSubmitting) return
+
+    const normalizedPrice = bidPrice.trim()
+    if (!/^\d+$/.test(normalizedPrice)) {
+      setBidFeedback({ type: 'error', message: '입찰 금액을 원 단위 정수로 입력해 주세요.' })
+      return
+    }
+
+    const amount = Number(normalizedPrice)
+    if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_BID_PRICE) {
+      setBidFeedback({ type: 'error', message: '입찰 금액은 1원 이상 21억 원 이하로 입력해 주세요.' })
+      return
+    }
+    if (amount <= art.currentPrice) {
+      setBidFeedback({
+        type: 'error',
+        message: `현재가보다 높은 금액을 입력해 주세요. 최소 ${formatPrice(art.currentPrice + 1)}원입니다.`,
+      })
+      return
+    }
+
+    setBidSubmitting(true)
+    setBidFeedback(null)
+    try {
+      const { data } = await createBid(art.artId, amount)
+      setArt((currentArt) => ({ ...currentArt, currentPrice: data.currentPrice }))
+      setBidPrice('')
+      setBidFeedback({
+        type: 'success',
+        message: `${formatPrice(data.bidPrice)}원에 입찰했습니다.`,
+      })
+    } catch (requestError) {
+      const statusCode = requestError.response?.status
+      const errorCode = requestError.response?.data?.code
+
+      if (statusCode === 409) {
+        await refreshArtAfterBidError()
+      }
+
+      if (statusCode === 401) {
+        setBidFeedback({ type: 'error', message: '로그인이 만료되었습니다. 다시 로그인해 주세요.' })
+      } else if (errorCode === 'BID_CONFLICT') {
+        setBidFeedback({
+          type: 'error',
+          message: '다른 입찰이 처리 중입니다. 갱신된 현재가를 확인하고 다시 시도해 주세요.',
+        })
+      } else if (errorCode === 'BID_TOO_LOW') {
+        setBidFeedback({
+          type: 'error',
+          message: '현재가가 먼저 갱신되었습니다. 새 현재가보다 높은 금액을 입력해 주세요.',
+        })
+      } else {
+        setBidFeedback({
+          type: 'error',
+          message: requestError.response?.data?.message || '입찰을 처리하지 못했습니다.',
+        })
+      }
+    } finally {
+      setBidSubmitting(false)
+    }
+  }
+
   if (loading) {
     return <DetailState title="작품 정보를 불러오는 중입니다" variant="loading" loading />
   }
@@ -162,10 +248,34 @@ export default function ArtDetail() {
     )
   }
 
-  const status = STATUS_META[art.artStatus] ?? { label: '상태 미정', tone: 'ended' }
   const deadline = getDeadlineMeta(art.closingTime)
+  const effectiveStatus = art.artStatus === 0 && deadline.isClosed ? 1 : art.artStatus
+  const status = STATUS_META[effectiveStatus] ?? { label: '상태 미정', tone: 'ended' }
   const isUrgent = art.artStatus === 0 && deadline.isUrgent
   const imageSrc = getArtImageSrc(art.imgPath)
+  const isLoggedIn = Boolean(localStorage.getItem('token'))
+  const bidStartTimestamp = new Date(art.bidStartTime).getTime()
+  const closingTimestamp = new Date(art.closingTime).getTime()
+  const hasValidAuctionTime = !Number.isNaN(bidStartTimestamp) && !Number.isNaN(closingTimestamp)
+  let bidDisabledReason = ''
+
+  if (art.isOwner) {
+    bidDisabledReason = '본인이 등록한 작품에는 입찰할 수 없습니다.'
+  } else if (art.artStatus !== 0) {
+    bidDisabledReason = '종료된 경매에는 입찰할 수 없습니다.'
+  } else if (!hasValidAuctionTime) {
+    bidDisabledReason = '경매 시간을 확인할 수 없어 입찰할 수 없습니다.'
+  } else if (now < bidStartTimestamp) {
+    bidDisabledReason = `${formatClosingTime(art.bidStartTime)}부터 입찰할 수 있습니다.`
+  } else if (now >= closingTimestamp) {
+    bidDisabledReason = '마감된 경매에는 입찰할 수 없습니다.'
+  } else if (art.currentPrice >= MAX_BID_PRICE) {
+    bidDisabledReason = '입찰 가능 최고 금액에 도달했습니다.'
+  } else if (!isLoggedIn) {
+    bidDisabledReason = '로그인 후 입찰할 수 있습니다.'
+  }
+
+  const canBid = !bidDisabledReason
 
   return (
     <div className={styles.page}>
@@ -221,6 +331,66 @@ export default function ArtDetail() {
             <strong>{formatPrice(art.currentPrice)}원</strong>
             <small>시작가 {formatPrice(art.startPrice)}원</small>
           </p>
+
+          <form className={styles.bidForm} onSubmit={handleBidSubmit}>
+            <div className={styles.bidHeading}>
+              <div>
+                <h2>입찰하기</h2>
+                <p>현재가보다 최소 1원 높은 금액을 입력해 주세요.</p>
+              </div>
+              {canBid && (
+                <span className={styles.minimumBid}>
+                  최소 {formatPrice(art.currentPrice + 1)}원
+                </span>
+              )}
+            </div>
+
+            <div className={styles.bidControls}>
+              <label className={styles.bidInputWrap}>
+                <span className={styles.srOnly}>입찰 금액</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={bidPrice}
+                  onChange={(event) => {
+                    setBidPrice(event.target.value.replace(/[^\d]/g, ''))
+                    setBidFeedback(null)
+                  }}
+                  placeholder={canBid ? `${formatPrice(art.currentPrice + 1)}원 이상` : '입찰 불가'}
+                  disabled={!canBid || bidSubmitting}
+                  aria-describedby="bid-help"
+                />
+                <span aria-hidden="true">원</span>
+              </label>
+              {!isLoggedIn && !art.isOwner ? (
+                <button
+                  type="button"
+                  className={styles.bidButton}
+                  onClick={() => navigate('/login', { state: { from: location } })}
+                >
+                  로그인
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className={styles.bidButton}
+                  disabled={!canBid || bidSubmitting}
+                >
+                  {bidSubmitting ? '입찰 처리 중…' : '입찰하기'}
+                </button>
+              )}
+            </div>
+
+            <div id="bid-help" className={styles.bidHelp} aria-live="polite">
+              {bidDisabledReason && <p className={styles.bidNotice}>{bidDisabledReason}</p>}
+              {bidFeedback && (
+                <p className={bidFeedback.type === 'success' ? styles.bidSuccess : styles.bidError}>
+                  {bidFeedback.message}
+                </p>
+              )}
+            </div>
+          </form>
 
           {art.isOwner ? (
             <p className={styles.ownerNotice}>내가 등록한 작품입니다.</p>
