@@ -46,6 +46,15 @@
   gap: var(--space-4);
 }
 
+.feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+}
+
 .card {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr);

@@ -5,6 +5,7 @@
 //  - PageWrap 은 Layout 헤더와 중복되지 않도록 배경 컨테이너만 담당
 //  - Empty 의 아이콘은 SVG 인라인으로 처리
 import { Link } from 'react-router-dom'
+import { applyArtImageFallback } from '../../../utils/artImage'
 import s from './atoms.module.css'
 
 // ── PageBanner ───────────────────────────────────────────────────
@@ -93,7 +94,7 @@ export function SortSelect({ options, value, onChange }) {
 export function ArtThumb({ src, alt, ratio = '1/1' }) {
   return (
     <div className={s.thumb} style={{ aspectRatio: ratio }}>
-      <img src={src} alt={alt} loading="lazy" />
+      <img src={src} alt={alt} loading="lazy" onError={applyArtImageFallback} />
     </div>
   )
 }

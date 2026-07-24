@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getUserProfile, updateUserProfile } from '../../api/userApi'
-import { MOCK_BIDS, MOCK_SUCCESSFUL, MOCK_INQUIRIES, MOCK_MY_ARTS, fmt, STATUS_META } from './mockData'
+import { getAllMyBids, getUserProfile, updateUserProfile } from '../../api/userApi'
+import { formatPrice } from '../../utils/artDisplay'
+import { getArtImageSrc } from '../../utils/artImage'
+import { MOCK_SUCCESSFUL, MOCK_INQUIRIES, MOCK_MY_ARTS, fmt } from './mockData'
 import { Badge } from './components/atoms'
 import styles from './MyPage.module.css'
+
+const BID_STATUS_META = {
+  ONGOING: { label: '진행 중', color: 'green' },
+  IMMINENT: { label: '종료 임박', color: 'orange' },
+  ENDED: { label: '종료', color: 'gray' },
+}
 
 const T = {
   home: '홈',
@@ -73,6 +81,9 @@ export default function MyPage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
+  const [bids, setBids] = useState([])
+  const [bidsLoading, setBidsLoading] = useState(true)
+  const [bidsError, setBidsError] = useState('')
 
   const token = localStorage.getItem('token')
   const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
@@ -89,6 +100,14 @@ export default function MyPage() {
       .then((res) => setUser(res.data))
       .catch((err) => console.error(T.profileLoadFail, err))
       .finally(() => setLoading(false))
+
+    getAllMyBids()
+      .then(setBids)
+      .catch((err) => {
+        console.error('입찰 현황 조회 실패', err)
+        setBidsError(err.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+      })
+      .finally(() => setBidsLoading(false))
   }, [token, navigate])
 
   if (!token) return null
@@ -135,7 +154,9 @@ export default function MyPage() {
                 >
                   {tab.name}
                   {tab.name === T.tabs.bid && (
-                    <span className={styles.tabBadge}>{MOCK_BIDS.filter((b) => b.status !== 'ended').length}</span>
+                    <span className={styles.tabBadge}>
+                      {bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
+                    </span>
                   )}
                   {tab.name === T.tabs.inquiry && (
                     <span className={styles.tabBadge}>{MOCK_INQUIRIES.filter((q) => !q.answered).length}</span>
@@ -147,7 +168,9 @@ export default function MyPage() {
 
           <div className={styles.tabPanel}>
             <OverviewTab
-              bids={MOCK_BIDS}
+              bids={bids}
+              bidsLoading={bidsLoading}
+              bidsError={bidsError}
               successful={MOCK_SUCCESSFUL}
               isArtist={isArtist}
               myArts={MOCK_MY_ARTS}
@@ -279,9 +302,9 @@ function QuickActions({ isArtist, navigate }) {
   )
 }
 
-function OverviewTab({ bids, successful, isArtist, myArts }) {
-  const ongoing = bids.filter((b) => b.status !== 'ended')
-  const imminent = bids.filter((b) => b.status === 'imminent')
+function OverviewTab({ bids, bidsLoading, bidsError, successful, isArtist, myArts }) {
+  const ongoing = bids.filter((bid) => bid.auctionStatus !== 'ENDED')
+  const imminent = bids.filter((bid) => bid.auctionStatus === 'IMMINENT')
   const stats = [
     { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: ongoing.length, unit: '건', color: 'var(--color-accent)' },
     { label: '\uC885\uB8CC \uC784\uBC15', value: imminent.length, unit: '건', color: '#c0622a' },
@@ -304,18 +327,22 @@ function OverviewTab({ bids, successful, isArtist, myArts }) {
 
       <section className={styles.overviewSection}>
         <h3 className={styles.overviewSectionTitle}>{T.recentBids}</h3>
-        {ongoing.length === 0 ? (
+        {bidsLoading ? (
+          <EmptyState msg="입찰 현황을 불러오는 중입니다." />
+        ) : bidsError ? (
+          <EmptyState msg={bidsError} />
+        ) : ongoing.length === 0 ? (
           <EmptyState msg={T.noBids} />
         ) : (
           <div className={styles.miniList}>
             {ongoing.map((b) => (
               <MiniArtRow
-                key={b.id}
-                img={b.artImg}
+                key={b.artId}
+                img={getArtImageSrc(b.imgPath)}
                 title={b.artName}
-                sub={`${T.currentBid} ${fmt(b.myPrice)}원`}
-                badge={STATUS_META[b.status].label}
-                badgeColor={STATUS_META[b.status].color}
+                sub={`${T.currentBid} ${formatPrice(b.myBidPrice)}원`}
+                badge={(BID_STATUS_META[b.auctionStatus] ?? BID_STATUS_META.ENDED).label}
+                badgeColor={(BID_STATUS_META[b.auctionStatus] ?? BID_STATUS_META.ENDED).color}
               />
             ))}
           </div>

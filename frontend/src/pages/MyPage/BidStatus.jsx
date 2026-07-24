@@ -1,49 +1,73 @@
-// src/pages/MyPage/BidStatus.jsx  —  입찰 현황 (독립 서브페이지)
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getAllMyBids } from '../../api/userApi'
+import { formatPrice } from '../../utils/artDisplay'
+import { getArtImageSrc } from '../../utils/artImage'
 import { PageBanner, Badge, FilterBar, Empty, PageWrap, ArtThumb, ActionBtn } from './components/atoms'
-// mockData에서 공유 데이터 사용 (MyPage.jsx와 동일 소스)
-import { MOCK_BIDS, STATUS_META, fmt } from './mockData'
 import s from './BidStatus.module.css'
 
 const FILTERS     = ['전체', '진행 중', '종료 임박', '종료']
-const STATUS_KEY  = { '진행 중': 'ongoing', '종료 임박': 'imminent', '종료': 'ended' }
+const STATUS_KEY  = { '진행 중': 'ONGOING', '종료 임박': 'IMMINENT', '종료': 'ENDED' }
+const STATUS_META = {
+  ONGOING: { label: '진행 중', color: 'green' },
+  IMMINENT: { label: '종료 임박', color: 'orange' },
+  ENDED: { label: '종료', color: 'gray' },
+}
+
+const formatClosingTime = (value) => {
+  if (!value) return '마감 시간 정보 없음'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
 
 export default function BidStatus() {
   const navigate = useNavigate()
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
-
   const [filter, setFilter] = useState('전체')
-  const items    = filter === '전체' ? MOCK_BIDS : MOCK_BIDS.filter(b => b.status === STATUS_KEY[filter])
-  const ongoing  = MOCK_BIDS.filter(b => b.status === 'ongoing').length
-  const imminent = MOCK_BIDS.filter(b => b.status === 'imminent').length
-  const ended    = MOCK_BIDS.filter(b => b.status === 'ended').length
+  const [bids, setBids] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadBids = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      setBids(await getAllMyBids())
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      navigate('/login', { replace: true })
+      return
+    }
+    loadBids()
+  }, [loadBids, navigate])
+
+  const items = useMemo(
+    () => filter === '전체' ? bids : bids.filter((bid) => bid.auctionStatus === STATUS_KEY[filter]),
+    [bids, filter],
+  )
+  const ongoing  = bids.filter((bid) => bid.auctionStatus === 'ONGOING').length
+  const imminent = bids.filter((bid) => bid.auctionStatus === 'IMMINENT').length
+  const ended    = bids.filter((bid) => bid.auctionStatus === 'ENDED').length
 
   return (
     <PageWrap>
       <PageBanner title="입찰 현황" crumb="입찰 현황" />
 
       <div className={s.body}>
-        <div style={{
-          backgroundColor: '#fff9db',
-          border: '1px solid #ffe066',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          color: '#f08c00',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          lineHeight: '1.5'
-        }}>
-          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
-        </div>
-        {/* 요약 카드 */}
         <div className={s.summary}>
           {[
             { label: '진행 중',   value: ongoing,  color: 'var(--color-accent)' },
@@ -59,10 +83,19 @@ export default function BidStatus() {
 
         <FilterBar options={FILTERS} value={filter} onChange={setFilter} />
 
-        {items.length === 0
+        {loading
+          ? <Empty msg="입찰 현황을 불러오는 중입니다." />
+          : error
+            ? (
+                <div className={s.feedback}>
+                  <p>{error}</p>
+                  <ActionBtn onClick={loadBids} variant="outline">다시 시도</ActionBtn>
+                </div>
+              )
+            : items.length === 0
           ? <Empty msg="해당 입찰 내역이 없습니다." />
           : <div className={s.list}>
-              {items.map(bid => <BidCard key={bid.id} bid={bid} />)}
+              {items.map(bid => <BidCard key={bid.artId} bid={bid} />)}
             </div>
         }
       </div>
@@ -71,13 +104,12 @@ export default function BidStatus() {
 }
 
 function BidCard({ bid }) {
-  const meta      = STATUS_META[bid.status]
-  const isLeading = bid.myPrice >= bid.currentPrice
+  const meta = STATUS_META[bid.auctionStatus] ?? STATUS_META.ENDED
 
   return (
-    <div className={`${s.card} ${bid.status === 'ended' ? s.cardEnded : ''}`}>
+    <div className={`${s.card} ${bid.auctionStatus === 'ENDED' ? s.cardEnded : ''}`}>
       <div className={s.cardImg}>
-        <ArtThumb src={bid.artImg} alt={bid.artName} ratio="1/1" />
+        <ArtThumb src={getArtImageSrc(bid.imgPath)} alt={bid.artName} ratio="1/1" />
         <Badge label={meta.label} color={meta.color} />
       </div>
 
@@ -85,31 +117,31 @@ function BidCard({ bid }) {
         <div className={s.cardTop}>
           <div>
             <p className={s.cardTitle}>{bid.artName}</p>
-            <p className={s.cardArtist}>by {bid.artist}</p>
+            <p className={s.cardArtist}>by {bid.artistName || '작가 정보 없음'}</p>
           </div>
-          <span className={`${s.leading} ${isLeading ? s.leadingYes : s.leadingNo}`}>
-            {isLeading ? '최고가' : '경쟁 중'}
+          <span className={`${s.leading} ${bid.isLeading ? s.leadingYes : s.leadingNo}`}>
+            {bid.isLeading ? '최고가' : '경쟁 중'}
           </span>
         </div>
 
         <div className={s.priceGrid}>
           <div className={s.priceItem}>
             <span className={s.priceLabel}>내 입찰가</span>
-            <span className={s.priceValue}>{fmt(bid.myPrice)}원</span>
+            <span className={s.priceValue}>{formatPrice(bid.myBidPrice)}원</span>
           </div>
           <div className={s.priceDivider} />
           <div className={s.priceItem}>
             <span className={s.priceLabel}>현재 최고가</span>
-            <span className={`${s.priceValue} ${s.priceHighlight}`}>{fmt(bid.currentPrice)}원</span>
+            <span className={`${s.priceValue} ${s.priceHighlight}`}>{formatPrice(bid.currentPrice)}원</span>
           </div>
         </div>
 
-        <p className={s.closingTime}>{bid.closingTime} 마감</p>
+        <p className={s.closingTime}>{formatClosingTime(bid.closingTime)} 마감</p>
 
         <div className={s.cardActions}>
-          <ActionBtn to={`/auction/${bid.id}`} variant="outline">상세 보기</ActionBtn>
-          {bid.status !== 'ended' && (
-            <ActionBtn to={`/auction/${bid.id}`} variant="fill">가격 올리기</ActionBtn>
+          <ActionBtn to={`/auction/${bid.artId}`} variant="outline">상세 보기</ActionBtn>
+          {bid.auctionStatus !== 'ENDED' && (
+            <ActionBtn to={`/auction/${bid.artId}`} variant="fill">가격 올리기</ActionBtn>
           )}
         </div>
       </div>

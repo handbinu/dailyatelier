@@ -22,13 +22,6 @@ export const MOCK_USER = {
     userStatus:    1,
   }
   
-  export const MOCK_BIDS = [
-    { id: 'b1', artName: '엎질러진 자연', artImg: '/img/auction/new_1.jpg', artist: '박석계',   artType: '실물',   myPrice: 209001, currentPrice: 240000, closingTime: '2025-04-10 18:49', status: 'ongoing'  },
-    { id: 'b2', artName: '노을',           artImg: '/img/auction/new_2.jpg', artist: '따스혀',   artType: '실물',   myPrice: 360064, currentPrice: 360064, closingTime: '2025-04-08 20:00', status: 'imminent' },
-    { id: 'b3', artName: '목도리냥',       artImg: '/img/auction/new_3.jpg', artist: '어린아이', artType: '디지털', myPrice: 278200, currentPrice: 310000, closingTime: '2025-03-30 12:00', status: 'ended'    },
-    { id: 'b4', artName: '도시의 단면',    artImg: '/img/auction/new_4.png', artist: '박석계',   artType: '디지털', myPrice: 120000, currentPrice: 185000, closingTime: '2025-04-12 15:00', status: 'ongoing'  },
-  ]
-  
   export const MOCK_LIKES = [
     { id: 'l1', artName: '기억의 조각', artImg: '/img/auction/done_digi_2.jpg', currentPrice: 430000, artist: '박석계',   status: 'ongoing', type: '디지털' },
     { id: 'l2', artName: '우주비행사',  artImg: '/img/auction/done_digi_3.jpg', currentPrice: 185000, artist: '따스혀',   status: 'ongoing', type: '디지털' },
