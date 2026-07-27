@@ -11,14 +11,14 @@ const TYPE_COLORS  = { '배송': 'blue', '포인트': 'orange', '작품': 'green
 
 export default function InquiryList() {
   const navigate = useNavigate()
+  const [filter, setFilter] = useState('전체')
+  const [open,   setOpen]   = useState(null)
+
   if (!localStorage.getItem('token')) {
     alert('로그인이 필요합니다.')
     navigate('/login', { replace: true })
     return null
   }
-
-  const [filter, setFilter] = useState('전체')
-  const [open,   setOpen]   = useState(null)
 
   const items = filter === '전체'
     ? MOCK_INQUIRIES

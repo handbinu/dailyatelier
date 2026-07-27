@@ -22,15 +22,15 @@ function sortItems(arr, sort) {
 
 export default function MyReview() {
   const navigate = useNavigate()
+  const [sort, setSort]       = useState('recent')
+  const [page, setPage]       = useState(1)
+  const [modal, setModal]     = useState(null)   // 선택된 리뷰 객체
+
   if (!localStorage.getItem('token')) {
     alert('로그인이 필요합니다.')
     navigate('/login', { replace: true })
     return null
   }
-
-  const [sort, setSort]       = useState('recent')
-  const [page, setPage]       = useState(1)
-  const [modal, setModal]     = useState(null)   // 선택된 리뷰 객체
 
   const sorted  = sortItems(MOCK_REVIEWS, sort)
   const total   = sorted.length

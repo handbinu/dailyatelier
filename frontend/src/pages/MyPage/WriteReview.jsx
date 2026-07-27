@@ -9,12 +9,6 @@ export default function WriteReview() {
   const navigate   = useNavigate()
   const { artId }  = useParams()
 
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
-
   // 작품 정보 조회 (목업)
   const artItem = MOCK_SUCCESSFUL.find(a => a.id === artId) ?? MOCK_SUCCESSFUL[0]
   // 기존 리뷰 조회
@@ -25,6 +19,12 @@ export default function WriteReview() {
   const [content, setContent] = useState(existing?.content ?? '')
   const [submitting, setSub]  = useState(false)
   const [done,    setDone]    = useState(false)
+
+  if (!localStorage.getItem('token')) {
+    alert('로그인이 필요합니다.')
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const isEdit = Boolean(existing)
 

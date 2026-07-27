@@ -8,12 +8,6 @@ const INQUIRY_TYPES = ['회원정보', '포인트', '작품', '배송', '경매'
 
 export default function InquiryWrite() {
   const navigate = useNavigate()
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
-
   const [form, setForm] = useState({
     type:     '배송',
     title:    '',
@@ -26,6 +20,12 @@ export default function InquiryWrite() {
   const [submitting, setSub]        = useState(false)
   const [done,       setDone]       = useState(false)
   const fileRef = useRef()
+
+  if (!localStorage.getItem('token')) {
+    alert('로그인이 필요합니다.')
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const set = (key) => (e) => {
     setForm(f => ({ ...f, [key]: e.target.value }))

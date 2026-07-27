@@ -17,14 +17,14 @@ const STEPS = ['주문 접수', '입금 완료', '배송 중', '배송 완료']
 
 export default function OrderStatus() {
   const navigate = useNavigate()
+  const [filter,  setFilter]  = useState('전체')
+  const [detail,  setDetail]  = useState(null)   // 상세 펼침 row id
+
   if (!localStorage.getItem('token')) {
     alert('로그인이 필요합니다.')
     navigate('/login', { replace: true })
     return null
   }
-
-  const [filter,  setFilter]  = useState('전체')
-  const [detail,  setDetail]  = useState(null)   // 상세 펼침 row id
 
   const items = filter === '전체'
     ? MOCK_ORDERS

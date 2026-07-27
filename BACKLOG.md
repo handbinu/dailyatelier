@@ -4,7 +4,7 @@
 
 ## 기존 코드 품질 개선
 
-- [ ] **기존 파일 React Hooks 규칙 위반 수정 (8개 파일, 31건 구조적, 1건 미사용 변수)**
+- [x] **기존 파일 React Hooks 규칙 위반 수정 (8개 파일, 31건 구조적, 1건 미사용 변수)**
   - `ArtistReview.jsx`, `Charge.jsx`, `InquiryList.jsx`, `InquiryWrite.jsx`, `MyReview.jsx`, `OrderStatus.jsx`, `WriteReview.jsx`의 조건부 Hook 호출 31건을 수정한다.
   - `ProfileEdit.jsx`의 미사용 `err` 변수 1건을 정리한다.
   - 수정 후 프론트 전체 ESLint를 실행해 기존 32건이 모두 해소됐는지 확인한다.

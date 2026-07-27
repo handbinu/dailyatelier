@@ -22,12 +22,6 @@ const NOTICES = [
 
 export default function Charge() {
   const navigate = useNavigate()
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
-
   const [amount,    setAmount]    = useState(50000)
   const [custom,    setCustom]    = useState('')
   const [useCustom, setUseCustom] = useState(false)
@@ -35,6 +29,12 @@ export default function Charge() {
   const [agreed,    setAgreed]    = useState(false)
   const [charging,  setCharging]  = useState(false)
   const [done,      setDone]      = useState(false)
+
+  if (!localStorage.getItem('token')) {
+    alert('로그인이 필요합니다.')
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const finalAmount = useCustom ? (Number(custom) || 0) : amount
   const predicted   = MOCK_USER.reserve + finalAmount
