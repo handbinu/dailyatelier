@@ -7,16 +7,19 @@ import {
   applyArtImageFallbackIfBlank,
   getArtImageSrc,
 } from '../../utils/artImage'
-import { PageBanner, Badge, Empty, PageWrap, ActionBtn } from './components/atoms'
+import { PageBanner, Badge, Empty, FilterBar, PageWrap, ActionBtn } from './components/atoms'
 import styles from './MyPage.module.css'
 
 const PAGE_SIZE = 12
 const PAGE_WINDOW = 5
 const STATUS_META = {
   0: { label: '진행 중', color: 'green' },
-  1: { label: '종료', color: 'gray' },
+  1: { label: '유찰', color: 'gray' },
   2: { label: '낙찰', color: 'blue' },
 }
+const FILTERS = ['전체', '진행 중', '종료']
+const STATE_BY_FILTER = { '전체': 'ALL', '진행 중': 'ACTIVE', '종료': 'ENDED' }
+const FILTER_BY_STATE = { ALL: '전체', ACTIVE: '진행 중', ENDED: '종료' }
 
 const parsePage = (value) => {
   const parsed = Number(value)
@@ -38,20 +41,24 @@ export default function ManageArts() {
   const [searchParams, setSearchParams] = useSearchParams()
   const pageParam = searchParams.get('page')
   const currentPage = parsePage(pageParam)
+  const stateParam = searchParams.get('state')?.toUpperCase()
+  const currentState = FILTER_BY_STATE[stateParam] ? stateParam : 'ALL'
+  const currentFilter = FILTER_BY_STATE[currentState]
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
-    if (pageParam === String(currentPage)) return
+    if (pageParam === String(currentPage) && stateParam === currentState) return
 
     setSearchParams((previous) => {
       const next = new URLSearchParams(previous)
       next.set('page', String(currentPage))
+      next.set('state', currentState)
       return next
     }, { replace: true })
-  }, [currentPage, pageParam, setSearchParams])
+  }, [currentPage, currentState, pageParam, setSearchParams, stateParam])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -62,6 +69,7 @@ export default function ManageArts() {
 
       try {
         const { data } = await getMyArts({
+          state: currentState,
           page: currentPage - 1,
           size: PAGE_SIZE,
           signal: controller.signal,
@@ -84,7 +92,7 @@ export default function ManageArts() {
 
     loadMyArts()
     return () => controller.abort()
-  }, [currentPage, retryKey])
+  }, [currentPage, currentState, retryKey])
 
   const visiblePages = useMemo(
     () => getVisiblePages(currentPage, result?.totalPages ?? 0),
@@ -98,8 +106,15 @@ export default function ManageArts() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const changeFilter = (filter) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('state', STATE_BY_FILTER[filter])
+    next.set('page', '1')
+    setSearchParams(next)
+  }
+
   const arts = result?.content ?? []
-  const listLocation = `/mypage/manage-arts?page=${currentPage}`
+  const listLocation = `/mypage/manage-arts?state=${currentState}&page=${currentPage}`
 
   return (
     <PageWrap>
@@ -114,6 +129,9 @@ export default function ManageArts() {
           )}
           <ActionBtn to="/upload" variant="fill">+ 작품 등록</ActionBtn>
         </div>
+        <div className={styles.manageFilters}>
+          <FilterBar options={FILTERS} value={currentFilter} onChange={changeFilter} />
+        </div>
 
         {loading ? (
           <div className={styles.manageLoading} role="status" aria-live="polite">
@@ -126,7 +144,17 @@ export default function ManageArts() {
           </div>
         ) : arts.length === 0 ? (
           <div className={styles.manageEmpty}>
-            <Empty msg={currentPage > 1 ? '요청한 페이지에 등록된 작품이 없습니다.' : '등록한 작품이 없습니다.'} />
+            <Empty
+              msg={
+                currentPage > 1
+                  ? '요청한 페이지에 등록된 작품이 없습니다.'
+                  : currentState === 'ACTIVE'
+                    ? '진행 중인 작품이 없습니다.'
+                    : currentState === 'ENDED'
+                      ? '종료된 작품이 없습니다.'
+                      : '등록한 작품이 없습니다.'
+              }
+            />
             {currentPage > 1 && (
               <button type="button" className={styles.manageFirstPageButton} onClick={() => moveToPage(1)}>
                 첫 페이지로
@@ -166,6 +194,19 @@ export default function ManageArts() {
                           <span>시작가 {formatPrice(art.startPrice)}원</span>
                           <strong>현재가 {formatPrice(art.currentPrice)}원</strong>
                         </div>
+                        <p className={styles.manageBidCount}>입찰 {Number(art.bidCount ?? 0).toLocaleString('ko-KR')}건</p>
+                        {art.artStatus !== 0 && (
+                          <div className={styles.manageOutcome}>
+                            <strong>{art.result === 'SOLD' ? '낙찰' : '유찰'}</strong>
+                            {art.result === 'SOLD' && (
+                              <span>
+                                {art.winningPrice == null
+                                  ? '낙찰 정보 확인 필요'
+                                  : `낙찰가 ${formatPrice(art.winningPrice)}원`}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <p className={styles.manageCloseTime}>
                           마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
                         </p>

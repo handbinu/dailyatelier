@@ -114,6 +114,16 @@
   color: #b45e2c;
 }
 
+.resultWon {
+  background: #e8f1fd;
+  color: #2a75c7;
+}
+
+.resultLost {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-muted);
+}
+
 .priceGrid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

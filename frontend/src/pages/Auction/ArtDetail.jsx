@@ -249,8 +249,7 @@ export default function ArtDetail() {
   }
 
   const deadline = getDeadlineMeta(art.closingTime)
-  const effectiveStatus = art.artStatus === 0 && deadline.isClosed ? 1 : art.artStatus
-  const status = STATUS_META[effectiveStatus] ?? { label: '상태 미정', tone: 'ended' }
+  const status = STATUS_META[art.artStatus] ?? { label: '상태 미정', tone: 'ended' }
   const isUrgent = art.artStatus === 0 && deadline.isUrgent
   const imageSrc = getArtImageSrc(art.imgPath)
   const isLoggedIn = Boolean(localStorage.getItem('token'))

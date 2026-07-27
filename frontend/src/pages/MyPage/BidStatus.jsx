@@ -13,6 +13,10 @@ const STATUS_META = {
   IMMINENT: { label: '종료 임박', color: 'orange' },
   ENDED: { label: '종료', color: 'gray' },
 }
+const RESULT_META = {
+  WON: { label: '낙찰', className: 'resultWon' },
+  LOST: { label: '패찰', className: 'resultLost' },
+}
 
 const formatClosingTime = (value) => {
   if (!value) return '마감 시간 정보 없음'
@@ -41,7 +45,11 @@ export default function BidStatus() {
     try {
       setBids(await getAllMyBids())
     } catch (requestError) {
-      setError(requestError.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+      if (requestError.response?.status === 401) {
+        setError('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+      } else {
+        setError(requestError.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+      }
     } finally {
       setLoading(false)
     }
@@ -105,9 +113,11 @@ export default function BidStatus() {
 
 function BidCard({ bid }) {
   const meta = STATUS_META[bid.auctionStatus] ?? STATUS_META.ENDED
+  const isEnded = bid.auctionStatus === 'ENDED'
+  const resultMeta = RESULT_META[bid.bidResult] ?? RESULT_META.LOST
 
   return (
-    <div className={`${s.card} ${bid.auctionStatus === 'ENDED' ? s.cardEnded : ''}`}>
+    <div className={`${s.card} ${isEnded ? s.cardEnded : ''}`}>
       <div className={s.cardImg}>
         <ArtThumb src={getArtImageSrc(bid.imgPath)} alt={bid.artName} ratio="1/1" />
         <Badge label={meta.label} color={meta.color} />
@@ -119,8 +129,14 @@ function BidCard({ bid }) {
             <p className={s.cardTitle}>{bid.artName}</p>
             <p className={s.cardArtist}>by {bid.artistName || '작가 정보 없음'}</p>
           </div>
-          <span className={`${s.leading} ${bid.isLeading ? s.leadingYes : s.leadingNo}`}>
-            {bid.isLeading ? '최고가' : '경쟁 중'}
+          <span
+            className={`${s.leading} ${
+              isEnded
+                ? s[resultMeta.className]
+                : bid.isLeading ? s.leadingYes : s.leadingNo
+            }`}
+          >
+            {isEnded ? resultMeta.label : bid.isLeading ? '최고가' : '경쟁 중'}
           </span>
         </div>
 
@@ -140,7 +156,7 @@ function BidCard({ bid }) {
 
         <div className={s.cardActions}>
           <ActionBtn to={`/auction/${bid.artId}`} variant="outline">상세 보기</ActionBtn>
-          {bid.auctionStatus !== 'ENDED' && (
+          {!isEnded && (
             <ActionBtn to={`/auction/${bid.artId}`} variant="fill">가격 올리기</ActionBtn>
           )}
         </div>

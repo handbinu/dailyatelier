@@ -41,6 +41,31 @@ export const getAllMyBids = async () => {
   ]
 }
 
+// 마이페이지 낙찰 작품 조회
+export const getMyWins = ({ page = 0, size = 12, signal } = {}) =>
+  api.get('/api/users/me/wins', { params: { page, size }, signal })
+
+// 마이페이지 요약이 전체 낙찰 건수를 사용할 수 있도록 모든 페이지 조회
+export const getAllMyWins = async () => {
+  const firstResponse = await getMyWins({ page: 0, size: 50 })
+  const firstPage = firstResponse.data
+  const totalPages = Number(firstPage?.totalPages ?? 0)
+
+  if (totalPages <= 1) return firstPage?.content ?? []
+
+  const remainingResponses = await Promise.all(
+    Array.from(
+      { length: totalPages - 1 },
+      (_, index) => getMyWins({ page: index + 1, size: 50 }),
+    ),
+  )
+
+  return [
+    ...(firstPage?.content ?? []),
+    ...remainingResponses.flatMap(({ data }) => data?.content ?? []),
+  ]
+}
+
 // 작품 찜 상태 조회
 export const getArtLikeStatus = (artId) =>
   api.get(`/api/arts/${artId}/like`)

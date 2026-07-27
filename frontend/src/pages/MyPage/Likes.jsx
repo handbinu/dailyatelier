@@ -9,7 +9,7 @@ const PAGE_SIZE = 12
 const STATUS_META = {
   0: { label: '진행 중', color: 'green' },
   1: { label: '종료', color: 'gray' },
-  2: { label: '승인 대기', color: 'blue' },
+  2: { label: '낙찰', color: 'blue' },
 }
 
 const fmt = (n) => Number(n ?? 0).toLocaleString()
@@ -85,7 +85,7 @@ export default function Likes() {
             <div className={s.grid}>
               {likes.map((item) => {
                 const status = STATUS_META[item.artStatus] ?? { label: '상태 없음', color: 'gray' }
-                const isEnded = item.artStatus === 1
+                const isEnded = item.artStatus === 1 || item.artStatus === 2
 
                 return (
                   <article key={item.likeId} className={s.card}>
