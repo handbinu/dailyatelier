@@ -2,6 +2,9 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtQueryDto;
+import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
@@ -111,23 +114,36 @@ class ArtServiceTest {
     void getMyArtsReturnsAllStatusesForLoggedInArtist() {
         User user = createUser("artist-user", 1);
         Artist artist = createArtist(user);
-        Art endedArt = createArt(11L, 1, user.getUserId());
-        Art wonArt = createArt(12L, 2, user.getUserId());
+        MyArtQueryDto endedArt = createMyArtSummary(11L, Art.STATUS_UNSOLD, null, 0L);
+        MyArtQueryDto wonArt = createMyArtSummary(12L, Art.STATUS_SOLD, 150_000, 3L);
         when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
         when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
-        when(artRepository.findByArtist(eq(artist), any(Pageable.class)))
+        when(artRepository.findMyArtSummaries(
+                eq(artist.getArtistCode()),
+                eq(MyArtState.ALL.getArtStatuses()),
+                any(Pageable.class)
+        ))
                 .thenReturn(new PageImpl<>(List.of(endedArt, wonArt)));
 
-        Page<ArtResponseDto> result = artService.getMyArts(user.getUserId(), 1, 12);
+        Page<MyArtResponseDto> result =
+                artService.getMyArts(user.getUserId(), MyArtState.ALL, 1, 12);
 
         assertThat(result.getContent())
-                .extracting(ArtResponseDto::getArtStatus)
+                .extracting(MyArtResponseDto::getArtStatus)
                 .containsExactly(1, 2);
+        assertThat(result.getContent())
+                .extracting(MyArtResponseDto::getResult)
+                .containsExactly("UNSOLD", "SOLD");
+        assertThat(result.getContent().get(1).getWinningPrice()).isEqualTo(150_000);
+        assertThat(result.getContent().get(1).getBidCount()).isEqualTo(3L);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(artRepository).findByArtist(eq(artist), pageableCaptor.capture());
+        verify(artRepository).findMyArtSummaries(
+                eq(artist.getArtistCode()),
+                eq(MyArtState.ALL.getArtStatuses()),
+                pageableCaptor.capture()
+        );
         assertThat(pageableCaptor.getValue().getPageNumber()).isEqualTo(1);
-        assertThat(pageableCaptor.getValue().getSort().getOrderFor("artId").getDirection())
-                .isEqualTo(Sort.Direction.DESC);
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(12);
     }
 
     @Test
@@ -135,10 +151,35 @@ class ArtServiceTest {
         User user = createUser("normal-user", 0);
         when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
 
-        assertThatThrownBy(() -> artService.getMyArts(user.getUserId(), 0, 12))
+        assertThatThrownBy(() ->
+                artService.getMyArts(user.getUserId(), MyArtState.ALL, 0, 12))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @Test
+    void getMyArtsPassesStateStatusesAndCapsPageSize() {
+        User user = createUser("artist-user", 1);
+        Artist artist = createArtist(user);
+        when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
+        when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
+        when(artRepository.findMyArtSummaries(
+                eq(artist.getArtistCode()),
+                eq(MyArtState.ACTIVE.getArtStatuses()),
+                any(Pageable.class)
+        )).thenReturn(Page.empty());
+
+        artService.getMyArts(user.getUserId(), MyArtState.ACTIVE, -1, 100);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(artRepository).findMyArtSummaries(
+                eq(artist.getArtistCode()),
+                eq(List.of(Art.STATUS_ACTIVE)),
+                pageableCaptor.capture()
+        );
+        assertThat(pageableCaptor.getValue().getPageNumber()).isZero();
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50);
     }
 
     private Art createArt(Long artId, int artStatus, String ownerUserId) {
@@ -156,6 +197,33 @@ class ArtServiceTest {
         art.setImgPath("https://example.com/art.jpg");
         art.setArtStatus(artStatus);
         return art;
+    }
+
+    private MyArtQueryDto createMyArtSummary(
+            Long artId,
+            int artStatus,
+            Integer winningPrice,
+            long bidCount) {
+        return new MyArtQueryDto(
+                artId,
+                "artist-code-artist-user",
+                "테스트 작가",
+                "테스트 작품 " + artId,
+                "작품 설명",
+                "캔버스",
+                "작가 소개",
+                100_000,
+                winningPrice == null ? 100_000 : winningPrice,
+                LocalDateTime.of(2026, 7, 1, 10, 0),
+                LocalDateTime.of(2026, 7, 31, 18, 0),
+                "https://example.com/art.jpg",
+                artStatus,
+                artStatus == Art.STATUS_ACTIVE
+                        ? null
+                        : LocalDateTime.of(2026, 7, 31, 18, 0, 5),
+                winningPrice,
+                bidCount
+        );
     }
 
     private Artist createArtist(User user) {

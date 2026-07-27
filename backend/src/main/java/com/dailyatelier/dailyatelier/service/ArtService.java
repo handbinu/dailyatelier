@@ -3,6 +3,9 @@ package com.dailyatelier.dailyatelier.service;
 import com.dailyatelier.dailyatelier.dto.ArtCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtQueryDto;
+import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
@@ -21,7 +24,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class ArtService {
-    private static final int ACTIVE_STATUS = 0;
     private static final int MAX_PAGE_SIZE = 50;
 
     private final ArtRepository artRepository;
@@ -30,7 +32,7 @@ public class ArtService {
 
     public Page<ArtResponseDto> getActiveArts(int page, int size) {
         PageRequest pageable = createPageRequest(page, size);
-        return artRepository.findByArtStatus(ACTIVE_STATUS, pageable)
+        return artRepository.findByArtStatus(Art.STATUS_ACTIVE, pageable)
                 .map(this::toResponse);
     }
 
@@ -60,7 +62,11 @@ public class ArtService {
         );
     }
 
-    public Page<ArtResponseDto> getMyArts(String userId, int page, int size) {
+    public Page<MyArtResponseDto> getMyArts(
+            String userId,
+            MyArtState state,
+            int page,
+            int size) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
@@ -71,8 +77,16 @@ public class ArtService {
 
         Artist artist = artistRepository.findByUser(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Artist profile not found"));
-        return artRepository.findByArtist(artist, createPageRequest(page, size))
-                .map(this::toResponse);
+        PageRequest pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), MAX_PAGE_SIZE)
+        );
+        return artRepository.findMyArtSummaries(
+                        artist.getArtistCode(),
+                        state.getArtStatuses(),
+                        pageable
+                )
+                .map(this::toMyArtResponse);
     }
 
     @Transactional
@@ -103,7 +117,7 @@ public class ArtService {
         art.setBidStartTime(dto.getBidStartTime());
         art.setClosingTime(dto.getClosingTime());
         art.setImgPath(dto.getImgPath().trim());
-        art.setArtStatus(0);
+        art.setArtStatus(Art.STATUS_ACTIVE);
 
         return toResponse(artRepository.save(art));
     }
@@ -124,6 +138,33 @@ public class ArtService {
                 art.getClosingTime(),
                 art.getImgPath(),
                 art.getArtStatus()
+        );
+    }
+
+    private MyArtResponseDto toMyArtResponse(MyArtQueryDto art) {
+        String result = switch (art.getArtStatus()) {
+            case Art.STATUS_SOLD -> "SOLD";
+            case Art.STATUS_UNSOLD -> "UNSOLD";
+            default -> "PENDING";
+        };
+        return new MyArtResponseDto(
+                art.getArtId(),
+                art.getArtistCode(),
+                art.getArtistName(),
+                art.getName(),
+                art.getDescript(),
+                art.getMaterial(),
+                art.getWIntro(),
+                art.getStartPrice(),
+                art.getCurrentPrice(),
+                art.getBidStartTime(),
+                art.getClosingTime(),
+                art.getImgPath(),
+                art.getArtStatus(),
+                art.getClosedAt(),
+                art.getWinningPrice(),
+                art.getBidCount(),
+                result
         );
     }
 

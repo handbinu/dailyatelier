@@ -29,7 +29,6 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class BidService {
-    private static final int ACTIVE_STATUS = 0;
     private static final int MIN_BID_PRICE = 1;
     private static final int MAX_BID_PRICE = 2_100_000_000;
     private static final int MAX_PAGE_SIZE = 50;
@@ -88,7 +87,7 @@ public class BidService {
         );
         LocalDateTime now = LocalDateTime.now(clock);
         return bidRepository.findBidSummariesByUserId(userId, pageable)
-                .map(summary -> toBidStatusResponse(summary, now));
+                .map(summary -> toBidStatusResponse(summary, userId, now));
     }
 
     private Art findArtForUpdate(Long artId) {
@@ -124,7 +123,7 @@ public class BidService {
     }
 
     private void validateAuctionIsOpen(Art art, LocalDateTime now) {
-        if (art.getArtStatus() == null || art.getArtStatus() != ACTIVE_STATUS) {
+        if (art.getArtStatus() == null || art.getArtStatus() != Art.STATUS_ACTIVE) {
             throw new BidApiException(
                     HttpStatus.CONFLICT,
                     "AUCTION_CLOSED",
@@ -167,6 +166,7 @@ public class BidService {
 
     private BidStatusResponseDto toBidStatusResponse(
             BidSummaryQueryDto summary,
+            String userId,
             LocalDateTime now) {
         boolean isLeading = summary.getMyBidPrice().equals(summary.getCurrentPrice());
         return new BidStatusResponseDto(
@@ -178,6 +178,7 @@ public class BidService {
                 summary.getCurrentPrice(),
                 isLeading,
                 resolveAuctionStatus(summary, now),
+                resolveBidResult(summary, userId),
                 summary.getLastBidTime(),
                 summary.getBidStartTime(),
                 summary.getClosingTime()
@@ -186,13 +187,25 @@ public class BidService {
 
     private String resolveAuctionStatus(BidSummaryQueryDto summary, LocalDateTime now) {
         if (summary.getArtStatus() == null
-                || summary.getArtStatus() != ACTIVE_STATUS
-                || !now.isBefore(summary.getClosingTime())) {
+                || summary.getArtStatus() != Art.STATUS_ACTIVE) {
             return "ENDED";
         }
         if (!summary.getClosingTime().isAfter(now.plusHours(IMMINENT_HOURS))) {
             return "IMMINENT";
         }
         return "ONGOING";
+    }
+
+    private String resolveBidResult(BidSummaryQueryDto summary, String userId) {
+        if (summary.getArtStatus() != null
+                && summary.getArtStatus() == Art.STATUS_ACTIVE) {
+            return "PENDING";
+        }
+        if (summary.getArtStatus() != null
+                && summary.getArtStatus() == Art.STATUS_SOLD
+                && userId.equals(summary.getWinningUserId())) {
+            return "WON";
+        }
+        return "LOST";
     }
 }

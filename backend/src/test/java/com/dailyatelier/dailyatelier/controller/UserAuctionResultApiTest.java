@@ -1,13 +1,14 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
-import com.dailyatelier.dailyatelier.dto.BidStatusResponseDto;
+import com.dailyatelier.dailyatelier.dto.WinningArtResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
-import com.dailyatelier.dailyatelier.service.BidService;
+import com.dailyatelier.dailyatelier.service.AuctionResultService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,52 +24,58 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(UserBidController.class)
+@WebMvcTest(UserAuctionResultController.class)
 @Import(SecurityConfig.class)
-class UserBidApiTest {
+class UserAuctionResultApiTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private BidService bidService;
+    private AuctionResultService auctionResultService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @Test
-    void authenticatedUserCanGetOwnBidStatuses() throws Exception {
-        BidStatusResponseDto bid = new BidStatusResponseDto(
+    void authenticatedUserCanGetOnlyPublicWinningArtFields() throws Exception {
+        WinningArtResponseDto result = new WinningArtResponseDto(
                 7L,
                 "여름의 정원",
                 "하루",
                 "https://example.com/art.jpg",
-                150_000,
                 160_000,
-                false,
-                "IMMINENT",
-                "PENDING",
-                LocalDateTime.of(2026, 7, 23, 18, 30),
-                LocalDateTime.of(2026, 7, 20, 10, 0),
-                LocalDateTime.of(2026, 7, 24, 10, 0)
+                LocalDateTime.of(2026, 7, 27, 18, 0, 4)
         );
-        when(bidService.getMyBids("bidder", 0, 12))
-                .thenReturn(new PageImpl<>(List.of(bid), PageRequest.of(0, 12), 1));
+        when(auctionResultService.getMyWins("winner", 0, 12))
+                .thenReturn(new PageImpl<>(List.of(result), PageRequest.of(0, 12), 1));
 
-        mockMvc.perform(get("/api/users/me/bids")
-                        .with(authentication(stringAuthentication("bidder"))))
+        mockMvc.perform(get("/api/users/me/wins")
+                        .with(authentication(stringAuthentication("winner"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].artId").value(7))
-                .andExpect(jsonPath("$.content[0].myBidPrice").value(150000))
-                .andExpect(jsonPath("$.content[0].currentPrice").value(160000))
-                .andExpect(jsonPath("$.content[0].isLeading").value(false))
-                .andExpect(jsonPath("$.content[0].auctionStatus").value("IMMINENT"))
-                .andExpect(jsonPath("$.content[0].bidResult").value("PENDING"));
+                .andExpect(jsonPath("$.content[0].winningPrice").value(160000))
+                .andExpect(jsonPath("$.content[0].closedAt")
+                        .value("2026-07-27T18:00:04"))
+                .andExpect(jsonPath("$.content[0].winningBidderNickname").doesNotExist())
+                .andExpect(jsonPath("$.content[0].winningUserId").doesNotExist());
     }
 
     @Test
-    void anonymousUserCannotGetBidStatuses() throws Exception {
-        mockMvc.perform(get("/api/users/me/bids"))
+    void authenticatedUserCanGetEmptyWinningArtPage() throws Exception {
+        when(auctionResultService.getMyWins("winner", 0, 12))
+                .thenReturn(Page.empty(PageRequest.of(0, 12)));
+
+        mockMvc.perform(get("/api/users/me/wins")
+                        .with(authentication(stringAuthentication("winner"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void anonymousUserCannotGetWinningArts() throws Exception {
+        mockMvc.perform(get("/api/users/me/wins"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }

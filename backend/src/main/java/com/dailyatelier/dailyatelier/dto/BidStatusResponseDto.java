@@ -18,6 +18,7 @@ public class BidStatusResponseDto {
     @JsonProperty("isLeading")
     private boolean isLeading;
     private String auctionStatus;
+    private String bidResult;
     private LocalDateTime lastBidTime;
     private LocalDateTime bidStartTime;
     private LocalDateTime closingTime;

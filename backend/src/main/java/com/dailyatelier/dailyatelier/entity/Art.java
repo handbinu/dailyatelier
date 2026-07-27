@@ -7,10 +7,19 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "art")
+@Table(
+        name = "art",
+        indexes = @Index(
+                name = "idx_art_close_candidates",
+                columnList = "art_status, closing_time, art_id"
+        )
+)
 @Getter @Setter
 @NoArgsConstructor
 public class Art {
+    public static final int STATUS_ACTIVE = 0;
+    public static final int STATUS_UNSOLD = 1;
+    public static final int STATUS_SOLD = 2;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,5 +57,11 @@ public class Art {
     private String imgPath;
 
     @Column(nullable = false)
-    private Integer artStatus; // 0: 진행중, 1: 종료, 2: 낙찰
+    private Integer artStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "winning_bid_id")
+    private Bid winningBid;
+
+    private LocalDateTime closedAt;
 }

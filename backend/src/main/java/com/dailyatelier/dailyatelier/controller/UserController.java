@@ -1,7 +1,8 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
-import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.dto.LoginRequestDto;
 import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
@@ -69,11 +70,12 @@ public class UserController {
 
     // GET /api/users/me/arts
     @GetMapping("/users/me/arts")
-    public ResponseEntity<Page<ArtResponseDto>> getMyArts(
+    public ResponseEntity<Page<MyArtResponseDto>> getMyArts(
             @AuthenticationPrincipal String userId,
+            @RequestParam(defaultValue = "ALL") MyArtState state,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
-        return ResponseEntity.ok(artService.getMyArts(userId, page, size));
+        return ResponseEntity.ok(artService.getMyArts(userId, state, page, size));
     }
 
     //PUT /api/users/me

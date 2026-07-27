@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.repository;
 
 import com.dailyatelier.dailyatelier.dto.BidSummaryQueryDto;
+import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +9,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface BidRepository extends JpaRepository<Bid, Long> {
+
+    Optional<Bid> findFirstByArtOrderByBidPriceDescBidTimeAscBidIdAsc(Art art);
 
     @Query(
             value = """
@@ -22,11 +27,13 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                         max(bid.bidTime),
                         art.bidStartTime,
                         art.closingTime,
-                        art.artStatus
+                        art.artStatus,
+                        winningBid.user.userId
                     )
                     from Bid bid
                     join bid.art art
                     join art.artist artist
+                    left join art.winningBid winningBid
                     where bid.user.userId = :userId
                     group by
                         art.artId,
@@ -36,7 +43,8 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                         art.currentPrice,
                         art.bidStartTime,
                         art.closingTime,
-                        art.artStatus
+                        art.artStatus,
+                        winningBid.user.userId
                     order by max(bid.bidTime) desc, art.artId desc
                     """,
             countQuery = """

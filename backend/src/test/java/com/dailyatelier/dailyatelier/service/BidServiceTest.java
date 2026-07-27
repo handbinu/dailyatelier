@@ -233,10 +233,30 @@ class BidServiceTest {
 
         assertThat(result.getContent())
                 .extracting(BidStatusResponseDto::getAuctionStatus)
-                .containsExactly("ONGOING", "IMMINENT", "ENDED", "ENDED");
+                .containsExactly("ONGOING", "IMMINENT", "ENDED", "IMMINENT");
         assertThat(result.getContent())
                 .extracting(BidStatusResponseDto::isLeading)
                 .containsExactly(true, false, true, true);
+    }
+
+    @Test
+    void getMyBidsMapsPendingWonAndLostResults() {
+        List<BidSummaryQueryDto> summaries = List.of(
+                createSummary(1L, 120_000, 120_000, NOW.plusDays(1), 0, null),
+                createSummary(2L, 130_000, 130_000, NOW.minusDays(1), 2, "bidder"),
+                createSummary(3L, 130_000, 150_000, NOW.minusDays(1), 2, "other"),
+                createSummary(4L, 110_000, 110_000, NOW.minusDays(1), 1, null)
+        );
+        when(bidRepository.findBidSummariesByUserId(
+                org.mockito.ArgumentMatchers.eq("bidder"),
+                any(Pageable.class)
+        )).thenReturn(new PageImpl<>(summaries));
+
+        Page<BidStatusResponseDto> result = bidService.getMyBids("bidder", 0, 12);
+
+        assertThat(result.getContent())
+                .extracting(BidStatusResponseDto::getBidResult)
+                .containsExactly("PENDING", "WON", "LOST", "LOST");
     }
 
     @Test
@@ -315,6 +335,23 @@ class BidServiceTest {
             int currentPrice,
             LocalDateTime closingTime,
             int artStatus) {
+        return createSummary(
+                artId,
+                myBidPrice,
+                currentPrice,
+                closingTime,
+                artStatus,
+                null
+        );
+    }
+
+    private BidSummaryQueryDto createSummary(
+            Long artId,
+            int myBidPrice,
+            int currentPrice,
+            LocalDateTime closingTime,
+            int artStatus,
+            String winningUserId) {
         return new BidSummaryQueryDto(
                 artId,
                 "테스트 작품 " + artId,
@@ -325,7 +362,8 @@ class BidServiceTest {
                 NOW.minusHours(1),
                 NOW.minusDays(1),
                 closingTime,
-                artStatus
+                artStatus,
+                winningUserId
         );
     }
 

@@ -7,16 +7,21 @@ import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
-public class BidSummaryQueryDto {
+public class MyArtQueryDto {
     private Long artId;
-    private String artName;
+    private String artistCode;
     private String artistName;
-    private String imgPath;
-    private Integer myBidPrice;
+    private String name;
+    private String descript;
+    private String material;
+    private String wIntro;
+    private Integer startPrice;
     private Integer currentPrice;
-    private LocalDateTime lastBidTime;
     private LocalDateTime bidStartTime;
     private LocalDateTime closingTime;
+    private String imgPath;
     private Integer artStatus;
-    private String winningUserId;
+    private LocalDateTime closedAt;
+    private Integer winningPrice;
+    private Long bidCount;
 }

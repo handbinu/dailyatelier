@@ -136,6 +136,16 @@ class BidRepositoryTest {
                 );
     }
 
+    @Test
+    void findsHighestBidForAuctionClosing() {
+        Bid result = bidRepository
+                .findFirstByArtOrderByBidPriceDescBidTimeAscBidIdAsc(firstArt)
+                .orElseThrow();
+
+        assertThat(result.getBidPrice()).isEqualTo(140_000);
+        assertThat(result.getUser().getUserId()).isEqualTo("other");
+    }
+
     private Art saveArt(Artist artist, String name, int currentPrice) {
         Art art = new Art();
         art.setArtist(artist);
