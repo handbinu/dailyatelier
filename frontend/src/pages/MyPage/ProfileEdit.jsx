@@ -109,7 +109,7 @@ export default function ProfileEdit() {
         currentPw: form.currentPw || null,
         newPw: form.newPw || null,
         emailAgree: form.emailAgree,
-        zipCode: form.zipCode ? Number(form.zipCode) : null,
+        zipCode: form.zipCode || null,
         userAddress1: form.address,
         userAddress2: form.addressDetail,
         artistIntro: form.artistIntro,
