@@ -78,6 +78,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers("/api/check/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/arts", "/api/arts/*").permitAll()
+                        .requestMatchers("/api/artists/**").hasRole("ARTIST")
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

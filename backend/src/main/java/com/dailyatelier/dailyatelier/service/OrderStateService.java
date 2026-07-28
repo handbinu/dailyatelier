@@ -32,6 +32,12 @@ public class OrderStateService implements OrderPaymentService {
                     "결제 기한이 만료된 주문입니다."
             );
         }
+        if (!order.isShippingAddressConfirmed()) {
+            throw conflict(
+                    "SHIPPING_ADDRESS_REQUIRED",
+                    "결제 전에 배송지를 확정해 주세요."
+            );
+        }
         transition(order, OrderStatus.PAID, now, null);
         return orderRepository.save(order);
     }
@@ -121,11 +127,15 @@ public class OrderStateService implements OrderPaymentService {
     public Order cancelPending(Long orderId, String buyerId) {
         Order order = findForUpdate(orderId);
         verifyBuyer(order, buyerId);
+        LocalDateTime now = LocalDateTime.now(clock);
+        OrderCancelReason reason = now.isBefore(order.getPaymentDueAt())
+                ? OrderCancelReason.BUYER_FORFEIT
+                : OrderCancelReason.PAYMENT_DEADLINE_EXPIRED;
         transition(
                 order,
                 OrderStatus.CANCELED,
-                LocalDateTime.now(clock),
-                OrderCancelReason.BUYER_FORFEIT.name()
+                now,
+                reason.name()
         );
         return orderRepository.save(order);
     }

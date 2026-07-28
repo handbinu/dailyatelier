@@ -207,6 +207,20 @@ class OrderStateServiceTest {
     }
 
     @Test
+    void cancellationAtDeadlineUsesExpirationReason() {
+        clock.setLocalDateTime(CREATED_AT.plusHours(24));
+
+        Order canceled = orderStateService.cancelPending(
+                order.getOrderId(),
+                buyer.getUserId()
+        );
+
+        assertThat(canceled.getStatus()).isEqualTo(OrderStatus.CANCELED);
+        assertThat(canceled.getCancelReason())
+                .isEqualTo("PAYMENT_DEADLINE_EXPIRED");
+    }
+
+    @Test
     void refundsOnlyPaidOrPreparingOrderWithExplicitReason() {
         orderStateService.markPaid(order.getOrderId());
         Order refunded = orderStateService.refund(

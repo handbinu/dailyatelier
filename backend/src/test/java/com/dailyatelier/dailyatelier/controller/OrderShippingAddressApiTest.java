@@ -6,6 +6,8 @@ import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.service.OrderService;
+import com.dailyatelier.dailyatelier.service.OrderQueryService;
+import com.dailyatelier.dailyatelier.service.OrderStateService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -37,6 +39,12 @@ class OrderShippingAddressApiTest {
 
     @MockitoBean
     private OrderService orderService;
+
+    @MockitoBean
+    private OrderQueryService orderQueryService;
+
+    @MockitoBean
+    private OrderStateService orderStateService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

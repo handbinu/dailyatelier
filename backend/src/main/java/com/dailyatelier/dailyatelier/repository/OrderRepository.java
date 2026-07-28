@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,4 +36,42 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") com.dailyatelier.dailyatelier.entity.OrderStatus status,
             @Param("now") LocalDateTime now,
             Pageable pageable);
+
+    Page<Order> findByBuyer_UserId(String userId, Pageable pageable);
+
+    Page<Order> findByBuyer_UserIdAndStatus(
+            String userId,
+            com.dailyatelier.dailyatelier.entity.OrderStatus status,
+            Pageable pageable);
+
+    Page<Order> findBySeller_UserId(String userId, Pageable pageable);
+
+    Page<Order> findBySeller_UserIdAndStatus(
+            String userId,
+            com.dailyatelier.dailyatelier.entity.OrderStatus status,
+            Pageable pageable);
+
+    @Query("""
+            select orders.status as status, count(orders) as total
+            from Order orders
+            where orders.buyer.userId = :userId
+            group by orders.status
+            """)
+    List<OrderStatusCountProjection> countByBuyerUserIdGrouped(
+            @Param("userId") String userId);
+
+    @Query("""
+            select orders.status as status, count(orders) as total
+            from Order orders
+            where orders.seller.userId = :userId
+            group by orders.status
+            """)
+    List<OrderStatusCountProjection> countBySellerUserIdGrouped(
+            @Param("userId") String userId);
+
+    interface OrderStatusCountProjection {
+        com.dailyatelier.dailyatelier.entity.OrderStatus getStatus();
+
+        long getTotal();
+    }
 }
