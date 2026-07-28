@@ -19,6 +19,7 @@ public class BidStatusResponseDto {
     private boolean isLeading;
     private String auctionStatus;
     private String bidResult;
+    private String bidResultMessage;
     private LocalDateTime lastBidTime;
     private LocalDateTime bidStartTime;
     private LocalDateTime closingTime;

@@ -183,6 +183,19 @@ class BidServiceTest {
     }
 
     @Test
+    void createBidRejectsCanceledArt() {
+        Art art = createOpenArt("seller", 100_000);
+        art.setArtStatus(Art.STATUS_CANCELED);
+        stubBidderAndArt(art);
+
+        assertBidError(
+                () -> bidService.createBid(1L, "bidder", createRequest(120_000)),
+                HttpStatus.CONFLICT,
+                "AUCTION_CLOSED"
+        );
+    }
+
+    @Test
     void createBidRejectsEqualOrLowerPrice() {
         Art art = createOpenArt("seller", 100_000);
         stubBidderAndArt(art);
@@ -257,6 +270,30 @@ class BidServiceTest {
         assertThat(result.getContent())
                 .extracting(BidStatusResponseDto::getBidResult)
                 .containsExactly("PENDING", "WON", "LOST", "LOST");
+    }
+
+    @Test
+    void getMyBidsMapsCanceledResultAndGuideMessage() {
+        BidSummaryQueryDto canceled = createSummary(
+                5L,
+                120_000,
+                120_000,
+                NOW.plusDays(1),
+                Art.STATUS_CANCELED,
+                null
+        );
+        when(bidRepository.findBidSummariesByUserId(
+                org.mockito.ArgumentMatchers.eq("bidder"),
+                any(Pageable.class)
+        )).thenReturn(new PageImpl<>(List.of(canceled)));
+
+        BidStatusResponseDto result =
+                bidService.getMyBids("bidder", 0, 12).getContent().get(0);
+
+        assertThat(result.getAuctionStatus()).isEqualTo("ENDED");
+        assertThat(result.getBidResult()).isEqualTo("CANCELED");
+        assertThat(result.getBidResultMessage())
+                .isEqualTo("작가가 취소한 경매입니다.");
     }
 
     @Test

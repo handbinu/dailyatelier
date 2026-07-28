@@ -20,6 +20,7 @@ public class Art {
     public static final int STATUS_ACTIVE = 0;
     public static final int STATUS_UNSOLD = 1;
     public static final int STATUS_SOLD = 2;
+    public static final int STATUS_CANCELED = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

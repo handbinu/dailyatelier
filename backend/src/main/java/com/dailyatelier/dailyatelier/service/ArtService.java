@@ -145,6 +145,7 @@ public class ArtService {
         String result = switch (art.getArtStatus()) {
             case Art.STATUS_SOLD -> "SOLD";
             case Art.STATUS_UNSOLD -> "UNSOLD";
+            case Art.STATUS_CANCELED -> "CANCELED";
             default -> "PENDING";
         };
         return new MyArtResponseDto(

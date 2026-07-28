@@ -57,6 +57,7 @@ class ArtRepositoryExpiredAuctionTest {
         saveArt("아직 진행 중", NOW.plusSeconds(1), Art.STATUS_ACTIVE);
         saveArt("이미 유찰", NOW.minusMinutes(3), Art.STATUS_UNSOLD);
         saveArt("이미 낙찰", NOW.minusMinutes(4), Art.STATUS_SOLD);
+        saveArt("작가 취소", NOW.minusMinutes(5), Art.STATUS_CANCELED);
 
         List<Long> firstBatch = artRepository.findExpiredActiveArtIds(
                 Art.STATUS_ACTIVE,

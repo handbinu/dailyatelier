@@ -179,6 +179,7 @@ public class BidService {
                 isLeading,
                 resolveAuctionStatus(summary, now),
                 resolveBidResult(summary, userId),
+                resolveBidResultMessage(summary),
                 summary.getLastBidTime(),
                 summary.getBidStartTime(),
                 summary.getClosingTime()
@@ -202,10 +203,22 @@ public class BidService {
             return "PENDING";
         }
         if (summary.getArtStatus() != null
+                && summary.getArtStatus() == Art.STATUS_CANCELED) {
+            return "CANCELED";
+        }
+        if (summary.getArtStatus() != null
                 && summary.getArtStatus() == Art.STATUS_SOLD
                 && userId.equals(summary.getWinningUserId())) {
             return "WON";
         }
         return "LOST";
+    }
+
+    private String resolveBidResultMessage(BidSummaryQueryDto summary) {
+        if (summary.getArtStatus() != null
+                && summary.getArtStatus() == Art.STATUS_CANCELED) {
+            return "작가가 취소한 경매입니다.";
+        }
+        return null;
     }
 }

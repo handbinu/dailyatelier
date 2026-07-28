@@ -48,6 +48,7 @@ class UserBidApiTest {
                 false,
                 "IMMINENT",
                 "PENDING",
+                null,
                 LocalDateTime.of(2026, 7, 23, 18, 30),
                 LocalDateTime.of(2026, 7, 20, 10, 0),
                 LocalDateTime.of(2026, 7, 24, 10, 0)
@@ -64,6 +65,34 @@ class UserBidApiTest {
                 .andExpect(jsonPath("$.content[0].isLeading").value(false))
                 .andExpect(jsonPath("$.content[0].auctionStatus").value("IMMINENT"))
                 .andExpect(jsonPath("$.content[0].bidResult").value("PENDING"));
+    }
+
+    @Test
+    void canceledBidIncludesGuideMessage() throws Exception {
+        BidStatusResponseDto bid = new BidStatusResponseDto(
+                8L,
+                "취소된 작품",
+                "하루",
+                "https://example.com/art.jpg",
+                150_000,
+                150_000,
+                true,
+                "ENDED",
+                "CANCELED",
+                "작가가 취소한 경매입니다.",
+                LocalDateTime.of(2026, 7, 23, 18, 30),
+                LocalDateTime.of(2026, 7, 20, 10, 0),
+                LocalDateTime.of(2026, 7, 24, 10, 0)
+        );
+        when(bidService.getMyBids("bidder", 0, 12))
+                .thenReturn(new PageImpl<>(List.of(bid), PageRequest.of(0, 12), 1));
+
+        mockMvc.perform(get("/api/users/me/bids")
+                        .with(authentication(stringAuthentication("bidder"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].bidResult").value("CANCELED"))
+                .andExpect(jsonPath("$.content[0].bidResultMessage")
+                        .value("작가가 취소한 경매입니다."));
     }
 
     @Test

@@ -92,6 +92,17 @@ class ArtServiceTest {
     }
 
     @Test
+    void getArtReturnsCanceledStatusAndMarksOwner() {
+        Art art = createArt(9L, Art.STATUS_CANCELED, "owner-id");
+        when(artRepository.findById(9L)).thenReturn(Optional.of(art));
+
+        ArtDetailResponseDto result = artService.getArt(9L, "owner-id");
+
+        assertThat(result.getArtStatus()).isEqualTo(Art.STATUS_CANCELED);
+        assertThat(result.getIsOwner()).isTrue();
+    }
+
+    @Test
     void getArtMarksAnonymousAndOtherUsersAsNotOwner() {
         Art art = createArt(8L, 1, "owner-id");
         when(artRepository.findById(8L)).thenReturn(Optional.of(art));
@@ -116,6 +127,12 @@ class ArtServiceTest {
         Artist artist = createArtist(user);
         MyArtQueryDto endedArt = createMyArtSummary(11L, Art.STATUS_UNSOLD, null, 0L);
         MyArtQueryDto wonArt = createMyArtSummary(12L, Art.STATUS_SOLD, 150_000, 3L);
+        MyArtQueryDto canceledArt = createMyArtSummary(
+                13L,
+                Art.STATUS_CANCELED,
+                null,
+                2L
+        );
         when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
         when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
         when(artRepository.findMyArtSummaries(
@@ -123,17 +140,17 @@ class ArtServiceTest {
                 eq(MyArtState.ALL.getArtStatuses()),
                 any(Pageable.class)
         ))
-                .thenReturn(new PageImpl<>(List.of(endedArt, wonArt)));
+                .thenReturn(new PageImpl<>(List.of(endedArt, wonArt, canceledArt)));
 
         Page<MyArtResponseDto> result =
                 artService.getMyArts(user.getUserId(), MyArtState.ALL, 1, 12);
 
         assertThat(result.getContent())
                 .extracting(MyArtResponseDto::getArtStatus)
-                .containsExactly(1, 2);
+                .containsExactly(1, 2, 3);
         assertThat(result.getContent())
                 .extracting(MyArtResponseDto::getResult)
-                .containsExactly("UNSOLD", "SOLD");
+                .containsExactly("UNSOLD", "SOLD", "CANCELED");
         assertThat(result.getContent().get(1).getWinningPrice()).isEqualTo(150_000);
         assertThat(result.getContent().get(1).getBidCount()).isEqualTo(3L);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
@@ -180,6 +197,25 @@ class ArtServiceTest {
         );
         assertThat(pageableCaptor.getValue().getPageNumber()).isZero();
         assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50);
+    }
+
+    @Test
+    void myArtStatesIncludeCanceledOnlyInAllAndEnded() {
+        assertThat(MyArtState.ALL.getArtStatuses())
+                .containsExactly(
+                        Art.STATUS_ACTIVE,
+                        Art.STATUS_UNSOLD,
+                        Art.STATUS_SOLD,
+                        Art.STATUS_CANCELED
+                );
+        assertThat(MyArtState.ACTIVE.getArtStatuses())
+                .containsExactly(Art.STATUS_ACTIVE);
+        assertThat(MyArtState.ENDED.getArtStatuses())
+                .containsExactly(
+                        Art.STATUS_UNSOLD,
+                        Art.STATUS_SOLD,
+                        Art.STATUS_CANCELED
+                );
     }
 
     private Art createArt(Long artId, int artStatus, String ownerUserId) {

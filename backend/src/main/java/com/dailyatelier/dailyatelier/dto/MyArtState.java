@@ -5,9 +5,18 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import java.util.List;
 
 public enum MyArtState {
-    ALL(List.of(Art.STATUS_ACTIVE, Art.STATUS_UNSOLD, Art.STATUS_SOLD)),
+    ALL(List.of(
+            Art.STATUS_ACTIVE,
+            Art.STATUS_UNSOLD,
+            Art.STATUS_SOLD,
+            Art.STATUS_CANCELED
+    )),
     ACTIVE(List.of(Art.STATUS_ACTIVE)),
-    ENDED(List.of(Art.STATUS_UNSOLD, Art.STATUS_SOLD));
+    ENDED(List.of(
+            Art.STATUS_UNSOLD,
+            Art.STATUS_SOLD,
+            Art.STATUS_CANCELED
+    ));
 
     private final List<Integer> artStatuses;
 

@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.repository;
 
 import com.dailyatelier.dailyatelier.dto.MyArtQueryDto;
 import com.dailyatelier.dailyatelier.dto.BidSummaryQueryDto;
+import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.dto.WinningArtResponseDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
@@ -46,6 +47,7 @@ class AuctionResultRepositoryTest {
     private User other;
     private Art activeArt;
     private Art unsoldArt;
+    private Art canceledArt;
     private Art olderWin;
     private Art newerWin;
 
@@ -63,24 +65,30 @@ class AuctionResultRepositoryTest {
         saveBid(activeArt, winner, 110_000, BASE_TIME.minusHours(2));
 
         unsoldArt = saveArt("유찰 작품", Art.STATUS_UNSOLD, BASE_TIME.plusSeconds(1));
+        canceledArt = saveArt(
+                "작가 취소 작품",
+                Art.STATUS_CANCELED,
+                BASE_TIME.plusSeconds(2)
+        );
+        saveBid(canceledArt, winner, 120_000, BASE_TIME.minusHours(1));
 
         olderWin = saveSoldArt(
                 "먼저 낙찰",
                 winner,
                 130_000,
-                BASE_TIME.plusSeconds(2)
+                BASE_TIME.plusSeconds(3)
         );
         newerWin = saveSoldArt(
                 "최근 낙찰",
                 winner,
                 150_000,
-                BASE_TIME.plusSeconds(3)
+                BASE_TIME.plusSeconds(4)
         );
         saveSoldArt(
                 "다른 사용자 낙찰",
                 other,
                 170_000,
-                BASE_TIME.plusSeconds(4)
+                BASE_TIME.plusSeconds(5)
         );
     }
 
@@ -103,7 +111,7 @@ class AuctionResultRepositoryTest {
                 .satisfies(result -> {
                     assertThat(result.getArtId()).isEqualTo(newerWin.getArtId());
                     assertThat(result.getWinningPrice()).isEqualTo(150_000);
-                    assertThat(result.getClosedAt()).isEqualTo(BASE_TIME.plusSeconds(3));
+                    assertThat(result.getClosedAt()).isEqualTo(BASE_TIME.plusSeconds(4));
                 });
         assertThat(secondPage.getContent())
                 .extracting(WinningArtResponseDto::getArtId)
@@ -119,7 +127,7 @@ class AuctionResultRepositoryTest {
         );
         Page<MyArtQueryDto> ended = artRepository.findMyArtSummaries(
                 artist.getArtistCode(),
-                List.of(Art.STATUS_UNSOLD, Art.STATUS_SOLD),
+                MyArtState.ENDED.getArtStatuses(),
                 PageRequest.of(0, 12)
         );
 
@@ -130,12 +138,20 @@ class AuctionResultRepositoryTest {
                     assertThat(result.getBidCount()).isEqualTo(1L);
                     assertThat(result.getWinningPrice()).isNull();
                 });
-        assertThat(ended.getTotalElements()).isEqualTo(4);
+        assertThat(ended.getTotalElements()).isEqualTo(5);
         assertThat(ended.getContent())
                 .filteredOn(result -> result.getArtId().equals(unsoldArt.getArtId()))
                 .singleElement()
                 .satisfies(result -> {
                     assertThat(result.getBidCount()).isZero();
+                    assertThat(result.getWinningPrice()).isNull();
+                });
+        assertThat(ended.getContent())
+                .filteredOn(result -> result.getArtId().equals(canceledArt.getArtId()))
+                .singleElement()
+                .satisfies(result -> {
+                    assertThat(result.getArtStatus()).isEqualTo(Art.STATUS_CANCELED);
+                    assertThat(result.getBidCount()).isEqualTo(1L);
                     assertThat(result.getWinningPrice()).isNull();
                 });
         assertThat(ended.getContent())
@@ -154,7 +170,7 @@ class AuctionResultRepositoryTest {
                 PageRequest.of(0, 12)
         );
 
-        assertThat(summaries.getTotalElements()).isEqualTo(3);
+        assertThat(summaries.getTotalElements()).isEqualTo(4);
         assertThat(summaries.getContent())
                 .filteredOn(result -> result.getArtId().equals(newerWin.getArtId()))
                 .singleElement()
@@ -164,6 +180,13 @@ class AuctionResultRepositoryTest {
                 .filteredOn(result -> result.getArtId().equals(activeArt.getArtId()))
                 .singleElement()
                 .satisfies(result -> assertThat(result.getWinningUserId()).isNull());
+        assertThat(summaries.getContent())
+                .filteredOn(result -> result.getArtId().equals(canceledArt.getArtId()))
+                .singleElement()
+                .satisfies(result -> {
+                    assertThat(result.getArtStatus()).isEqualTo(Art.STATUS_CANCELED);
+                    assertThat(result.getWinningUserId()).isNull();
+                });
     }
 
     private Art saveSoldArt(
