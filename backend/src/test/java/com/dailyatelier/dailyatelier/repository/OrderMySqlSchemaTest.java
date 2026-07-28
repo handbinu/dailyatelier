@@ -53,5 +53,16 @@ class OrderMySqlSchemaTest {
         assertThat(indexes).anySatisfy(index ->
                 assertThat(index.get("columns_in_order"))
                         .isEqualTo("status,payment_due_at,order_id"));
+
+        Map<String, Object> zipCodeColumn = jdbcTemplate.queryForMap("""
+                select data_type, character_maximum_length
+                from information_schema.columns
+                where table_schema = database()
+                  and table_name = 'address'
+                  and column_name = 'zip_code'
+                """);
+        assertThat(zipCodeColumn.get("data_type")).isEqualTo("varchar");
+        assertThat(((Number) zipCodeColumn.get("character_maximum_length"))
+                .intValue()).isEqualTo(5);
     }
 }

@@ -189,10 +189,10 @@ public class Order {
         order.sellerIdSnapshot = seller.getUserId();
         order.sellerNameSnapshot = seller.getName();
         order.sellerNicknameSnapshot = seller.getNickname();
-        order.sellerArtistNameSnapshot = requireText(
-                artist.getArtistName(),
-                "판매자 작가명"
-        );
+        order.sellerArtistNameSnapshot =
+                artist.getArtistName() == null || artist.getArtistName().isBlank()
+                        ? seller.getNickname()
+                        : artist.getArtistName();
         order.sellerPhoneSnapshot = seller.getPhoneNumber();
         order.artIdSnapshot = art.getArtId();
         order.artNameSnapshot = art.getName();
@@ -234,6 +234,11 @@ public class Order {
                     status + "에서 " + nextStatus + "(으)로 변경할 수 없습니다"
             );
         }
+        if (nextStatus == OrderStatus.PAID && !isShippingAddressConfirmed()) {
+            throw new IllegalStateException(
+                    "배송지를 확정한 주문만 결제 완료 처리할 수 있습니다"
+            );
+        }
         Objects.requireNonNull(transitionedAt, "상태 변경 시각은 필수입니다");
 
         switch (nextStatus) {
@@ -256,6 +261,10 @@ public class Order {
                     throw new IllegalStateException("결제 대기 상태로 되돌릴 수 없습니다");
         }
         status = nextStatus;
+    }
+
+    public boolean isShippingAddressConfirmed() {
+        return shippingAddress != null && addressConfirmedAt != null;
     }
 
     private static void validateCreation(

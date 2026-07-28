@@ -13,7 +13,7 @@ public class ProfileUpdateDto {
     private Boolean emailAgree;
 
     // 주소 정보
-    private Integer zipCode;
+    private String zipCode;
     private String userAddress1;
     private String userAddress2;
 

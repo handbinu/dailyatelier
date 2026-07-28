@@ -20,8 +20,8 @@ public class Address {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "zip_code")
-    private Integer zipCode;
+    @Column(name = "zip_code", length = 5)
+    private String zipCode;
 
     @Column(name = "user_address1", length = 100)
     private String userAddress1;

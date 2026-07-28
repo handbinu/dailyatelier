@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +35,9 @@ class AuctionCloseServiceTest {
     @Mock
     private BidRepository bidRepository;
 
+    @Mock
+    private OrderService orderService;
+
     private AuctionCloseService auctionCloseService;
 
     @BeforeEach
@@ -41,6 +45,7 @@ class AuctionCloseServiceTest {
         auctionCloseService = new AuctionCloseService(
                 artRepository,
                 bidRepository,
+                orderService,
                 Clock.fixed(NOW, ZONE_ID)
         );
     }
@@ -59,6 +64,11 @@ class AuctionCloseServiceTest {
         assertThat(art.getWinningBid()).isNull();
         assertThat(art.getClosedAt()).isEqualTo(LocalDateTime.of(2026, 7, 27, 18, 0));
         verify(artRepository).save(art);
+        verify(orderService, never()).createForSoldAuction(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
@@ -77,6 +87,11 @@ class AuctionCloseServiceTest {
         assertThat(art.getWinningBid()).isSameAs(winningBid);
         assertThat(art.getClosedAt()).isEqualTo(LocalDateTime.of(2026, 7, 27, 18, 0));
         verify(artRepository).save(art);
+        verify(orderService).createForSoldAuction(
+                art,
+                winningBid,
+                LocalDateTime.of(2026, 7, 27, 18, 0)
+        );
     }
 
     @Test
@@ -107,6 +122,39 @@ class AuctionCloseServiceTest {
         assertThat(first).isEqualTo(AuctionCloseResult.UNSOLD);
         assertThat(second).isEqualTo(AuctionCloseResult.ALREADY_CLOSED);
         assertThat(art.getClosedAt()).isEqualTo(firstClosedAt);
+    }
+
+    @Test
+    void repeatedCloseOfSoldArtEnsuresMissingOrderIdempotently() {
+        Art art = createArt(LocalDateTime.of(2026, 7, 27, 17, 59));
+        art.setArtStatus(Art.STATUS_SOLD);
+        art.setClosedAt(LocalDateTime.of(2026, 7, 27, 18, 0));
+        Bid winningBid = createBid(3L, art, 150_000);
+        art.setWinningBid(winningBid);
+        when(artRepository.findByIdForClosing(1L)).thenReturn(Optional.of(art));
+
+        AuctionCloseResult result = auctionCloseService.closeAuction(1L);
+
+        assertThat(result).isEqualTo(AuctionCloseResult.ALREADY_CLOSED);
+        verify(orderService).createForSoldAuction(
+                art,
+                winningBid,
+                LocalDateTime.of(2026, 7, 27, 18, 0)
+        );
+        verify(artRepository, never()).save(art);
+    }
+
+    @Test
+    void canceledArtDoesNotCreateOrder() {
+        Art art = createArt(LocalDateTime.of(2026, 7, 27, 17, 59));
+        art.setArtStatus(Art.STATUS_CANCELED);
+        when(artRepository.findByIdForClosing(1L)).thenReturn(Optional.of(art));
+
+        AuctionCloseResult result = auctionCloseService.closeAuction(1L);
+
+        assertThat(result).isEqualTo(AuctionCloseResult.ALREADY_CLOSED);
+        verifyNoInteractions(orderService);
+        verify(artRepository, never()).save(art);
     }
 
     @Test

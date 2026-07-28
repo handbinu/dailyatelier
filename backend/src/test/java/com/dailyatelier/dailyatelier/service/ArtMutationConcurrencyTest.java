@@ -13,6 +13,8 @@ import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.AddressRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -56,6 +58,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         ArtService.class,
         BidService.class,
         AuctionCloseService.class,
+        OrderService.class,
+        ShippingAddressPolicy.class,
         ArtMutationConcurrencyTest.MutableClockConfig.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -90,6 +94,12 @@ class ArtMutationConcurrencyTest {
     private ReviewRepository reviewRepository;
 
     @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -106,6 +116,8 @@ class ArtMutationConcurrencyTest {
     void setUp() {
         reviewRepository.deleteAll();
         likesRepository.deleteAll();
+        orderRepository.deleteAll();
+        addressRepository.deleteAll();
         bidRepository.deleteAll();
         artRepository.deleteAll();
         artistRepository.deleteAll();

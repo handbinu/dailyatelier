@@ -9,6 +9,8 @@ import com.dailyatelier.dailyatelier.exception.BidApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.AddressRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 })
 @Import({
         AuctionCloseService.class,
+        OrderService.class,
+        ShippingAddressPolicy.class,
         BidService.class,
         AuctionCloseServiceConcurrencyTest.MutableClockConfig.class
 })
@@ -69,6 +73,12 @@ class AuctionCloseServiceConcurrencyTest {
 
     @Autowired
     private BidRepository bidRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -135,6 +145,33 @@ class AuctionCloseServiceConcurrencyTest {
         assertThat(closedArt.getWinningBid()).isNull();
         assertThat(closedArt.getClosedAt())
                 .isEqualTo(LocalDateTime.of(2026, 7, 27, 18, 0));
+        assertThat(orderRepository.count()).isZero();
+    }
+
+    @Test
+    void concurrentSoldCloseCallsPersistExactlyOneOrder() throws Exception {
+        clock.setInstant(Instant.parse("2026-07-27T08:59:59Z"));
+        bidService.createBid(artId, "bidderC", createBidRequest(120_000));
+        clock.setInstant(Instant.parse("2026-07-27T09:00:00Z"));
+
+        Future<AuctionCloseResult> first =
+                executor.submit(() -> auctionCloseService.closeAuction(artId));
+        Future<AuctionCloseResult> second =
+                executor.submit(() -> auctionCloseService.closeAuction(artId));
+
+        assertThat(List.of(
+                first.get(5, TimeUnit.SECONDS),
+                second.get(5, TimeUnit.SECONDS)
+        )).containsExactlyInAnyOrder(
+                AuctionCloseResult.SOLD,
+                AuctionCloseResult.ALREADY_CLOSED
+        );
+        assertThat(orderRepository.count()).isEqualTo(1);
+        assertThat(orderRepository.findByArtArtId(artId))
+                .hasValueSatisfying(order -> {
+                    assertThat(order.getBuyerIdSnapshot()).isEqualTo("bidderC");
+                    assertThat(order.getWinningPrice()).isEqualTo(120_000);
+                });
     }
 
     @Test
@@ -176,6 +213,12 @@ class AuctionCloseServiceConcurrencyTest {
         assertThat(closedArt.getWinningBid()).isNotNull();
         assertThat(bidRepository.findById(closedArt.getWinningBid().getBidId()).orElseThrow()
                 .getBidPrice()).isEqualTo(120_000);
+        assertThat(orderRepository.findByArtArtId(artId))
+                .hasValueSatisfying(order -> {
+                    assertThat(order.getBuyerIdSnapshot()).isEqualTo("bidderC");
+                    assertThat(order.getPaymentDueAt())
+                            .isEqualTo(LocalDateTime.of(2026, 7, 28, 18, 0));
+                });
     }
 
     @Test
@@ -235,6 +278,8 @@ class AuctionCloseServiceConcurrencyTest {
 
     private void resetDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        jdbcTemplate.execute("TRUNCATE TABLE orders");
+        jdbcTemplate.execute("TRUNCATE TABLE address");
         jdbcTemplate.execute("TRUNCATE TABLE bid");
         jdbcTemplate.execute("TRUNCATE TABLE art");
         jdbcTemplate.execute("TRUNCATE TABLE artist");

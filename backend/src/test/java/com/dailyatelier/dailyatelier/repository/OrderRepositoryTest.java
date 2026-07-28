@@ -94,7 +94,7 @@ class OrderRepositoryTest {
 
         buyerAddress = new Address();
         buyerAddress.setUser(buyer);
-        buyerAddress.setZipCode(12345);
+        buyerAddress.setZipCode("12345");
         buyerAddress.setUserAddress1("원래 주소");
         buyerAddress.setUserAddress2("101호");
         buyerAddress = addressRepository.save(buyerAddress);
@@ -144,7 +144,7 @@ class OrderRepositoryTest {
         art.setName("변경된 작품명");
         art.setImgPath("https://example.com/changed.jpg");
         winningBid.setBidPrice(999_999);
-        buyerAddress.setZipCode(99999);
+        buyerAddress.setZipCode("99999");
         buyerAddress.setUserAddress1("변경된 주소");
         buyerAddress.setUserAddress2("999호");
 

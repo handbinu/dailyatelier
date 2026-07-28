@@ -21,6 +21,7 @@ public class AuctionCloseService {
 
     private final ArtRepository artRepository;
     private final BidRepository bidRepository;
+    private final OrderService orderService;
     private final Clock clock;
 
     @Transactional
@@ -30,6 +31,18 @@ public class AuctionCloseService {
                         "작품을 찾을 수 없습니다. artId=" + artId));
 
         if (art.getArtStatus() == null || art.getArtStatus() != Art.STATUS_ACTIVE) {
+            if (art.getArtStatus() != null
+                    && art.getArtStatus() == Art.STATUS_SOLD
+                    && art.getWinningBid() != null) {
+                LocalDateTime orderCreatedAt = art.getClosedAt() == null
+                        ? LocalDateTime.now(clock)
+                        : art.getClosedAt();
+                orderService.createForSoldAuction(
+                        art,
+                        art.getWinningBid(),
+                        orderCreatedAt
+                );
+            }
             return AuctionCloseResult.ALREADY_CLOSED;
         }
 
@@ -68,6 +81,7 @@ public class AuctionCloseService {
         art.setArtStatus(Art.STATUS_SOLD);
         art.setClosedAt(closedAt);
         artRepository.save(art);
+        orderService.createForSoldAuction(art, winner, closedAt);
         return AuctionCloseResult.SOLD;
     }
 }

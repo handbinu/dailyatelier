@@ -177,6 +177,34 @@ class OrderTest {
     }
 
     @Test
+    void blocksPaymentUntilShippingAddressIsConfirmed() {
+        Order order = createOrder(null);
+
+        assertThat(order.isShippingAddressConfirmed()).isFalse();
+        assertThatThrownBy(() -> order.transitionTo(
+                OrderStatus.PAID,
+                CREATED_AT.plusMinutes(10),
+                null
+        )).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("배송지를 확정");
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAYMENT_PENDING);
+        assertThat(order.getPaidAt()).isNull();
+
+        order.confirmShippingAddress(
+                shippingAddress(),
+                CREATED_AT.plusMinutes(11)
+        );
+        order.transitionTo(
+                OrderStatus.PAID,
+                CREATED_AT.plusMinutes(12),
+                null
+        );
+
+        assertThat(order.isShippingAddressConfirmed()).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
     void rejectsUnsoldArtAndMismatchedWinner() {
         art.setArtStatus(Art.STATUS_UNSOLD);
         assertThatThrownBy(() -> createOrder(null))
