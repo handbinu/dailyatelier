@@ -267,6 +267,25 @@ public class Order {
         return shippingAddress != null && addressConfirmedAt != null;
     }
 
+    public void recordShipment(
+            String carrier,
+            String trackingNumber,
+            LocalDateTime shippedAt) {
+        String normalizedCarrier = requireShippingText(
+                carrier,
+                50,
+                "택배사"
+        );
+        String normalizedTrackingNumber = requireShippingText(
+                trackingNumber,
+                100,
+                "송장번호"
+        );
+        transitionTo(OrderStatus.SHIPPED, shippedAt, null);
+        this.shippingCarrier = normalizedCarrier;
+        this.trackingNumber = normalizedTrackingNumber;
+    }
+
     private static void validateCreation(
             Art art,
             Bid winningBid,
@@ -358,6 +377,22 @@ public class Order {
         if (normalized.length() > 200) {
             throw new IllegalArgumentException(
                     action + " 사유는 200자 이하여야 합니다"
+            );
+        }
+        return normalized;
+    }
+
+    private static String requireShippingText(
+            String value,
+            int maxLength,
+            String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");
+        }
+        String normalized = value.trim();
+        if (normalized.length() > maxLength) {
+            throw new IllegalArgumentException(
+                    fieldName + "은(는) " + maxLength + "자 이하여야 합니다"
             );
         }
         return normalized;
