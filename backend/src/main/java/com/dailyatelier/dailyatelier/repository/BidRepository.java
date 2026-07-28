@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public interface BidRepository extends JpaRepository<Bid, Long> {
 
+    boolean existsByArt(Art art);
+
     Optional<Bid> findFirstByArtOrderByBidPriceDescBidTimeAscBidIdAsc(Art art);
 
     @Query(

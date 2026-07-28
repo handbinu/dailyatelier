@@ -16,4 +16,6 @@ public class LikeItemDto {
     private Integer currentPrice;
     private LocalDateTime closingTime;
     private Integer artStatus;
+    private Boolean artDeleted;
+    private String availabilityMessage;
 }

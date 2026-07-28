@@ -2,7 +2,9 @@ package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.dto.ArtCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
+import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.ArtUpdateRequestDto;
 import com.dailyatelier.dailyatelier.service.ArtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,5 +52,20 @@ public class ArtController {
             @AuthenticationPrincipal String userId,
             @Valid @RequestBody ArtCreateRequestDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(artService.createArt(userId, dto));
+    }
+
+    @PatchMapping("/{artId}")
+    public ResponseEntity<ArtResponseDto> updateArt(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long artId,
+            @Valid @RequestBody ArtUpdateRequestDto dto) {
+        return ResponseEntity.ok(artService.updateArt(artId, userId, dto));
+    }
+
+    @DeleteMapping("/{artId}")
+    public ResponseEntity<ArtDeleteResponseDto> deleteArt(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long artId) {
+        return ResponseEntity.ok(artService.deleteArt(artId, userId));
     }
 }

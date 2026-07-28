@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,10 @@ public interface LikesRepository extends JpaRepository<Likes, Long> {
 
     void deleteByUserAndArt(User user, Art art);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Likes l set l.art = null where l.art = :art")
+    int detachArt(@Param("art") Art art);
+
     @Query(
             value = """
                     select new com.dailyatelier.dailyatelier.dto.LikeItemDto(
@@ -29,10 +34,12 @@ public interface LikesRepository extends JpaRepository<Likes, Long> {
                         ar.artistName,
                         a.currentPrice,
                         a.closingTime,
-                        a.artStatus
+                        a.artStatus,
+                        case when a is null then true else false end,
+                        case when a is null then '없어진 작품입니다.' else null end
                     )
                     from Likes l
-                    join l.art a
+                    left join l.art a
                     left join a.artist ar
                     where l.user.userId = :userId
                     order by l.likesId desc

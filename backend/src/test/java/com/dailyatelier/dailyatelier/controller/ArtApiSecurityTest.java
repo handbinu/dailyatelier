@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
+import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
@@ -11,15 +12,21 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -65,6 +72,89 @@ class ArtApiSecurityTest {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ownerCanUpdateArt() throws Exception {
+        ArtResponseDto art = createArtResponse(4L, 0);
+        when(artService.updateArt(
+                org.mockito.ArgumentMatchers.eq(4L),
+                org.mockito.ArgumentMatchers.eq("owner"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(art);
+
+        mockMvc.perform(patch("/api/arts/4")
+                        .with(authentication(stringAuthentication("owner")))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "descript": "변경 설명"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artId").value(4));
+    }
+
+    @Test
+    void ownerCanDeleteOrCancelArt() throws Exception {
+        ArtDeleteResponseDto response = new ArtDeleteResponseDto(
+                5L,
+                ArtDeleteResponseDto.Action.CANCELED,
+                3
+        );
+        when(artService.deleteArt(5L, "owner")).thenReturn(response);
+
+        mockMvc.perform(delete("/api/arts/5")
+                        .with(authentication(stringAuthentication("owner"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artId").value(5))
+                .andExpect(jsonPath("$.action").value("CANCELED"))
+                .andExpect(jsonPath("$.artStatus").value(3));
+    }
+
+    @Test
+    void anonymousUserCannotUpdateOrDeleteArt() throws Exception {
+        mockMvc.perform(patch("/api/arts/4")
+                        .contentType("application/json")
+                        .content("{\"descript\":\"변경\"}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(delete("/api/arts/4"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void emptyUpdateRequestReturnsBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/arts/4")
+                        .with(authentication(stringAuthentication("owner")))
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updatePolicyErrorReturnsBadRequest() throws Exception {
+        when(artService.updateArt(
+                org.mockito.ArgumentMatchers.eq(4L),
+                org.mockito.ArgumentMatchers.eq("owner"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+
+        mockMvc.perform(patch("/api/arts/4")
+                        .with(authentication(stringAuthentication("owner")))
+                        .contentType("application/json")
+                        .content("{\"closingTime\":\"2026-07-01T10:00:00\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void missingDeleteTargetReturnsNotFound() throws Exception {
+        when(artService.deleteArt(404L, "owner"))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(delete("/api/arts/404")
+                        .with(authentication(stringAuthentication("owner"))))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -131,5 +221,9 @@ class ArtApiSecurityTest {
                 art.getArtStatus(),
                 false
         );
+    }
+
+    private UsernamePasswordAuthenticationToken stringAuthentication(String userId) {
+        return new UsernamePasswordAuthenticationToken(userId, null, List.of());
     }
 }
