@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   getSellerOrder,
@@ -11,14 +11,19 @@ import {
   formatOrderPrice,
   formatShippingAddress,
   getOrderError,
-  getOrderStatusView,
   ORDER_FILTERS,
 } from '../../utils/orderView'
+import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
 import {
   buildSellerStatusRequest,
   SELLER_ACTION,
 } from '../../utils/sellerOrderView'
-import { Badge, Empty, PageBanner, PageWrap } from './components/atoms'
+import { PageBanner, PageWrap } from './components/atoms'
+import {
+  OrderFeedback,
+  OrderListState,
+  OrderStatusBadge,
+} from './components/OrderCommon'
 import s from './SalesOrders.module.css'
 
 const PAGE_SIZE = 12
@@ -38,6 +43,7 @@ export default function SalesOrders() {
   const [processingId, setProcessingId] = useState(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const requestGuard = useRef(createOrderRequestGuard())
 
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
@@ -122,10 +128,12 @@ export default function SalesOrders() {
   }
 
   const runAction = async (orderId, action) => {
+    if (!requestGuard.current.begin(orderId)) return
     let request
     try {
       request = buildSellerStatusRequest(action, shippingForm)
     } catch (validationError) {
+      requestGuard.current.end(orderId)
       setError(validationError.message)
       return
     }
@@ -154,6 +162,7 @@ export default function SalesOrders() {
         ])
       }
     } finally {
+      requestGuard.current.end(orderId)
       setProcessingId(null)
     }
   }
@@ -164,13 +173,11 @@ export default function SalesOrders() {
     <PageWrap>
       <PageBanner title="판매 주문 관리" crumb="판매 주문" />
       <div className={s.body}>
-        {notice && <p className={s.notice} role="status">{notice}</p>}
-        {error && (
-          <div className={s.feedback} role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={() => loadOrders()}>다시 시도</button>
-          </div>
-        )}
+        <OrderFeedback
+          notice={notice}
+          error={error}
+          onRetry={() => loadOrders()}
+        />
 
         <div className={s.summary}>
           {summaryItems.map((item) => (
@@ -195,11 +202,12 @@ export default function SalesOrders() {
           ))}
         </div>
 
-        {loading ? (
-          <Empty msg="판매 주문을 불러오는 중입니다." />
-        ) : items.length === 0 ? (
-          <Empty msg="조건에 맞는 판매 주문이 없습니다." />
-        ) : (
+        <OrderListState
+          loading={loading}
+          isEmpty={items.length === 0}
+          loadingMessage="판매 주문을 불러오는 중입니다."
+          emptyMessage="조건에 맞는 판매 주문이 없습니다."
+        >
           <div className={s.list}>
             {items.map((order) => (
               <SellerOrderItem
@@ -232,7 +240,7 @@ export default function SalesOrders() {
               />
             ))}
           </div>
-        )}
+        </OrderListState>
 
         {result?.totalPages > 1 && (
           <nav className={s.pagination} aria-label="판매 주문 목록 페이지">
@@ -277,7 +285,6 @@ function SellerOrderItem({
   onShippingCancel,
   onShip,
 }) {
-  const statusView = getOrderStatusView(order.status)
   const actions = detail?.availableActions ?? order.availableActions ?? []
 
   return (
@@ -295,7 +302,7 @@ function SellerOrderItem({
             <span>{order.orderNumber} · {formatOrderDate(order.createdAt)}</span>
           </span>
           <span className={s.price}>{formatOrderPrice(order.winningPrice)}</span>
-          <Badge label={statusView.label} color={statusView.color} />
+          <OrderStatusBadge status={order.status} />
         </button>
         <div className={s.actions}>
           {actions.includes(SELLER_ACTION.START_PREPARING) && (

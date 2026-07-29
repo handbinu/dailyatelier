@@ -5,37 +5,6 @@
   padding: var(--space-8) var(--space-6) var(--space-16);
 }
 
-.notice,
-.feedback {
-  margin-bottom: var(--space-5);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-}
-.notice {
-  color: var(--color-success, #1e8c4f);
-  background: #edf8f1;
-  border: 1px solid #b8dfc7;
-}
-.feedback {
-  color: var(--color-error);
-  background: var(--color-error-bg);
-  border: 1px solid rgba(217,48,37,.2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.feedback button {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid currentColor;
-  border-radius: var(--radius-sm);
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
 /* 요약 띠 */
 .summary {
   display: grid;

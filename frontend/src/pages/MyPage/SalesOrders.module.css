@@ -1,8 +1,5 @@
 .body { max-width: 1120px; margin: 0 auto; padding: var(--space-8) var(--space-6) var(--space-12); }
-.notice, .feedback { margin-bottom: var(--space-5); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-size-sm); }
-.notice { color: var(--color-success); background: rgba(30, 140, 79, .1); }
-.feedback { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); color: var(--color-error); background: var(--color-error-bg); }
-.feedback button, .actions button, .pagination button, .shippingForm button { min-height: 38px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); cursor: pointer; }
+.actions button, .pagination button, .shippingForm button { min-height: 38px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); cursor: pointer; }
 .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: var(--space-6); }
 .summaryItem { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .summaryItem strong { font-size: var(--font-size-xl); color: var(--color-primary); }

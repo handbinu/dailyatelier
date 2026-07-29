@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   cancelBuyerOrder,
@@ -17,7 +17,13 @@ import {
   getOrderStatusView,
   ORDER_FILTERS,
 } from '../../utils/orderView'
-import { Badge, Empty, PageBanner, PageWrap } from './components/atoms'
+import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
+import { PageBanner, PageWrap } from './components/atoms'
+import {
+  OrderFeedback,
+  OrderListState,
+  OrderStatusBadge,
+} from './components/OrderCommon'
 import s from './OrderStatus.module.css'
 
 const PAGE_SIZE = 12
@@ -65,6 +71,7 @@ export default function OrderStatus() {
   const [processingId, setProcessingId] = useState(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const requestGuard = useRef(createOrderRequestGuard())
 
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
@@ -209,6 +216,7 @@ export default function OrderStatus() {
 
   const submitAddress = async (event, orderId) => {
     event.preventDefault()
+    if (!requestGuard.current.begin(orderId)) return
     setProcessingId(orderId)
     setError('')
     setNotice('')
@@ -224,6 +232,7 @@ export default function OrderStatus() {
     } catch (requestError) {
       handleRequestError(requestError, '배송지를 저장하지 못했습니다.')
     } finally {
+      requestGuard.current.end(orderId)
       setProcessingId(null)
     }
   }
@@ -237,6 +246,7 @@ export default function OrderStatus() {
       && !window.confirm('작품을 수령하셨나요? 구매를 확정하시겠습니까?')) {
       return
     }
+    if (!requestGuard.current.begin(orderId)) return
 
     setProcessingId(orderId)
     setError('')
@@ -263,6 +273,7 @@ export default function OrderStatus() {
         ])
       }
     } finally {
+      requestGuard.current.end(orderId)
       setProcessingId(null)
     }
   }
@@ -273,15 +284,11 @@ export default function OrderStatus() {
     <PageWrap>
       <PageBanner title="주문 조회" crumb="주문 조회" />
       <div className={s.body}>
-        {notice && <p className={s.notice} role="status">{notice}</p>}
-        {error && (
-          <div className={s.feedback} role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={() => loadOrders()}>
-              다시 시도
-            </button>
-          </div>
-        )}
+        <OrderFeedback
+          notice={notice}
+          error={error}
+          onRetry={() => loadOrders()}
+        />
 
         <div className={s.summary}>
           {summaryItems.map(({ label, value, color }) => (
@@ -306,11 +313,12 @@ export default function OrderStatus() {
           ))}
         </div>
 
-        {loading ? (
-          <Empty msg="주문 내역을 불러오는 중입니다." />
-        ) : items.length === 0 ? (
-          <Empty msg="주문 내역이 없습니다." />
-        ) : (
+        <OrderListState
+          loading={loading}
+          isEmpty={items.length === 0}
+          loadingMessage="주문 내역을 불러오는 중입니다."
+          emptyMessage="주문 내역이 없습니다."
+        >
           <>
             <div className={s.tableHead}>
               <span className={s.colInfo}>주문 정보</span>
@@ -341,7 +349,7 @@ export default function OrderStatus() {
               ))}
             </div>
           </>
-        )}
+        </OrderListState>
 
         {result?.totalPages > 1 && (
           <nav className={s.pagination} aria-label="주문 목록 페이지">
@@ -388,7 +396,6 @@ function OrderItem({
   onAddressSubmit,
   onAction,
 }) {
-  const statusView = getOrderStatusView(order.status)
   const actions = detail?.availableActions ?? order.availableActions ?? []
 
   return (
@@ -415,7 +422,7 @@ function OrderItem({
             {formatOrderPrice(order.winningPrice)}
           </span>
           <span className={s.colStatus}>
-            <Badge label={statusView.label} color={statusView.color} />
+            <OrderStatusBadge status={order.status} />
           </span>
         </button>
         <div className={`${s.colAction} ${s.actions}`}>
