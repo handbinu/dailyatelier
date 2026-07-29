@@ -56,6 +56,7 @@ const ERROR_MESSAGES = {
   PAYMENT_DEADLINE_EXPIRED: '결제 기한이 만료된 주문입니다.',
   SHIPPING_ADDRESS_REQUIRED: '결제 전에 배송지를 확정해 주세요.',
   INVALID_SHIPPING_ADDRESS: '배송지 입력값을 확인해 주세요.',
+  INVALID_SELLER_ORDER_STATUS: '작가가 처리할 수 없는 주문 상태입니다.',
 }
 
 export const getOrderStatusView = (status) =>

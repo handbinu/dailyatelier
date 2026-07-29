@@ -54,6 +54,7 @@ const T = {
     inquiry: '문의 현황',
     manage: '작품 관리',
     artistReview: '작품 리뷰',
+    salesOrder: '판매 주문',
   },
 }
 
@@ -71,6 +72,7 @@ const ARTIST_TABS = [
   ...USER_TABS,
   { name: T.tabs.manage, path: '/mypage/manage-arts' },
   { name: T.tabs.artistReview, path: '/mypage/artist-review' },
+  { name: T.tabs.salesOrder, path: '/mypage/sales-orders' },
 ]
 
 export default function MyPage() {

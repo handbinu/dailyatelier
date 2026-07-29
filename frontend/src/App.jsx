@@ -30,6 +30,7 @@ import InquiryWrite   from './pages/MyPage/InquiryWrite'
 import UploadSell   from './pages/MyPage/UploadSell'
 import ManageArts   from './pages/MyPage/ManageArts'
 import ArtistReview from './pages/MyPage/ArtistReview.jsx'
+import SalesOrders  from './pages/MyPage/SalesOrders'
 import ArtDetail    from './pages/Auction/ArtDetail'
 import AuctionTotal from './pages/Auction/AuctionTotal'
 
@@ -100,6 +101,7 @@ function App() {
             <Route path="/upload"                element={<UploadSell />} />
             <Route path="/mypage/manage-arts"    element={<ManageArts />} />
             <Route path="/mypage/artist-review"  element={<ArtistReview />} />
+            <Route path="/mypage/sales-orders"   element={<SalesOrders />} />
 
           </Route>
 

@@ -26,3 +26,24 @@ export const cancelBuyerOrder = (orderId) =>
 
 export const confirmBuyerOrder = (orderId) =>
   api.post(`/api/users/me/orders/${orderId}/confirm`)
+
+export const getSellerOrders = ({
+  status,
+  page = 0,
+  size = 12,
+  signal,
+} = {}) =>
+  api.get('/api/artists/me/orders', {
+    params: {
+      ...(status ? { status } : {}),
+      page,
+      size,
+    },
+    signal,
+  })
+
+export const getSellerOrder = (orderId, { signal } = {}) =>
+  api.get(`/api/artists/me/orders/${orderId}`, { signal })
+
+export const updateSellerOrderStatus = (orderId, data) =>
+  api.patch(`/api/artists/me/orders/${orderId}/status`, data)

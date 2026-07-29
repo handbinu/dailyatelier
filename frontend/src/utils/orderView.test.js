@@ -44,6 +44,19 @@ test('주문 API 오류를 사용자 메시지와 후속 처리로 변환한다'
   assert.equal(unauthorized.shouldLogin, true)
 })
 
+test('판매 주문 권한 오류를 접근 거부 안내로 변환한다', () => {
+  const forbidden = getOrderError({
+    response: {
+      status: 403,
+      data: { code: 'ORDER_ACCESS_DENIED' },
+    },
+  })
+
+  assert.equal(forbidden.status, 403)
+  assert.match(forbidden.message, /권한/)
+  assert.equal(forbidden.shouldLogin, false)
+})
+
 test('배송지 스냅샷을 우편번호와 상세 주소까지 표시한다', () => {
   assert.equal(formatShippingAddress(null), '배송지 미확정')
   assert.equal(
