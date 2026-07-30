@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.AccessLevel;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,7 +38,8 @@ public class User {
     @Column(nullable = false)
     private Integer userStatus; // 0:일반 회원, 1: 작가 회원, 2: 관리자
 
-    @Column
+    @Setter(AccessLevel.NONE)
+    @Column(insertable = false, updatable = false)
     private Integer reserve = 0;
 
     @Column(name = "email_agree")

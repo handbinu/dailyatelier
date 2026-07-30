@@ -11,7 +11,7 @@ public class UserProfileDto {
     private String phoneNumber;
     private String email;
     private int userStatus;
-    private int reserve;
+    private long reserve;
     private Boolean emailAgree;
 
     // 주소 정보

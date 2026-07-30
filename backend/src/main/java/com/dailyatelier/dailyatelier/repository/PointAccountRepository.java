@@ -1,6 +1,6 @@
 package com.dailyatelier.dailyatelier.repository;
 
-import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -9,12 +9,9 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, String> {
-    boolean existsByUserId(String userId);
-    boolean existsByNickname(String nickname);
-    User findByUserId(String userId);
+public interface PointAccountRepository extends JpaRepository<PointAccount, String> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select user from User user where user.userId = :userId")
-    Optional<User> findByIdForUpdate(@Param("userId") String userId);
+    @Query("select account from PointAccount account where account.userId = :userId")
+    Optional<PointAccount> findByUserIdForUpdate(@Param("userId") String userId);
 }

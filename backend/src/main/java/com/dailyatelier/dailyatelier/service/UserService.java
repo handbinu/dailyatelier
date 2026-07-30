@@ -30,6 +30,7 @@ public class UserService {
     private final ArtistRepository artistRepository;
     private final AddressRepository addressRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PointAccountService pointAccountService;
 
     //로그인
     public LoginResponseDto login(LoginRequestDto dto){
@@ -47,8 +48,8 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setJoinDate(LocalDateTime.now());
         user.setUserStatus(0);
-        user.setReserve(0);
         userRepository.save(user);
+        pointAccountService.initializeAccount(user.getUserId());
     }
 
     //작가 회원가입
@@ -63,8 +64,6 @@ public class UserService {
         user.setEmail(dto.getEmail());
         user.setJoinDate(LocalDateTime.now());
         user.setUserStatus(1);
-        user.setReserve(0);
-
         Artist artist = new Artist();
         artist.setUser(user);
         String artistName = (dto.getArtistName() != null && !dto.getArtistName().isBlank())
@@ -74,6 +73,7 @@ public class UserService {
         artist.setArtistSns(dto.getArtistSns());
         artist.setArtistIntro("");
         artistRepository.saveAndFlush(artist);
+        pointAccountService.initializeAccount(user.getUserId());
     }
 
 
@@ -99,7 +99,7 @@ public class UserService {
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setEmail(user.getEmail());
         dto.setUserStatus(user.getUserStatus());
-        dto.setReserve(user.getReserve());
+        dto.setReserve(pointAccountService.getAvailableBalance(userId));
         dto.setEmailAgree(user.getEmailAgree());
 
         // 주소 정보 로드
