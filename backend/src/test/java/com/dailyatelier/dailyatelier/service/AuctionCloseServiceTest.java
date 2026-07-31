@@ -2,6 +2,8 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.AuctionCloseIntegrityException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -76,6 +78,7 @@ class AuctionCloseServiceTest {
         Art art = createArt(LocalDateTime.of(2026, 7, 27, 18, 0));
         art.setCurrentPrice(150_000);
         Bid winningBid = createBid(3L, art, 150_000);
+        attachActiveHold(art, winningBid);
         when(artRepository.findByIdForClosing(1L)).thenReturn(Optional.of(art));
         when(bidRepository.findFirstByArtOrderByBidPriceDescBidTimeAscBidIdAsc(art))
                 .thenReturn(Optional.of(winningBid));
@@ -189,11 +192,24 @@ class AuctionCloseServiceTest {
     }
 
     private Bid createBid(Long bidId, Art art, int bidPrice) {
+        User bidder = new User();
+        bidder.setUserId("bidder");
         Bid bid = new Bid();
         bid.setBidId(bidId);
         bid.setArt(art);
+        bid.setUser(bidder);
         bid.setBidPrice(bidPrice);
         bid.setBidTime(LocalDateTime.of(2026, 7, 27, 17, 30));
         return bid;
+    }
+
+    private void attachActiveHold(Art art, Bid bid) {
+        art.setActivePointHold(PointHold.hold(
+                art,
+                bid.getUser(),
+                bid,
+                bid.getBidPrice(),
+                LocalDateTime.of(2026, 7, 27, 17, 30)
+        ));
     }
 }

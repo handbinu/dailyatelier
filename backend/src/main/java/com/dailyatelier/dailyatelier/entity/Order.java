@@ -110,6 +110,10 @@ public class Order {
     @Column(name = "winning_price", nullable = false)
     private Integer winningPrice;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false, length = 30)
+    private OrderPaymentMethod paymentMethod;
+
     @Embedded
     private OrderShippingAddress shippingAddress;
 
@@ -199,6 +203,7 @@ public class Order {
         order.artImageSnapshot = art.getImgPath();
         order.winningBidIdSnapshot = winningBid.getBidId();
         order.winningPrice = winningBid.getBidPrice();
+        order.paymentMethod = OrderPaymentMethod.INTERNAL_POINT;
         order.shippingAddress = shippingAddress;
         order.status = OrderStatus.PAYMENT_PENDING;
         order.createdAt = createdAt;

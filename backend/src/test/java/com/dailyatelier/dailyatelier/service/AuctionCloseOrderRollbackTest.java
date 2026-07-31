@@ -4,10 +4,12 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PointHold;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +61,9 @@ class AuctionCloseOrderRollbackTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PointHoldRepository pointHoldRepository;
+
     @MockitoBean
     private OrderService orderService;
 
@@ -91,7 +96,11 @@ class AuctionCloseOrderRollbackTest {
         bid.setUser(buyer);
         bid.setBidPrice(150_000);
         bid.setBidTime(CLOSED_AT.minusMinutes(1));
-        bidRepository.save(bid);
+        bid = bidRepository.save(bid);
+        PointHold hold = pointHoldRepository.save(
+                PointHold.hold(art, buyer, bid, 150_000, CLOSED_AT.minusMinutes(1)));
+        art.setActivePointHold(hold);
+        artRepository.saveAndFlush(art);
     }
 
     @Test

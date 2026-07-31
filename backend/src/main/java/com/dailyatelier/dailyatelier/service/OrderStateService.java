@@ -19,12 +19,24 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class OrderStateService implements OrderPaymentService {
     private final OrderRepository orderRepository;
+    private final OrderPointLedgerService pointLedgerService;
     private final Clock clock;
+
+    @Transactional
+    public Order markPaid(Long orderId) {
+        return markPaid(orderId, "order-payment:" + orderId);
+    }
 
     @Override
     @Transactional
-    public Order markPaid(Long orderId) {
+    public Order markPaid(Long orderId, String idempotencyKey) {
         Order order = findForUpdate(orderId);
+        if (order.getStatus() == OrderStatus.PAID) {
+            return order;
+        }
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            throw conflict("ORDER_STATUS_CONFLICT", "결제 대기 주문만 결제할 수 있습니다.");
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         if (!now.isBefore(order.getPaymentDueAt())) {
             throw conflict(
@@ -38,18 +50,27 @@ public class OrderStateService implements OrderPaymentService {
                     "결제 전에 배송지를 확정해 주세요."
             );
         }
+        pointLedgerService.commit(order, idempotencyKey, now);
         transition(order, OrderStatus.PAID, now, null);
         return orderRepository.save(order);
     }
 
     @Override
     @Transactional
-    public Order refund(Long orderId, OrderRefundReason reason) {
+    public Order refund(Long orderId, OrderRefundReason reason, String idempotencyKey) {
         Order order = findForUpdate(orderId);
+        if (order.getStatus() == OrderStatus.REFUNDED) {
+            return order;
+        }
+        if (order.getStatus() != OrderStatus.PAID
+                && order.getStatus() != OrderStatus.PREPARING) {
+            throw conflict("ORDER_STATUS_CONFLICT", "결제된 주문만 환불할 수 있습니다.");
+        }
         OrderRefundReason requiredReason = Objects.requireNonNull(
                 reason,
                 "환불 사유는 필수입니다"
         );
+        pointLedgerService.refund(order, idempotencyKey, requiredReason, LocalDateTime.now(clock));
         transition(
                 order,
                 OrderStatus.REFUNDED,
@@ -57,6 +78,11 @@ public class OrderStateService implements OrderPaymentService {
                 requiredReason.name()
         );
         return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order refund(Long orderId, OrderRefundReason reason) {
+        return refund(orderId, reason, "order-refund:" + orderId);
     }
 
     @Transactional
@@ -131,6 +157,13 @@ public class OrderStateService implements OrderPaymentService {
         OrderCancelReason reason = now.isBefore(order.getPaymentDueAt())
                 ? OrderCancelReason.BUYER_FORFEIT
                 : OrderCancelReason.PAYMENT_DEADLINE_EXPIRED;
+        pointLedgerService.release(
+                order,
+                reason == OrderCancelReason.BUYER_FORFEIT
+                        ? com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason.ORDER_CANCELED
+                        : com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason.PAYMENT_EXPIRED,
+                "order-release:" + orderId,
+                now);
         transition(
                 order,
                 OrderStatus.CANCELED,

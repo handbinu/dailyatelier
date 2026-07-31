@@ -2,6 +2,8 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
 import com.dailyatelier.dailyatelier.exception.AuctionCloseIntegrityException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -69,6 +71,25 @@ public class AuctionCloseService {
                     art.getArtId(),
                     art.getCurrentPrice(),
                     winner.getBidPrice()
+            );
+            throw new AuctionCloseIntegrityException(
+                    art.getArtId(),
+                    art.getCurrentPrice(),
+                    winner.getBidPrice()
+            );
+        }
+
+        PointHold activeHold = art.getActivePointHold();
+        if (activeHold == null
+                || activeHold.getStatus() != PointHoldStatus.HELD
+                || !activeHold.getUser().getUserId().equals(winner.getUser().getUserId())
+                || activeHold.getAmount() != winner.getBidPrice().longValue()
+                || !activeHold.getLatestBid().getBidId().equals(winner.getBidId())) {
+            log.error(
+                    "경매 마감 예치 불일치: artId={}, winningBidId={}, activeHoldId={}",
+                    art.getArtId(),
+                    winner.getBidId(),
+                    activeHold == null ? null : activeHold.getHoldId()
             );
             throw new AuctionCloseIntegrityException(
                     art.getArtId(),

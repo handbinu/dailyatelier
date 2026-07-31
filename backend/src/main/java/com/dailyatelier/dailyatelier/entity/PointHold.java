@@ -114,6 +114,14 @@ public class PointHold {
         this.updatedAt = releasedAt;
     }
 
+    public void commit(Long orderId, LocalDateTime committedAt) {
+        requireHeld();
+        this.status = PointHoldStatus.COMMITTED;
+        this.commitOrderId = Objects.requireNonNull(orderId, "주문 ID는 필수입니다");
+        this.committedAt = Objects.requireNonNull(committedAt, "확정 시각은 필수입니다");
+        this.updatedAt = committedAt;
+    }
+
     private void requireHeld() {
         if (this.status != PointHoldStatus.HELD) {
             throw new IllegalStateException("활성 예치만 변경할 수 있습니다");

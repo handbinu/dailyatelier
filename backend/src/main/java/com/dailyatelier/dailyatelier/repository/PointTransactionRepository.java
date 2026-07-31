@@ -1,6 +1,8 @@
 package com.dailyatelier.dailyatelier.repository;
 
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +12,11 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
     boolean existsByIdempotencyKey(String idempotencyKey);
 
     long countByUserId(String userId);
+
+    java.util.Optional<PointTransaction> findByReferenceTypeAndReferenceIdAndType(
+            PointReferenceType referenceType,
+            String referenceId,
+            PointTransactionType type);
 
     @Query("""
             select coalesce(sum(transaction.availableDelta), 0)

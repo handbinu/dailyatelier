@@ -7,6 +7,11 @@ import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.OrderRefundReason;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.AddressRepository;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
@@ -14,6 +19,9 @@ import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +63,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         ShippingAddressPolicy.class,
         OrderStateService.class,
         OrderExpirationService.class,
+        OrderPointLedgerService.class,
         OrderStateConcurrencyTest.MutableClockConfig.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -89,6 +98,15 @@ class OrderStateConcurrencyTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PointAccountRepository pointAccountRepository;
+
+    @Autowired
+    private PointHoldRepository pointHoldRepository;
+
+    @Autowired
+    private PointTransactionRepository pointTransactionRepository;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -146,6 +164,40 @@ class OrderStateConcurrencyTest {
         assertThat(expirationFuture.get(5, TimeUnit.SECONDS))
                 .isEqualTo(OrderExpirationResult.ALREADY_PROCESSED);
         assertThat(reload().getStatus()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void concurrentPaymentCreatesSingleCommit() throws Exception {
+        Future<Order> first = executor.submit(() -> orderStateService.markPaid(orderId));
+        Future<Order> second = executor.submit(() -> orderStateService.markPaid(orderId));
+
+        assertThat(first.get(5, TimeUnit.SECONDS).getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(second.get(5, TimeUnit.SECONDS).getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                PointReferenceType.ORDER,
+                orderId.toString(),
+                PointTransactionType.COMMIT
+        )).isPresent();
+    }
+
+    @Test
+    void concurrentRefundRestoresPointsOnce() throws Exception {
+        orderStateService.markPaid(orderId);
+
+        Future<Order> first = executor.submit(() -> orderStateService.refund(
+                orderId, OrderRefundReason.PAYMENT_CANCELED));
+        Future<Order> second = executor.submit(() -> orderStateService.refund(
+                orderId, OrderRefundReason.PAYMENT_CANCELED));
+
+        assertThat(first.get(5, TimeUnit.SECONDS).getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(second.get(5, TimeUnit.SECONDS).getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                PointReferenceType.ORDER,
+                orderId.toString(),
+                PointTransactionType.REFUND
+        )).isPresent();
+        assertThat(pointAccountRepository.findById("buyer").orElseThrow().getAvailableBalance())
+                .isEqualTo(150_000);
     }
 
     @Test
@@ -246,6 +298,13 @@ class OrderStateConcurrencyTest {
         bid.setBidTime(CREATED_AT.minusMinutes(1));
         bid = bidRepository.save(bid);
 
+        PointAccount account = PointAccount.open(buyer, 150_000, CREATED_AT.minusMinutes(2));
+        account.hold(150_000, CREATED_AT.minusMinutes(1));
+        pointAccountRepository.save(account);
+        PointHold hold = pointHoldRepository.save(
+                PointHold.hold(art, buyer, bid, 150_000, CREATED_AT.minusMinutes(1)));
+        art.setActivePointHold(hold);
+
         art.setWinningBid(bid);
         art.setClosedAt(CREATED_AT);
         art.setArtStatus(Art.STATUS_SOLD);
@@ -283,6 +342,9 @@ class OrderStateConcurrencyTest {
 
     private void resetDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        jdbcTemplate.execute("TRUNCATE TABLE point_transaction");
+        jdbcTemplate.execute("TRUNCATE TABLE point_hold");
+        jdbcTemplate.execute("TRUNCATE TABLE point_account");
         jdbcTemplate.execute("TRUNCATE TABLE orders");
         jdbcTemplate.execute("TRUNCATE TABLE address");
         jdbcTemplate.execute("TRUNCATE TABLE bid");

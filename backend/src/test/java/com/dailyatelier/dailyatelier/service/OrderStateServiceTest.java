@@ -8,6 +8,8 @@ import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderRefundReason;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PointHold;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.AddressRepository;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
@@ -15,6 +17,8 @@ import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         OrderService.class,
         ShippingAddressPolicy.class,
         OrderStateService.class,
+        OrderPointLedgerService.class,
         OrderStateServiceTest.MutableClockConfig.class
 })
 class OrderStateServiceTest {
@@ -72,6 +77,12 @@ class OrderStateServiceTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PointAccountRepository pointAccountRepository;
+
+    @Autowired
+    private PointHoldRepository pointHoldRepository;
 
     @Autowired
     private MutableClock clock;
@@ -110,6 +121,13 @@ class OrderStateServiceTest {
         winningBid.setBidPrice(150_000);
         winningBid.setBidTime(CREATED_AT.minusMinutes(1));
         winningBid = bidRepository.save(winningBid);
+
+        PointAccount account = PointAccount.open(buyer, 150_000, CREATED_AT.minusMinutes(2));
+        account.hold(150_000, CREATED_AT.minusMinutes(1));
+        pointAccountRepository.save(account);
+        PointHold hold = pointHoldRepository.save(
+                PointHold.hold(art, buyer, winningBid, 150_000, CREATED_AT.minusMinutes(1)));
+        art.setActivePointHold(hold);
 
         art.setWinningBid(winningBid);
         art.setClosedAt(CREATED_AT);

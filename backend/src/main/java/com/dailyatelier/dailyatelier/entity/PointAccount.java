@@ -101,4 +101,15 @@ public class PointAccount {
         this.availableBalance = Math.addExact(this.availableBalance, amount);
         this.updatedAt = Objects.requireNonNull(updatedAt, "변경 시각은 필수입니다");
     }
+
+    public void commit(long amount, LocalDateTime updatedAt) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("확정 금액은 양수여야 합니다");
+        }
+        if (this.heldBalance < amount) {
+            throw new IllegalStateException("예치 포인트가 부족합니다");
+        }
+        this.heldBalance -= amount;
+        this.updatedAt = Objects.requireNonNull(updatedAt, "변경 시각은 필수입니다");
+    }
 }

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class OrderExpirationService {
     private final OrderRepository orderRepository;
+    private final OrderPointLedgerService pointLedgerService;
     private final Clock clock;
 
     @Transactional
@@ -33,6 +34,11 @@ public class OrderExpirationService {
             return OrderExpirationResult.NOT_DUE;
         }
 
+        pointLedgerService.release(
+                order,
+                com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason.PAYMENT_EXPIRED,
+                "order-expiration:" + orderId,
+                now);
         order.transitionTo(
                 OrderStatus.CANCELED,
                 now,
