@@ -14,6 +14,7 @@ import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,12 +47,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import({BidService.class, TimeConfig.class})
+@Import({BidService.class, PointAccountService.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class BidServiceConcurrencyTest {
 
     @Autowired
     private BidService bidService;
+
+    @Autowired
+    private PointAccountService pointAccountService;
 
     @Autowired
     private ArtRepository artRepository;
@@ -77,6 +83,9 @@ class BidServiceConcurrencyTest {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private ExecutorService executor;
     private Artist seller;
@@ -265,6 +274,81 @@ class BidServiceConcurrencyTest {
                     assertThat(account.getAvailableBalance() + account.getHeldBalance())
                             .isEqualTo(150_000L);
                 });
+    }
+
+    @Test
+    void concurrentBidsAcrossManyArtsAndUsersPreserveEveryLedgerBalance() throws Exception {
+        executor.shutdownNow();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+        executor = Executors.newFixedThreadPool(16);
+
+        List<Long> artIds = new ArrayList<>();
+        artIds.add(artId);
+        for (int index = 1; index < 4; index++) {
+            artIds.add(saveOpenArt("부하 검증 작품 " + index).getArtId());
+        }
+
+        for (int index = 0; index < 16; index++) {
+            String userId = "load" + index;
+            userRepository.saveAndFlush(createUser(userId, 0));
+            jdbcTemplate.update(
+                    "update users set reserve = 200000 where user_id = ?",
+                    userId
+            );
+            entityManager.clear();
+            pointAccountService.initializeAccount(userId);
+        }
+
+        CountDownLatch ready = new CountDownLatch(16);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<?>> results = new ArrayList<>();
+        for (int index = 0; index < 16; index++) {
+            int bidderIndex = index;
+            results.add(executor.submit(() -> {
+                ready.countDown();
+                await(start);
+                return bidService.createBid(
+                        artIds.get(bidderIndex % artIds.size()),
+                        "load" + bidderIndex,
+                        createRequest(110_000 + bidderIndex * 1_000)
+                );
+            }));
+        }
+
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+
+        int successCount = 0;
+        for (Future<?> result : results) {
+            try {
+                result.get(10, TimeUnit.SECONDS);
+                successCount++;
+            } catch (ExecutionException exception) {
+                assertThat(exception.getCause()).isInstanceOf(BidApiException.class);
+                assertThat(((BidApiException) exception.getCause()).getCode())
+                        .isEqualTo("BID_TOO_LOW");
+            }
+        }
+
+        assertThat(successCount).isGreaterThanOrEqualTo(4);
+        assertThat(pointHoldRepository.findAll()
+                .stream()
+                .filter(hold -> hold.getStatus()
+                        == com.dailyatelier.dailyatelier.entity.PointHoldStatus.HELD)
+                .count()).isEqualTo(4);
+
+        for (int index = 0; index < 16; index++) {
+            String userId = "load" + index;
+            var account = pointAccountRepository.findById(userId).orElseThrow();
+            assertThat(account.getAvailableBalance())
+                    .isEqualTo(pointTransactionRepository
+                            .sumAvailableDeltaByUserId(userId));
+            assertThat(account.getHeldBalance())
+                    .isEqualTo(pointTransactionRepository
+                            .sumHeldDeltaByUserId(userId));
+            assertThat(account.getAvailableBalance() + account.getHeldBalance())
+                    .isEqualTo(200_000L);
+        }
     }
 
     private Future<?> holdArtLock(
