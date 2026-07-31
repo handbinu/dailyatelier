@@ -120,6 +120,59 @@ public class PointCharge {
         return charge;
     }
 
+    public boolean matchesRequest(PaymentProvider provider, long requestedAmount) {
+        return this.provider == provider && this.requestedAmount == requestedAmount;
+    }
+
+    public void approve(
+            String pgOrderId,
+            long paidAmount,
+            Long transactionId,
+            LocalDateTime paidAt) {
+        requireStatus(PointChargeStatus.PENDING);
+        if (paidAmount != requestedAmount) {
+            throw new IllegalArgumentException("승인 금액이 충전 요청 금액과 일치하지 않습니다");
+        }
+        if (provider != PaymentProvider.INTERNAL) {
+            this.pgOrderId = requireText(pgOrderId, "PG 주문번호");
+        } else if (pgOrderId != null && !pgOrderId.isBlank()) {
+            this.pgOrderId = pgOrderId;
+        }
+        this.paidAmount = paidAmount;
+        this.chargeTransactionId = Objects.requireNonNull(transactionId, "충전 원장 거래는 필수입니다");
+        this.status = PointChargeStatus.PAID;
+        this.paidAt = Objects.requireNonNull(paidAt, "승인 시각은 필수입니다");
+    }
+
+    public void fail(String failureCode, String failureMessage, LocalDateTime failedAt) {
+        requireStatus(PointChargeStatus.PENDING);
+        this.failureCode = requireText(failureCode, "실패 코드");
+        this.failureMessage = failureMessage;
+        this.status = PointChargeStatus.FAILED;
+        this.failedAt = Objects.requireNonNull(failedAt, "실패 시각은 필수입니다");
+    }
+
+    public void cancel(LocalDateTime canceledAt) {
+        requireStatus(PointChargeStatus.PENDING);
+        this.status = PointChargeStatus.CANCELED;
+        this.canceledAt = Objects.requireNonNull(canceledAt, "취소 시각은 필수입니다");
+    }
+
+    public void refund(Long transactionId, LocalDateTime refundedAt) {
+        requireStatus(PointChargeStatus.PAID);
+        this.refundTransactionId = Objects.requireNonNull(transactionId, "환불 원장 거래는 필수입니다");
+        this.status = PointChargeStatus.REFUNDED;
+        this.refundedAt = Objects.requireNonNull(refundedAt, "환불 시각은 필수입니다");
+    }
+
+    private void requireStatus(PointChargeStatus expected) {
+        if (status != expected) {
+            throw new IllegalStateException(
+                    "충전 상태를 변경할 수 없습니다: " + status + " (필요 상태: " + expected + ")"
+            );
+        }
+    }
+
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + "은(는) 필수입니다");

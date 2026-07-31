@@ -65,4 +65,23 @@ public class PointAccount {
         account.updatedAt = openedAt;
         return account;
     }
+
+    public void credit(long amount, LocalDateTime updatedAt) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("적립 금액은 양수여야 합니다");
+        }
+        this.availableBalance = Math.addExact(this.availableBalance, amount);
+        this.updatedAt = Objects.requireNonNull(updatedAt, "변경 시각은 필수입니다");
+    }
+
+    public void debit(long amount, LocalDateTime updatedAt) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("차감 금액은 양수여야 합니다");
+        }
+        if (this.availableBalance < amount) {
+            throw new IllegalStateException("사용 가능 포인트가 부족합니다");
+        }
+        this.availableBalance -= amount;
+        this.updatedAt = Objects.requireNonNull(updatedAt, "변경 시각은 필수입니다");
+    }
 }
