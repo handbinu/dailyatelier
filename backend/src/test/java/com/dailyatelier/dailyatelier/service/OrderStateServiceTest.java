@@ -91,6 +91,17 @@ class OrderStateServiceTest {
     private User seller;
     private Order order;
 
+    @Test
+    void paymentRejectsAnotherBuyerBeforeChangingLedger() {
+        assertThatThrownBy(() ->
+                orderStateService.markPaid(order.getOrderId(), "other", "payment-other"))
+                .isInstanceOf(OrderApiException.class)
+                .hasMessageContaining("본인의 주문만");
+
+        assertThat(orderRepository.findById(order.getOrderId()).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.PAYMENT_PENDING);
+    }
+
     @BeforeEach
     void setUp() {
         clock.setLocalDateTime(CREATED_AT.plusHours(1));

@@ -27,6 +27,13 @@ export const cancelBuyerOrder = (orderId) =>
 export const confirmBuyerOrder = (orderId) =>
   api.post(`/api/users/me/orders/${orderId}/confirm`)
 
+export const payBuyerOrder = (orderId, idempotencyKey) =>
+  api.post(
+    `/api/users/me/orders/${orderId}/payment`,
+    null,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+
 export const getSellerOrders = ({
   status,
   page = 0,

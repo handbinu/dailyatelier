@@ -8,6 +8,8 @@ import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import com.dailyatelier.dailyatelier.exception.PointApiException;
+import org.springframework.http.HttpStatus;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -44,7 +46,10 @@ public class PointChargeService {
                 .orElse(null);
         if (existing != null) {
             if (!existing.matchesRequest(provider, amount)) {
-                throw new IllegalStateException("멱등성 키가 다른 충전 요청에 이미 사용되었습니다");
+                throw new PointApiException(
+                        HttpStatus.CONFLICT,
+                        "IDEMPOTENCY_KEY_REUSED",
+                        "멱등성 키가 다른 충전 요청에 이미 사용되었습니다");
             }
             return existing;
         }

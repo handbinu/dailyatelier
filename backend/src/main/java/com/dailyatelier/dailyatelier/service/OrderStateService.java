@@ -30,7 +30,15 @@ public class OrderStateService implements OrderPaymentService {
     @Override
     @Transactional
     public Order markPaid(Long orderId, String idempotencyKey) {
+        return markPaid(orderId, null, idempotencyKey);
+    }
+
+    @Transactional
+    public Order markPaid(Long orderId, String buyerId, String idempotencyKey) {
         Order order = findForUpdate(orderId);
+        if (buyerId != null) {
+            verifyBuyer(order, buyerId);
+        }
         if (order.getStatus() == OrderStatus.PAID) {
             return order;
         }

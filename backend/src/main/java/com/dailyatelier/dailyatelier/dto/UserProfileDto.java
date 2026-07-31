@@ -12,6 +12,8 @@ public class UserProfileDto {
     private String email;
     private int userStatus;
     private long reserve;
+    private long availablePoint;
+    private long heldPoint;
     private Boolean emailAgree;
 
     // 주소 정보

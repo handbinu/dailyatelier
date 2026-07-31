@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.Address;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
@@ -99,7 +100,10 @@ public class UserService {
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setEmail(user.getEmail());
         dto.setUserStatus(user.getUserStatus());
-        dto.setReserve(pointAccountService.getAvailableBalance(userId));
+        PointAccount pointAccount = pointAccountService.getAccount(userId);
+        dto.setReserve(pointAccount.getAvailableBalance());
+        dto.setAvailablePoint(pointAccount.getAvailableBalance());
+        dto.setHeldPoint(pointAccount.getHeldBalance());
         dto.setEmailAgree(user.getEmailAgree());
 
         // 주소 정보 로드

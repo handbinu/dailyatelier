@@ -5,6 +5,7 @@ import {
   confirmBuyerOrder,
   getBuyerOrder,
   getBuyerOrders,
+  payBuyerOrder,
   updateOrderShippingAddress,
 } from '../../api/orderApi'
 import { getUserProfile } from '../../api/userApi'
@@ -254,13 +255,17 @@ export default function OrderStatus() {
     try {
       const request = action === 'CANCEL'
         ? cancelBuyerOrder(orderId)
-        : confirmBuyerOrder(orderId)
+        : action === 'PAY'
+          ? payBuyerOrder(orderId, `order-payment:${orderId}`)
+          : confirmBuyerOrder(orderId)
       const { data } = await request
       setDetails((current) => ({ ...current, [orderId]: data }))
       await loadOrders()
       setNotice(action === 'CANCEL'
         ? '낙찰 포기가 처리되었습니다.'
-        : '구매가 확정되었습니다.')
+        : action === 'PAY'
+          ? '포인트 결제가 완료되었습니다.'
+          : '구매가 확정되었습니다.')
     } catch (requestError) {
       const orderError = handleRequestError(
         requestError,
@@ -444,6 +449,16 @@ function OrderItem({
               disabled={isProcessing}
             >
               낙찰 포기
+            </button>
+          )}
+          {order.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed && (
+            <button
+              type="button"
+              className={s.primaryBtn}
+              onClick={() => onAction('PAY')}
+              disabled={isProcessing}
+            >
+              포인트 결제
             </button>
           )}
           {actions.includes('CONFIRM') && (

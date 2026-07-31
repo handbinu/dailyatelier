@@ -325,8 +325,12 @@ function PointCard({ user }) {
   return (
     <div className={styles.pointCard}>
       <div className={styles.pointRow}>
-        <span className={styles.pointLabel}>{T.point}</span>
-        <span className={styles.pointValue}>{fmt(user?.reserve || 0)}원</span>
+        <span className={styles.pointLabel}>사용 가능 포인트</span>
+        <span className={styles.pointValue}>{fmt(user?.availablePoint ?? user?.reserve ?? 0)}원</span>
+      </div>
+      <div className={styles.pointRow}>
+        <span className={styles.pointLabel}>입찰 예치 포인트</span>
+        <span className={styles.pointValue}>{fmt(user?.heldPoint ?? 0)}원</span>
       </div>
       <Link to="/charge" className={styles.chargeBtn}>
         {T.charge}

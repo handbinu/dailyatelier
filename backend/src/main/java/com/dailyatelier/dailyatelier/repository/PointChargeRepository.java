@@ -9,8 +9,13 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface PointChargeRepository extends JpaRepository<PointCharge, Long> {
+    Page<PointCharge> findByUserIdOrderByCreatedAtDescChargeIdDesc(
+            String userId,
+            Pageable pageable);
     Optional<PointCharge> findByMerchantOrderId(String merchantOrderId);
 
     Optional<PointCharge> findByProviderAndPgOrderId(

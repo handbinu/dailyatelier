@@ -98,7 +98,9 @@ public class BidService {
                 art.getArtId(),
                 savedBid.getBidPrice(),
                 art.getCurrentPrice(),
-                savedBid.getBidTime()
+                savedBid.getBidTime(),
+                accounts.get(bidder.getUserId()).getAvailableBalance(),
+                accounts.get(bidder.getUserId()).getHeldBalance()
         );
     }
 

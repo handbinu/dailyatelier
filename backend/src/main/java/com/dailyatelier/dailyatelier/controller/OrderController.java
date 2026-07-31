@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @RestController
 @RequestMapping("/api/users/me/orders")
@@ -79,6 +80,16 @@ public class OrderController {
             @PathVariable Long orderId) {
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.confirm(orderId, userId)
+        ));
+    }
+
+    @PostMapping("/{orderId}/payment")
+    public ResponseEntity<OrderDetailResponseDto> payOrder(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long orderId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
+                orderStateService.markPaid(orderId, userId, idempotencyKey)
         ));
     }
 }

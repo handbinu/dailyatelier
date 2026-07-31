@@ -45,6 +45,11 @@ public class PointAccountService {
                 ));
     }
 
+    public PointAccount getAccount(String userId) {
+        return pointAccountRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("포인트 계정이 없습니다"));
+    }
+
     private PointAccount createAccount(User user) {
         long openingBalance = user.getReserve() == null
                 ? 0L

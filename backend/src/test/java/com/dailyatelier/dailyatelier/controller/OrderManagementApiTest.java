@@ -101,6 +101,25 @@ class OrderManagementApiTest {
     }
 
     @Test
+    void paymentRequiresIdempotencyKeyAndUsesAuthenticatedBuyer() throws Exception {
+        Order paidOrder = mockOrder(7L, OrderStatus.PAID);
+        when(orderStateService.markPaid(7L, "buyer", "payment-key"))
+                .thenReturn(paidOrder);
+
+        mockMvc.perform(post("/api/users/me/orders/7/payment")
+                        .with(authentication(userAuthentication("buyer")))
+                        .header("Idempotency-Key", "payment-key"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PAID"));
+
+        verify(orderStateService).markPaid(7L, "buyer", "payment-key");
+
+        mockMvc.perform(post("/api/users/me/orders/7/payment")
+                        .with(authentication(userAuthentication("buyer"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void anonymousUserCannotReadBuyerOrders() throws Exception {
         mockMvc.perform(get("/api/users/me/orders"))
                 .andExpect(status().isUnauthorized())

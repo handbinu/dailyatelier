@@ -48,7 +48,9 @@ class BidApiTest {
                         7L,
                         150_000,
                         150_000,
-                        LocalDateTime.of(2026, 7, 23, 18, 30)
+                        LocalDateTime.of(2026, 7, 23, 18, 30),
+                        50_000,
+                        150_000
                 ));
 
         mockMvc.perform(post("/api/arts/7/bids")
@@ -61,7 +63,9 @@ class BidApiTest {
                 .andExpect(jsonPath("$.bidId").value(31))
                 .andExpect(jsonPath("$.artId").value(7))
                 .andExpect(jsonPath("$.bidPrice").value(150000))
-                .andExpect(jsonPath("$.currentPrice").value(150000));
+                .andExpect(jsonPath("$.currentPrice").value(150000))
+                .andExpect(jsonPath("$.availablePoint").value(50000))
+                .andExpect(jsonPath("$.heldPoint").value(150000));
     }
 
     @Test
