@@ -10,6 +10,9 @@ import com.dailyatelier.dailyatelier.exception.BidApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
@@ -60,6 +64,18 @@ class BidServiceConcurrencyTest {
     private UserRepository userRepository;
 
     @Autowired
+    private PointAccountRepository pointAccountRepository;
+
+    @Autowired
+    private PointHoldRepository pointHoldRepository;
+
+    @Autowired
+    private PointTransactionRepository pointTransactionRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     private ExecutorService executor;
@@ -68,6 +84,10 @@ class BidServiceConcurrencyTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("UPDATE art SET active_point_hold_id = NULL");
+        pointTransactionRepository.deleteAll();
+        pointHoldRepository.deleteAll();
+        pointAccountRepository.deleteAll();
         bidRepository.deleteAll();
         artRepository.deleteAll();
         artistRepository.deleteAll();
@@ -79,6 +99,11 @@ class BidServiceConcurrencyTest {
         seller.setArtistName("테스트 작가");
         seller = artistRepository.save(seller);
         userRepository.save(createUser("bidder", 0));
+        jdbcTemplate.update("""
+                INSERT INTO point_account (
+                    user_id, available_balance, held_balance, version, created_at, updated_at
+                ) VALUES ('bidder', 1000000, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
 
         artId = saveOpenArt("동시성 테스트 작품").getArtId();
         executor = Executors.newFixedThreadPool(2);
@@ -191,6 +216,55 @@ class BidServiceConcurrencyTest {
         BidCreateResponseDto response =
                 bidService.createBid(artId, "bidder", createRequest(120_000));
         assertThat(response.getCurrentPrice()).isEqualTo(120_000);
+    }
+
+    @Test
+    void sameAccountCannotBeOvercommittedAcrossDifferentArts() throws Exception {
+        Long otherArtId = saveOpenArt("같은 계정의 다른 작품").getArtId();
+        jdbcTemplate.update(
+                "UPDATE point_account SET available_balance = 150000 WHERE user_id = 'bidder'"
+        );
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        Future<?> first = executor.submit(() -> {
+            ready.countDown();
+            await(start);
+            return bidService.createBid(artId, "bidder", createRequest(120_000));
+        });
+        Future<?> second = executor.submit(() -> {
+            ready.countDown();
+            await(start);
+            return bidService.createBid(otherArtId, "bidder", createRequest(130_000));
+        });
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+
+        int successCount = 0;
+        int insufficientCount = 0;
+        for (Future<?> result : java.util.List.of(first, second)) {
+            try {
+                result.get(5, TimeUnit.SECONDS);
+                successCount++;
+            } catch (ExecutionException exception) {
+                assertThat(exception.getCause()).isInstanceOf(BidApiException.class);
+                assertThat(((BidApiException) exception.getCause()).getCode())
+                        .isEqualTo("INSUFFICIENT_POINTS");
+                insufficientCount++;
+            }
+        }
+
+        assertThat(successCount).isEqualTo(1);
+        assertThat(insufficientCount).isEqualTo(1);
+        assertThat(bidRepository.count()).isEqualTo(1);
+        assertThat(pointHoldRepository.count()).isEqualTo(1);
+        assertThat(pointTransactionRepository.count()).isEqualTo(1);
+        assertThat(pointAccountRepository.findById("bidder").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getHeldBalance()).isIn(120_000L, 130_000L);
+                    assertThat(account.getAvailableBalance() + account.getHeldBalance())
+                            .isEqualTo(150_000L);
+                });
     }
 
     private Future<?> holdArtLock(

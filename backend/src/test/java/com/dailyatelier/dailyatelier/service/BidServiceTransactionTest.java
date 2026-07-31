@@ -5,10 +5,17 @@ import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
+import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.BidApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +60,15 @@ class BidServiceTransactionTest {
     private UserRepository userRepository;
 
     @MockitoSpyBean
+    private PointAccountRepository pointAccountRepository;
+
+    @MockitoSpyBean
+    private PointHoldRepository pointHoldRepository;
+
+    @MockitoSpyBean
+    private PointTransactionRepository pointTransactionRepository;
+
+    @MockitoSpyBean
     private BidRepository bidRepository;
 
     @Autowired
@@ -62,6 +78,10 @@ class BidServiceTransactionTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("UPDATE art SET active_point_hold_id = NULL");
+        pointTransactionRepository.deleteAll();
+        pointHoldRepository.deleteAll();
+        pointAccountRepository.deleteAll();
         bidRepository.deleteAll();
         artRepository.deleteAll();
         artistRepository.deleteAll();
@@ -69,6 +89,7 @@ class BidServiceTransactionTest {
 
         User seller = createUser("seller", 1);
         saveUser("bidder", 0);
+        insertPointAccount("bidder", 1_000_000L);
 
         Artist artist = new Artist();
         artist.setUser(seller);
@@ -146,8 +167,142 @@ class BidServiceTransactionTest {
         assertThat(bidRepository.count()).isZero();
     }
 
+    @Test
+    void holdsFullAmountIncreasesOnlyDifferenceAndReleasesOutbidHold() {
+        saveUser("other", 0);
+        insertPointAccount("other", 500_000L);
+
+        bidService.createBid(artId, "bidder", createRequest(120_000));
+        bidService.createBid(artId, "bidder", createRequest(150_000));
+        bidService.createBid(artId, "other", createRequest(180_000));
+        bidService.createBid(artId, "bidder", createRequest(200_000));
+
+        assertThat(pointAccountRepository.findById("bidder").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isEqualTo(800_000L);
+                    assertThat(account.getHeldBalance()).isEqualTo(200_000L);
+                });
+        assertThat(pointAccountRepository.findById("other").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isEqualTo(500_000L);
+                    assertThat(account.getHeldBalance()).isZero();
+                });
+        assertThat(pointHoldRepository.findAll())
+                .extracting(hold -> hold.getStatus())
+                .containsExactly(
+                        PointHoldStatus.RELEASED,
+                        PointHoldStatus.RELEASED,
+                        PointHoldStatus.HELD
+                );
+        assertThat(pointTransactionRepository.findAll())
+                .extracting(PointTransaction::getType)
+                .containsExactly(
+                        PointTransactionType.HOLD,
+                        PointTransactionType.HOLD_INCREASE,
+                        PointTransactionType.HOLD,
+                        PointTransactionType.RELEASE,
+                        PointTransactionType.HOLD,
+                        PointTransactionType.RELEASE
+                );
+        assertThat(artRepository.findById(artId).orElseThrow().getCurrentPrice())
+                .isEqualTo(200_000);
+    }
+
+    @Test
+    void allowsExactBalanceAndRejectsOnePointShortWithoutPartialChanges() {
+        jdbcTemplate.update(
+                "UPDATE point_account SET available_balance = 120000 WHERE user_id = 'bidder'"
+        );
+        bidService.createBid(artId, "bidder", createRequest(120_000));
+        assertThat(pointAccountRepository.findById("bidder").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isZero();
+                    assertThat(account.getHeldBalance()).isEqualTo(120_000L);
+                });
+
+        saveUser("short", 0);
+        insertPointAccount("short", 129_999L);
+        assertThatThrownBy(() ->
+                bidService.createBid(artId, "short", createRequest(130_000)))
+                .isInstanceOf(BidApiException.class)
+                .satisfies(error -> assertThat(((BidApiException) error).getCode())
+                        .isEqualTo("INSUFFICIENT_POINTS"));
+
+        assertThat(artRepository.findById(artId).orElseThrow().getCurrentPrice())
+                .isEqualTo(120_000);
+        assertThat(bidRepository.count()).isEqualTo(1);
+        assertThat(pointHoldRepository.count()).isEqualTo(1);
+        assertThat(pointTransactionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void ledgerSaveFailureRollsBackBidHoldAccountAndCurrentPrice() {
+        doThrow(new DataIntegrityViolationException("forced ledger failure"))
+                .when(pointTransactionRepository).save(any(PointTransaction.class));
+
+        assertThatThrownBy(() ->
+                bidService.createBid(artId, "bidder", createRequest(120_000)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        assertThat(artRepository.findById(artId).orElseThrow().getCurrentPrice())
+                .isEqualTo(100_000);
+        assertThat(pointAccountRepository.findById("bidder").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isEqualTo(1_000_000L);
+                    assertThat(account.getHeldBalance()).isZero();
+                });
+        assertThat(bidRepository.count()).isZero();
+        assertThat(pointHoldRepository.count()).isZero();
+        assertThat(pointTransactionRepository.count()).isZero();
+    }
+
+    @Test
+    void accountSaveFailureRollsBackEntireBidTransaction() {
+        doThrow(new DataIntegrityViolationException("forced account failure"))
+                .when(pointAccountRepository).save(any());
+
+        assertThatThrownBy(() ->
+                bidService.createBid(artId, "bidder", createRequest(120_000)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        assertBidPointStateFullyRolledBack();
+    }
+
+    @Test
+    void holdSaveFailureRollsBackEntireBidTransaction() {
+        doThrow(new DataIntegrityViolationException("forced hold failure"))
+                .when(pointHoldRepository).save(any());
+
+        assertThatThrownBy(() ->
+                bidService.createBid(artId, "bidder", createRequest(120_000)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        assertBidPointStateFullyRolledBack();
+    }
+
+    private void assertBidPointStateFullyRolledBack() {
+        assertThat(artRepository.findById(artId).orElseThrow().getCurrentPrice())
+                .isEqualTo(100_000);
+        assertThat(pointAccountRepository.findById("bidder").orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isEqualTo(1_000_000L);
+                    assertThat(account.getHeldBalance()).isZero();
+                });
+        assertThat(bidRepository.count()).isZero();
+        assertThat(pointHoldRepository.count()).isZero();
+        assertThat(pointTransactionRepository.count()).isZero();
+    }
+
     private User saveUser(String userId, int userStatus) {
         return userRepository.save(createUser(userId, userStatus));
+    }
+
+    private void insertPointAccount(String userId, long balance) {
+        jdbcTemplate.update("""
+                INSERT INTO point_account (
+                    user_id, available_balance, held_balance, version, created_at, updated_at
+                ) VALUES (?, ?, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, userId, balance);
     }
 
     private User createUser(String userId, int userStatus) {

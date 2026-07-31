@@ -7,10 +7,19 @@ import com.dailyatelier.dailyatelier.dto.BidSummaryQueryDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.BidApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import jakarta.persistence.LockTimeoutException;
@@ -25,6 +34,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +50,9 @@ public class BidService {
     private final ArtRepository artRepository;
     private final BidRepository bidRepository;
     private final UserRepository userRepository;
+    private final PointAccountRepository pointAccountRepository;
+    private final PointHoldRepository pointHoldRepository;
+    private final PointTransactionRepository pointTransactionRepository;
     private final Clock clock;
 
     @Transactional
@@ -60,9 +76,11 @@ public class BidService {
         validateBidPrice(request == null ? null : request.getBidPrice(), art.getCurrentPrice());
 
         Integer bidPrice = request.getBidPrice();
-
-        art.setCurrentPrice(bidPrice);
-        artRepository.save(art);
+        PointHold activeHold = art.getActivePointHold();
+        Map<String, PointAccount> accounts = lockAccounts(
+                bidder.getUserId(),
+                activeHold == null ? null : activeHold.getUser().getUserId()
+        );
 
         Bid bid = new Bid();
         bid.setUser(bidder);
@@ -71,6 +89,10 @@ public class BidService {
         bid.setBidTime(bidTime);
         Bid savedBid = bidRepository.save(bid);
 
+        applyPointHold(art, bidder, savedBid, activeHold, accounts, bidTime);
+        art.setCurrentPrice(bidPrice);
+        artRepository.save(art);
+
         return new BidCreateResponseDto(
                 savedBid.getBidId(),
                 art.getArtId(),
@@ -78,6 +100,104 @@ public class BidService {
                 art.getCurrentPrice(),
                 savedBid.getBidTime()
         );
+    }
+
+    private Map<String, PointAccount> lockAccounts(String bidderId, String previousBidderId) {
+        List<String> userIds = java.util.stream.Stream.of(bidderId, previousBidderId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+        Map<String, PointAccount> accounts = new LinkedHashMap<>();
+        for (String accountUserId : userIds) {
+            PointAccount account = pointAccountRepository.findByUserIdForUpdate(accountUserId)
+                    .orElseThrow(() -> new BidApiException(
+                            HttpStatus.CONFLICT,
+                            "POINT_ACCOUNT_NOT_FOUND",
+                            "포인트 계정을 찾을 수 없습니다."
+                    ));
+            accounts.put(accountUserId, account);
+        }
+        return accounts;
+    }
+
+    private void applyPointHold(
+            Art art,
+            User bidder,
+            Bid savedBid,
+            PointHold activeHold,
+            Map<String, PointAccount> accounts,
+            LocalDateTime now) {
+        long bidAmount = savedBid.getBidPrice().longValue();
+        PointAccount bidderAccount = accounts.get(bidder.getUserId());
+        boolean sameBidder = activeHold != null
+                && bidder.getUserId().equals(activeHold.getUser().getUserId());
+        long holdAmount = sameBidder ? bidAmount - activeHold.getAmount() : bidAmount;
+        if (bidderAccount.getAvailableBalance() < holdAmount) {
+            throw new BidApiException(
+                    HttpStatus.CONFLICT,
+                    "INSUFFICIENT_POINTS",
+                    "사용 가능한 포인트가 부족합니다."
+            );
+        }
+
+        bidderAccount.hold(holdAmount, now);
+        pointAccountRepository.save(bidderAccount);
+
+        PointHold nextHold;
+        PointTransactionType holdType;
+        if (sameBidder) {
+            activeHold.increase(savedBid, holdAmount, now);
+            nextHold = pointHoldRepository.save(activeHold);
+            holdType = PointTransactionType.HOLD_INCREASE;
+        } else {
+            nextHold = pointHoldRepository.save(
+                    PointHold.hold(art, bidder, savedBid, bidAmount, now)
+            );
+            holdType = PointTransactionType.HOLD;
+        }
+        pointTransactionRepository.save(PointTransaction.record(
+                bidder.getUserId(),
+                holdType,
+                holdAmount,
+                -holdAmount,
+                holdAmount,
+                bidderAccount.getAvailableBalance(),
+                bidderAccount.getHeldBalance(),
+                PointReferenceType.BID,
+                String.valueOf(savedBid.getBidId()),
+                "bid:" + savedBid.getBidId() + ":" + holdType,
+                null,
+                holdType.name(),
+                sameBidder ? "최고 입찰 차액 예치" : "최고 입찰 전액 예치",
+                now
+        ));
+
+        if (activeHold != null && !sameBidder) {
+            PointAccount previousAccount = accounts.get(activeHold.getUser().getUserId());
+            long releaseAmount = activeHold.getAmount();
+            previousAccount.release(releaseAmount, now);
+            activeHold.release(PointHoldReleaseReason.OUTBID, now);
+            pointAccountRepository.save(previousAccount);
+            pointHoldRepository.save(activeHold);
+            pointTransactionRepository.save(PointTransaction.record(
+                    previousAccount.getUserId(),
+                    PointTransactionType.RELEASE,
+                    releaseAmount,
+                    releaseAmount,
+                    -releaseAmount,
+                    previousAccount.getAvailableBalance(),
+                    previousAccount.getHeldBalance(),
+                    PointReferenceType.HOLD,
+                    String.valueOf(activeHold.getHoldId()),
+                    "hold:" + activeHold.getHoldId() + ":release:outbid",
+                    null,
+                    PointHoldReleaseReason.OUTBID.name(),
+                    "패찰 예치 해제",
+                    now
+            ));
+        }
+        art.setActivePointHold(nextHold);
     }
 
     public Page<BidStatusResponseDto> getMyBids(String userId, int page, int size) {

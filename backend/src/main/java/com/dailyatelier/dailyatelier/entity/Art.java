@@ -64,5 +64,9 @@ public class Art {
     @JoinColumn(name = "winning_bid_id")
     private Bid winningBid;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "active_point_hold_id")
+    private PointHold activePointHold;
+
     private LocalDateTime closedAt;
 }

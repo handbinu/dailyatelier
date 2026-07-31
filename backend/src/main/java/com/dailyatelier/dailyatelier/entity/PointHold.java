@@ -95,4 +95,28 @@ public class PointHold {
         hold.updatedAt = createdAt;
         return hold;
     }
+
+    public void increase(Bid latestBid, long amount, LocalDateTime updatedAt) {
+        requireHeld();
+        if (amount <= 0) {
+            throw new IllegalArgumentException("추가 예치 금액은 양수여야 합니다");
+        }
+        this.latestBid = Objects.requireNonNull(latestBid, "최신 입찰은 필수입니다");
+        this.amount = Math.addExact(this.amount, amount);
+        this.updatedAt = Objects.requireNonNull(updatedAt, "변경 시각은 필수입니다");
+    }
+
+    public void release(PointHoldReleaseReason reason, LocalDateTime releasedAt) {
+        requireHeld();
+        this.status = PointHoldStatus.RELEASED;
+        this.releaseReason = Objects.requireNonNull(reason, "해제 사유는 필수입니다");
+        this.releasedAt = Objects.requireNonNull(releasedAt, "해제 시각은 필수입니다");
+        this.updatedAt = releasedAt;
+    }
+
+    private void requireHeld() {
+        if (this.status != PointHoldStatus.HELD) {
+            throw new IllegalStateException("활성 예치만 변경할 수 있습니다");
+        }
+    }
 }

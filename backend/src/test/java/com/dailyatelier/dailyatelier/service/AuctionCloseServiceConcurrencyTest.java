@@ -105,6 +105,11 @@ class AuctionCloseServiceConcurrencyTest {
         artist.setArtistName("테스트 작가");
         artist = artistRepository.save(artist);
         userRepository.save(createUser("bidderC"));
+        jdbcTemplate.update("""
+                INSERT INTO point_account (
+                    user_id, available_balance, held_balance, version, created_at, updated_at
+                ) VALUES ('bidderC', 1000000, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
 
         Art art = new Art();
         art.setArtist(artist);
@@ -278,6 +283,9 @@ class AuctionCloseServiceConcurrencyTest {
 
     private void resetDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        jdbcTemplate.execute("TRUNCATE TABLE point_transaction");
+        jdbcTemplate.execute("TRUNCATE TABLE point_hold");
+        jdbcTemplate.execute("TRUNCATE TABLE point_account");
         jdbcTemplate.execute("TRUNCATE TABLE orders");
         jdbcTemplate.execute("TRUNCATE TABLE address");
         jdbcTemplate.execute("TRUNCATE TABLE bid");

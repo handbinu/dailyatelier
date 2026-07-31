@@ -6,12 +6,19 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.Likes;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason;
+import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.Review;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +31,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,11 +82,27 @@ class ArtServiceMutationTransactionTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PointAccountRepository pointAccountRepository;
+
+    @Autowired
+    private PointHoldRepository pointHoldRepository;
+
+    @Autowired
+    private PointTransactionRepository pointTransactionRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private Artist artist;
     private User liker;
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("UPDATE art SET active_point_hold_id = NULL");
+        pointTransactionRepository.deleteAll();
+        pointHoldRepository.deleteAll();
+        pointAccountRepository.deleteAll();
         reviewRepository.deleteAll();
         likesRepository.deleteAll();
         bidRepository.deleteAll();
@@ -186,6 +210,54 @@ class ArtServiceMutationTransactionTest {
                 .singleElement()
                 .satisfies(like -> assertThat(like.getArt().getArtId())
                         .isEqualTo(artId));
+    }
+
+    @Test
+    void cancelReleasesActiveHoldAndRestoresAvailableBalanceAtomically() {
+        Art art = saveActiveArt("예치 보유 작품");
+        Bid bid = new Bid();
+        bid.setArt(art);
+        bid.setUser(liker);
+        bid.setBidPrice(120_000);
+        bid.setBidTime(NOW.minusHours(1));
+        bid = bidRepository.save(bid);
+        jdbcTemplate.update("""
+                INSERT INTO point_account (
+                    user_id, available_balance, held_balance, version, created_at, updated_at
+                ) VALUES (?, 80000, 120000, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, liker.getUserId());
+        PointHold hold = pointHoldRepository.save(
+                PointHold.hold(art, liker, bid, 120_000L, NOW.minusHours(1))
+        );
+        art.setActivePointHold(hold);
+        art.setCurrentPrice(120_000);
+        artRepository.save(art);
+
+        artService.deleteArt(art.getArtId(), "owner");
+
+        assertThat(pointAccountRepository.findById(liker.getUserId()).orElseThrow())
+                .satisfies(account -> {
+                    assertThat(account.getAvailableBalance()).isEqualTo(200_000L);
+                    assertThat(account.getHeldBalance()).isZero();
+                });
+        assertThat(pointHoldRepository.findById(hold.getHoldId()).orElseThrow())
+                .satisfies(released -> {
+                    assertThat(released.getStatus()).isEqualTo(PointHoldStatus.RELEASED);
+                    assertThat(released.getReleaseReason())
+                            .isEqualTo(PointHoldReleaseReason.AUCTION_CANCELED);
+                });
+        assertThat(pointTransactionRepository.findAll())
+                .singleElement()
+                .satisfies(transaction -> {
+                    assertThat(transaction.getType()).isEqualTo(PointTransactionType.RELEASE);
+                    assertThat(transaction.getAvailableDelta()).isEqualTo(120_000L);
+                    assertThat(transaction.getHeldDelta()).isEqualTo(-120_000L);
+                });
+        assertThat(artRepository.findById(art.getArtId()).orElseThrow())
+                .satisfies(canceled -> {
+                    assertThat(canceled.getArtStatus()).isEqualTo(Art.STATUS_CANCELED);
+                    assertThat(canceled.getActivePointHold()).isNull();
+                });
     }
 
     private Art saveActiveArt(String name) {

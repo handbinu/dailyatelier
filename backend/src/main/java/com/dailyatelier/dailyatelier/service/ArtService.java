@@ -10,11 +10,20 @@ import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
 import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PointHold;
+import com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import jakarta.persistence.LockTimeoutException;
@@ -44,6 +53,9 @@ public class ArtService {
     private final LikesRepository likesRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final PointAccountRepository pointAccountRepository;
+    private final PointHoldRepository pointHoldRepository;
+    private final PointTransactionRepository pointTransactionRepository;
     private final Clock clock;
 
     public Page<ArtResponseDto> getActiveArts(int page, int size) {
@@ -174,6 +186,7 @@ public class ArtService {
         validateMutationAccess(art, userId, now);
 
         if (bidRepository.existsByArt(art)) {
+            releaseActiveHoldForCancellation(art, now);
             art.setArtStatus(Art.STATUS_CANCELED);
             art.setClosedAt(now);
             artRepository.save(art);
@@ -198,6 +211,46 @@ public class ArtService {
                 ArtDeleteResponseDto.Action.DELETED,
                 null
         );
+    }
+
+    private void releaseActiveHoldForCancellation(Art art, LocalDateTime now) {
+        PointHold linkedHold = art.getActivePointHold();
+        if (linkedHold == null) {
+            return;
+        }
+        PointHold hold = pointHoldRepository.findByIdForUpdate(linkedHold.getHoldId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "활성 포인트 예치를 찾을 수 없습니다."
+                ));
+        PointAccount account = pointAccountRepository
+                .findByUserIdForUpdate(hold.getUser().getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "포인트 계정을 찾을 수 없습니다."
+                ));
+        long amount = hold.getAmount();
+        account.release(amount, now);
+        hold.release(PointHoldReleaseReason.AUCTION_CANCELED, now);
+        pointAccountRepository.save(account);
+        pointHoldRepository.save(hold);
+        pointTransactionRepository.save(PointTransaction.record(
+                account.getUserId(),
+                PointTransactionType.RELEASE,
+                amount,
+                amount,
+                -amount,
+                account.getAvailableBalance(),
+                account.getHeldBalance(),
+                PointReferenceType.HOLD,
+                String.valueOf(hold.getHoldId()),
+                "hold:" + hold.getHoldId() + ":release:auction-canceled",
+                null,
+                PointHoldReleaseReason.AUCTION_CANCELED.name(),
+                "경매 취소 예치 해제",
+                now
+        ));
+        art.setActivePointHold(null);
     }
 
     private Art findArtForMutation(Long artId) {

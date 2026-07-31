@@ -26,6 +26,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,6 +104,9 @@ class ArtMutationConcurrencyTest {
     private UserRepository userRepository;
 
     @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @Autowired
@@ -114,6 +118,11 @@ class ArtMutationConcurrencyTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        jdbcTemplate.execute("TRUNCATE TABLE point_transaction");
+        jdbcTemplate.execute("TRUNCATE TABLE point_hold");
+        jdbcTemplate.execute("TRUNCATE TABLE point_account");
+        jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
         reviewRepository.deleteAll();
         likesRepository.deleteAll();
         orderRepository.deleteAll();
@@ -131,6 +140,11 @@ class ArtMutationConcurrencyTest {
         artist.setArtistName("테스트 작가");
         artist = artistRepository.save(artist);
         userRepository.save(createUser("bidder", 0));
+        jdbcTemplate.update("""
+                INSERT INTO point_account (
+                    user_id, available_balance, held_balance, version, created_at, updated_at
+                ) VALUES ('bidder', 1000000, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
 
         artId = saveOpenArt("경합 대상 작품").getArtId();
         executor = Executors.newFixedThreadPool(2);

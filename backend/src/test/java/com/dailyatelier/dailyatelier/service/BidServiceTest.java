@@ -7,10 +7,15 @@ import com.dailyatelier.dailyatelier.dto.BidSummaryQueryDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PointHold;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.BidApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +57,15 @@ class BidServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PointAccountRepository pointAccountRepository;
+
+    @Mock
+    private PointHoldRepository pointHoldRepository;
+
+    @Mock
+    private PointTransactionRepository pointTransactionRepository;
+
     private BidService bidService;
 
     @BeforeEach
@@ -59,7 +74,20 @@ class BidServiceTest {
                 Instant.parse("2026-07-23T09:00:00Z"),
                 ZoneId.of("Asia/Seoul")
         );
-        bidService = new BidService(artRepository, bidRepository, userRepository, clock);
+        bidService = new BidService(
+                artRepository,
+                bidRepository,
+                userRepository,
+                pointAccountRepository,
+                pointHoldRepository,
+                pointTransactionRepository,
+                clock
+        );
+        PointAccount account = PointAccount.open(createUser("bidder"), 1_000_000L, NOW);
+        lenient().when(pointAccountRepository.findByUserIdForUpdate("bidder"))
+                .thenReturn(Optional.of(account));
+        lenient().when(pointHoldRepository.save(any(PointHold.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test

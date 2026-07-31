@@ -10,6 +10,9 @@ import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +61,15 @@ class ArtServiceMutationTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PointAccountRepository pointAccountRepository;
+
+    @Mock
+    private PointHoldRepository pointHoldRepository;
+
+    @Mock
+    private PointTransactionRepository pointTransactionRepository;
+
     private ArtService artService;
 
     @BeforeEach
@@ -73,6 +85,9 @@ class ArtServiceMutationTest {
                 likesRepository,
                 reviewRepository,
                 userRepository,
+                pointAccountRepository,
+                pointHoldRepository,
+                pointTransactionRepository,
                 clock
         );
         lenient().when(artRepository.save(any(Art.class)))
