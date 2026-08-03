@@ -1,7 +1,6 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.PaymentCallbackEvent;
-import com.dailyatelier.dailyatelier.entity.PaymentCallbackStatus;
 import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.payment.PaymentCallbackProcessor;
 import com.dailyatelier.dailyatelier.repository.PaymentCallbackEventRepository;
@@ -18,6 +17,7 @@ public class PaymentCallbackService {
     public static final int MAX_ATTEMPTS = 5;
 
     private final PaymentCallbackEventRepository eventRepository;
+    private final PaymentCallbackTransactionService transactionService;
     private final Clock clock;
 
     @Transactional
@@ -36,23 +36,14 @@ public class PaymentCallbackService {
                 provider, eventId, pgOrderId, payloadHash, LocalDateTime.now(clock)));
     }
 
-    @Transactional
     public PaymentCallbackEvent process(PaymentProvider provider, String eventId,
                                         PaymentCallbackProcessor processor) {
-        PaymentCallbackEvent event = eventRepository.findForUpdate(provider, eventId)
-                .orElseThrow(() -> new IllegalArgumentException("콜백 이벤트를 찾을 수 없습니다"));
-        if (event.getStatus() == PaymentCallbackStatus.PROCESSED) return event;
-        if (event.getStatus() == PaymentCallbackStatus.FAILED
-                && !event.retryable(MAX_ATTEMPTS)) {
-            throw new IllegalStateException("콜백 최대 재시도 횟수를 초과했습니다");
-        }
         try {
-            processor.process(event);
-            event.processed(LocalDateTime.now(clock));
-        } catch (RuntimeException exception) {
-            event.failed(abbreviate(exception.getMessage()));
+            return transactionService.processAttempt(provider, eventId, processor);
+        } catch (PaymentCallbackProcessingException exception) {
+            return transactionService.recordFailure(
+                    provider, eventId, abbreviate(exception.getMessage()));
         }
-        return event;
     }
 
     private String abbreviate(String value) {
