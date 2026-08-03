@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({PointChargeService.class, PointAccountService.class,
-        InternalPointPaymentProvider.class, TimeConfig.class})
+        InternalPointPaymentProvider.class, DemoPointChargePolicy.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PointChargeServiceConcurrencyTest {
     @Autowired PointChargeService service;
@@ -51,7 +51,7 @@ class PointChargeServiceConcurrencyTest {
         user.setUserStatus(0);
         userRepository.saveAndFlush(user);
         pointAccountService.initializeAccount("concurrent");
-        chargeId = service.create("concurrent", PaymentProvider.INTERNAL, 5_000, "create")
+        chargeId = service.create("concurrent", PaymentProvider.INTERNAL, 10_000, "create")
                 .getChargeId();
     }
 
@@ -71,7 +71,7 @@ class PointChargeServiceConcurrencyTest {
             executor.shutdownNow();
         }
         assertThat(accountRepository.findById("concurrent").orElseThrow().getAvailableBalance())
-                .isEqualTo(5_000);
+                .isEqualTo(10_000);
         assertThat(transactionRepository.countByUserId("concurrent")).isEqualTo(1);
         assertThat(chargeRepository.findById(chargeId).orElseThrow().getStatus())
                 .isEqualTo(PointChargeStatus.PAID);
@@ -82,7 +82,7 @@ class PointChargeServiceConcurrencyTest {
             ready.countDown();
             if (!start.await(5, TimeUnit.SECONDS)) throw new IllegalStateException("start timeout");
             service.approve(chargeId,
-                    new PaymentApproval(PaymentProvider.INTERNAL, null, 5_000, 5_000, true));
+                    new PaymentApproval(PaymentProvider.INTERNAL, null, 10_000, 10_000, true));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(exception);

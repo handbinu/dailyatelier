@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
 import com.dailyatelier.dailyatelier.dto.PointSummaryResponseDto;
+import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.entity.PointCharge;
 import com.dailyatelier.dailyatelier.entity.PointChargeStatus;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
@@ -63,6 +64,7 @@ class PointApiTest {
 
         PointCharge charge = mock(PointCharge.class);
         when(charge.getChargeId()).thenReturn(7L);
+        when(charge.getProvider()).thenReturn(PaymentProvider.INTERNAL);
         when(charge.getStatus()).thenReturn(PointChargeStatus.PAID);
         when(charge.getRequestedAmount()).thenReturn(10_000L);
         when(charge.getPaidAmount()).thenReturn(10_000L);
@@ -77,6 +79,7 @@ class PointApiTest {
                         .content("{\"amount\":10000}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.demo").value(true))
                 .andExpect(jsonPath("$.paidAmount").value(10000));
 
         verify(pointChargeService).create(eq("buyer"), any(), eq(10_000L), eq("charge-key"));

@@ -8,6 +8,7 @@ public record PointChargeResponseDto(
         String merchantOrderId,
         long requestedAmount,
         long paidAmount,
+        boolean demo,
         String status,
         LocalDateTime createdAt,
         LocalDateTime paidAt) {
@@ -17,6 +18,7 @@ public record PointChargeResponseDto(
                 charge.getMerchantOrderId(),
                 charge.getRequestedAmount(),
                 charge.getPaidAmount(),
+                charge.getProvider() == com.dailyatelier.dailyatelier.entity.PaymentProvider.INTERNAL,
                 charge.getStatus().name(),
                 charge.getCreatedAt(),
                 charge.getPaidAt());

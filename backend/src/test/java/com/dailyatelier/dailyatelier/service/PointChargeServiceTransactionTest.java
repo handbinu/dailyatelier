@@ -25,7 +25,7 @@ import static org.mockito.Mockito.doThrow;
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({PointChargeService.class, PointAccountService.class,
-        InternalPointPaymentProvider.class, TimeConfig.class})
+        InternalPointPaymentProvider.class, DemoPointChargePolicy.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PointChargeServiceTransactionTest {
     @Autowired PointChargeService service;
@@ -47,23 +47,53 @@ class PointChargeServiceTransactionTest {
 
     @Test
     void createIsIdempotentButRejectsDifferentRequest() {
-        PointCharge first = service.create("member", PaymentProvider.INTERNAL, 1_000, "same");
-        PointCharge replay = service.create("member", PaymentProvider.INTERNAL, 1_000, "same");
+        PointCharge first = service.create("member", PaymentProvider.INTERNAL, 10_000, "same");
+        PointCharge replay = service.create("member", PaymentProvider.INTERNAL, 10_000, "same");
         assertThat(replay.getChargeId()).isEqualTo(first.getChargeId());
         assertThatThrownBy(() ->
-                service.create("member", PaymentProvider.INTERNAL, 2_000, "same"))
+                service.create("member", PaymentProvider.INTERNAL, 30_000, "same"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
+    void demoChargeAllowsFixedAmountsAndRejectsBalanceAboveLimit() {
+        assertThatThrownBy(() ->
+                service.create("member", PaymentProvider.INTERNAL, 20_000, "invalid-amount"))
+                .isInstanceOf(com.dailyatelier.dailyatelier.exception.PointApiException.class)
+                .hasMessageContaining("허용된 데모 충전 금액");
+
+        for (int index = 0; index < 3; index++) {
+            PointCharge charge = service.create(
+                    "member", PaymentProvider.INTERNAL, 300_000, "limit-" + index);
+            service.approve(charge.getChargeId(), approval(300_000));
+        }
+        PointCharge lastAllowed = service.create(
+                "member", PaymentProvider.INTERNAL, 100_000, "limit-last");
+        service.approve(lastAllowed.getChargeId(), approval(100_000));
+        assertThat(accountRepository.findById("member").orElseThrow().getAvailableBalance())
+                .isEqualTo(1_000_000);
+
+        PointCharge overLimit = service.create(
+                "member", PaymentProvider.INTERNAL, 10_000, "over-limit");
+        assertThatThrownBy(() -> service.approve(overLimit.getChargeId(), approval(10_000)))
+                .isInstanceOf(com.dailyatelier.dailyatelier.exception.PointApiException.class)
+                .hasMessageContaining("최대 1,000,000P");
+        assertThat(service.create(
+                "member", PaymentProvider.INTERNAL, 10_000, "over-limit").getChargeId())
+                .isEqualTo(overLimit.getChargeId());
+    }
+
+    @Test
     void approvalAndRefundWriteOppositeLedgerEntriesExactlyOnce() {
-        PointCharge charge = service.create("member", PaymentProvider.INTERNAL, 1_000, "create");
-        PaymentApproval approval = approval(1_000);
+        PointCharge charge = service.create("member", PaymentProvider.INTERNAL, 10_000, "create");
+        PaymentApproval approval = approval(10_000);
         service.approve(charge.getChargeId(), approval);
         service.approve(charge.getChargeId(), approval);
         assertThat(accountRepository.findById("member").orElseThrow().getAvailableBalance())
-                .isEqualTo(1_000);
+                .isEqualTo(10_000);
         assertThat(transactionRepository.countByUserId("member")).isEqualTo(1);
+        assertThat(transactionRepository.findAll().get(0).getType())
+                .isEqualTo(PointTransactionType.DEMO_CHARGE);
 
         service.refund(charge.getChargeId());
         service.refund(charge.getChargeId());
@@ -77,11 +107,11 @@ class PointChargeServiceTransactionTest {
 
     @Test
     void rejectsAmountMismatchUnauthorizedApprovalAndPgOrderDuplication() {
-        PointCharge first = service.create("member", PaymentProvider.INTERNAL, 1_000, "first");
-        assertThatThrownBy(() -> service.approve(first.getChargeId(), approval(999)))
+        PointCharge first = service.create("member", PaymentProvider.INTERNAL, 10_000, "first");
+        assertThatThrownBy(() -> service.approve(first.getChargeId(), approval(9_999)))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> service.approve(first.getChargeId(),
-                new PaymentApproval(PaymentProvider.INTERNAL, null, 1_000, 1_000, false)))
+                new PaymentApproval(PaymentProvider.INTERNAL, null, 10_000, 10_000, false)))
                 .isInstanceOf(SecurityException.class);
 
         userRepository.saveAndFlush(user("other"));
@@ -99,11 +129,11 @@ class PointChargeServiceTransactionTest {
 
     @Test
     void ledgerFailureRollsBackBalanceAndChargeState() {
-        PointCharge charge = service.create("member", PaymentProvider.INTERNAL, 1_000, "rollback");
+        PointCharge charge = service.create("member", PaymentProvider.INTERNAL, 10_000, "rollback");
         doThrow(new IllegalStateException("원장 저장 실패"))
                 .when(transactionRepository).saveAndFlush(any(PointTransaction.class));
 
-        assertThatThrownBy(() -> service.approve(charge.getChargeId(), approval(1_000)))
+        assertThatThrownBy(() -> service.approve(charge.getChargeId(), approval(10_000)))
                 .hasMessage("원장 저장 실패");
         assertThat(accountRepository.findById("member").orElseThrow().getAvailableBalance())
                 .isZero();

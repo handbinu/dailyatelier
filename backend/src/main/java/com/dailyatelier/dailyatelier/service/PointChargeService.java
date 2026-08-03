@@ -23,17 +23,20 @@ public class PointChargeService {
     private final PointTransactionRepository transactionRepository;
     private final List<PointPaymentProvider> paymentProviders;
     private final Clock clock;
+    private final DemoPointChargePolicy demoChargePolicy;
 
     public PointChargeService(PointChargeRepository chargeRepository,
                               PointAccountRepository accountRepository,
                               PointTransactionRepository transactionRepository,
                               List<PointPaymentProvider> paymentProviders,
-                              Clock clock) {
+                              Clock clock,
+                              DemoPointChargePolicy demoChargePolicy) {
         this.chargeRepository = chargeRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.paymentProviders = paymentProviders;
         this.clock = clock;
+        this.demoChargePolicy = demoChargePolicy;
     }
 
     @Transactional
@@ -52,6 +55,9 @@ public class PointChargeService {
                         "멱등성 키가 다른 충전 요청에 이미 사용되었습니다");
             }
             return existing;
+        }
+        if (provider == PaymentProvider.INTERNAL) {
+            demoChargePolicy.validateAmount(amount);
         }
         String merchantOrderId = "POINT-" + UUID.randomUUID();
         return chargeRepository.save(PointCharge.pending(
@@ -74,16 +80,25 @@ public class PointChargeService {
 
         PointAccount account = accountRepository.findByUserIdForUpdate(charge.getUserId())
                 .orElseThrow(() -> new IllegalStateException("포인트 계정이 없습니다"));
+        if (charge.getProvider() == PaymentProvider.INTERNAL) {
+            demoChargePolicy.validateBalance(
+                    account.getAvailableBalance(), account.getHeldBalance(), approval.paidAmount());
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         account.credit(approval.paidAmount(), now);
         PointTransaction transaction = transactionRepository.saveAndFlush(
                 PointTransaction.record(
-                        charge.getUserId(), PointTransactionType.CHARGE,
+                        charge.getUserId(), charge.getProvider() == PaymentProvider.INTERNAL
+                                ? PointTransactionType.DEMO_CHARGE
+                                : PointTransactionType.CHARGE,
                         approval.paidAmount(), approval.paidAmount(), 0,
                         account.getAvailableBalance(), account.getHeldBalance(),
                         PointReferenceType.CHARGE, chargeId.toString(),
-                        "charge:" + chargeId, null, "CHARGE_APPROVED",
-                        "포인트 충전 승인", now));
+                        "charge:" + chargeId, null,
+                        charge.getProvider() == PaymentProvider.INTERNAL
+                                ? "DEMO_CHARGE_APPROVED" : "CHARGE_APPROVED",
+                        charge.getProvider() == PaymentProvider.INTERNAL
+                                ? "데모 포인트 충전" : "포인트 충전 승인", now));
         charge.approve(approval.pgOrderId(), approval.paidAmount(),
                 transaction.getTransactionId(), now);
         return charge;

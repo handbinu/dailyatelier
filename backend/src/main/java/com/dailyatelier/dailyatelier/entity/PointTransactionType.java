@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.entity;
 public enum PointTransactionType {
     OPENING_BALANCE,
     CHARGE,
+    DEMO_CHARGE,
     HOLD,
     HOLD_INCREASE,
     RELEASE,
