@@ -25,8 +25,8 @@ public enum OrderStatus {
             case PAYMENT_PENDING -> nextStatus == PAID || nextStatus == CANCELED;
             case PAID -> nextStatus == PREPARING || nextStatus == REFUNDED;
             case PREPARING -> nextStatus == SHIPPED || nextStatus == REFUNDED;
-            case SHIPPED -> nextStatus == DELIVERED;
-            case DELIVERED -> nextStatus == CONFIRMED;
+            case SHIPPED -> nextStatus == DELIVERED || nextStatus == REFUNDED;
+            case DELIVERED -> nextStatus == CONFIRMED || nextStatus == REFUNDED;
             case CONFIRMED, CANCELED, REFUNDED -> false;
         };
     }

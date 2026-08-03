@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @RestController
 @RequestMapping("/api/artists/me/orders")
@@ -75,5 +77,24 @@ public class SellerOrderController {
         return ResponseEntity.ok(
                 OrderDetailResponseDto.forSeller(updatedOrder)
         );
+    }
+
+    @PostMapping("/{orderId}/refund/approve")
+    public ResponseEntity<OrderDetailResponseDto> approveRefund(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long orderId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return ResponseEntity.ok(OrderDetailResponseDto.forSeller(
+                orderStateService.approveRefund(orderId, userId, idempotencyKey)
+        ));
+    }
+
+    @PostMapping("/{orderId}/refund/reject")
+    public ResponseEntity<OrderDetailResponseDto> rejectRefund(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long orderId) {
+        return ResponseEntity.ok(OrderDetailResponseDto.forSeller(
+                orderStateService.rejectRefund(orderId, userId)
+        ));
     }
 }

@@ -157,6 +157,19 @@ public class Order {
     @Column(name = "refund_reason", length = 200)
     private String refundReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_request_status", length = 30)
+    private OrderRefundRequestStatus refundRequestStatus;
+
+    @Column(name = "refund_request_reason", length = 200)
+    private String refundRequestReason;
+
+    @Column(name = "refund_requested_at")
+    private LocalDateTime refundRequestedAt;
+
+    @Column(name = "refund_rejected_at")
+    private LocalDateTime refundRejectedAt;
+
     @Column(name = "shipping_carrier", length = 50)
     private String shippingCarrier;
 
@@ -289,6 +302,38 @@ public class Order {
         transitionTo(OrderStatus.SHIPPED, shippedAt, null);
         this.shippingCarrier = normalizedCarrier;
         this.trackingNumber = normalizedTrackingNumber;
+    }
+
+    public void requestRefund(String reason, LocalDateTime requestedAt) {
+        if (status != OrderStatus.PAID
+                && status != OrderStatus.PREPARING
+                && status != OrderStatus.SHIPPED
+                && status != OrderStatus.DELIVERED) {
+            throw new IllegalStateException("구매 확정 전 결제 주문만 환불을 요청할 수 있습니다");
+        }
+        if (refundRequestStatus == OrderRefundRequestStatus.REQUESTED) {
+            throw new IllegalStateException("이미 처리 중인 환불 요청이 있습니다");
+        }
+        refundRequestReason = requireReason(reason, "환불 요청");
+        refundRequestedAt = Objects.requireNonNull(requestedAt, "환불 요청 시각은 필수입니다");
+        refundRejectedAt = null;
+        refundRequestStatus = OrderRefundRequestStatus.REQUESTED;
+    }
+
+    public void rejectRefund(LocalDateTime rejectedAt) {
+        requirePendingRefundRequest();
+        refundRejectedAt = Objects.requireNonNull(rejectedAt, "환불 거절 시각은 필수입니다");
+        refundRequestStatus = OrderRefundRequestStatus.REJECTED;
+    }
+
+    public void approveRefund() {
+        requirePendingRefundRequest();
+    }
+
+    private void requirePendingRefundRequest() {
+        if (refundRequestStatus != OrderRefundRequestStatus.REQUESTED) {
+            throw new IllegalStateException("처리할 환불 요청이 없습니다");
+        }
     }
 
     private static void validateCreation(

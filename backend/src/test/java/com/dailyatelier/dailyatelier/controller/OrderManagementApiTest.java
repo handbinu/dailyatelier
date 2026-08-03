@@ -177,6 +177,44 @@ class OrderManagementApiTest {
     }
 
     @Test
+    void buyerCanMarkShippedOrderDeliveredAndRequestRefund() throws Exception {
+        Order deliveredOrder = mockOrder(7L, OrderStatus.DELIVERED);
+        Order paidOrder = mockOrder(8L, OrderStatus.PAID);
+        when(orderStateService.markDelivered(7L, "buyer"))
+                .thenReturn(deliveredOrder);
+        when(orderStateService.requestRefund(8L, "buyer", "작품 상태 문제"))
+                .thenReturn(paidOrder);
+
+        mockMvc.perform(post("/api/users/me/orders/7/delivered")
+                        .with(authentication(userAuthentication("buyer"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DELIVERED"));
+
+        mockMvc.perform(post("/api/users/me/orders/8/refund-request")
+                        .with(authentication(userAuthentication("buyer")))
+                        .contentType("application/json")
+                        .content("""
+                                {"reason":"작품 상태 문제"}
+                                """))
+                .andExpect(status().isOk());
+
+        verify(orderStateService).markDelivered(7L, "buyer");
+        verify(orderStateService).requestRefund(8L, "buyer", "작품 상태 문제");
+    }
+
+    @Test
+    void refundRequestRequiresReason() throws Exception {
+        mockMvc.perform(post("/api/users/me/orders/8/refund-request")
+                        .with(authentication(userAuthentication("buyer")))
+                        .contentType("application/json")
+                        .content("""
+                                {"reason":" "}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ORDER_REQUEST"));
+    }
+
+    @Test
     void artistCanReadAndPrepareOwnSalesUsingPrincipal() throws Exception {
         when(orderQueryService.getSellerOrders(
                 "seller",
@@ -250,6 +288,29 @@ class OrderManagementApiTest {
                 "우체국택배",
                 "1234-5678"
         );
+    }
+
+    @Test
+    void sellerCanApproveOrRejectPendingRefundUsingPrincipal() throws Exception {
+        Order refundedOrder = mockOrder(7L, OrderStatus.REFUNDED);
+        Order paidOrder = mockOrder(8L, OrderStatus.PAID);
+        when(orderStateService.approveRefund(7L, "seller", "refund-key"))
+                .thenReturn(refundedOrder);
+        when(orderStateService.rejectRefund(8L, "seller"))
+                .thenReturn(paidOrder);
+
+        mockMvc.perform(post("/api/artists/me/orders/7/refund/approve")
+                        .with(authentication(artistAuthentication("seller")))
+                        .header("Idempotency-Key", "refund-key"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REFUNDED"));
+
+        mockMvc.perform(post("/api/artists/me/orders/8/refund/reject")
+                        .with(authentication(artistAuthentication("seller"))))
+                .andExpect(status().isOk());
+
+        verify(orderStateService).approveRefund(7L, "seller", "refund-key");
+        verify(orderStateService).rejectRefund(8L, "seller");
     }
 
     @Test

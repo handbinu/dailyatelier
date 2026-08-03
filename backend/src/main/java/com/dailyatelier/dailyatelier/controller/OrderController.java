@@ -4,6 +4,7 @@ import com.dailyatelier.dailyatelier.dto.OrderDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.OrderPageResponseDto;
 import com.dailyatelier.dailyatelier.dto.OrderShippingAddressRequestDto;
 import com.dailyatelier.dailyatelier.dto.OrderShippingAddressResponseDto;
+import com.dailyatelier.dailyatelier.dto.OrderRefundRequestDto;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.service.OrderQueryService;
 import com.dailyatelier.dailyatelier.service.OrderService;
@@ -80,6 +81,25 @@ public class OrderController {
             @PathVariable Long orderId) {
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.confirm(orderId, userId)
+        ));
+    }
+
+    @PostMapping("/{orderId}/delivered")
+    public ResponseEntity<OrderDetailResponseDto> markDelivered(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long orderId) {
+        return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
+                orderStateService.markDelivered(orderId, userId)
+        ));
+    }
+
+    @PostMapping("/{orderId}/refund-request")
+    public ResponseEntity<OrderDetailResponseDto> requestRefund(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long orderId,
+            @Valid @RequestBody OrderRefundRequestDto request) {
+        return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
+                orderStateService.requestRefund(orderId, userId, request.getReason())
         ));
     }
 

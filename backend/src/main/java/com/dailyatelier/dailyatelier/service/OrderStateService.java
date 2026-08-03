@@ -71,8 +71,10 @@ public class OrderStateService implements OrderPaymentService {
             return order;
         }
         if (order.getStatus() != OrderStatus.PAID
-                && order.getStatus() != OrderStatus.PREPARING) {
-            throw conflict("ORDER_STATUS_CONFLICT", "결제된 주문만 환불할 수 있습니다.");
+                && order.getStatus() != OrderStatus.PREPARING
+                && order.getStatus() != OrderStatus.SHIPPED
+                && order.getStatus() != OrderStatus.DELIVERED) {
+            throw conflict("ORDER_STATUS_CONFLICT", "구매 확정 전 결제 주문만 환불할 수 있습니다.");
         }
         OrderRefundReason requiredReason = Objects.requireNonNull(
                 reason,
@@ -141,6 +143,52 @@ public class OrderStateService implements OrderPaymentService {
                 LocalDateTime.now(clock),
                 null
         );
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order markDelivered(Long orderId, String buyerId) {
+        Order order = findForUpdate(orderId);
+        verifyBuyer(order, buyerId);
+        transition(order, OrderStatus.DELIVERED, LocalDateTime.now(clock), null);
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order requestRefund(Long orderId, String buyerId, String reason) {
+        Order order = findForUpdate(orderId);
+        verifyBuyer(order, buyerId);
+        try {
+            order.requestRefund(reason, LocalDateTime.now(clock));
+        } catch (IllegalArgumentException exception) {
+            throw new OrderApiException(HttpStatus.BAD_REQUEST, "INVALID_REFUND_REQUEST", exception.getMessage());
+        } catch (IllegalStateException exception) {
+            throw conflict("ORDER_STATUS_CONFLICT", exception.getMessage());
+        }
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order approveRefund(Long orderId, String sellerId, String idempotencyKey) {
+        Order order = findForUpdate(orderId);
+        verifySeller(order, sellerId);
+        try {
+            order.approveRefund();
+        } catch (IllegalStateException exception) {
+            throw conflict("ORDER_STATUS_CONFLICT", exception.getMessage());
+        }
+        return refund(orderId, OrderRefundReason.PAYMENT_CANCELED, idempotencyKey);
+    }
+
+    @Transactional
+    public Order rejectRefund(Long orderId, String sellerId) {
+        Order order = findForUpdate(orderId);
+        verifySeller(order, sellerId);
+        try {
+            order.rejectRefund(LocalDateTime.now(clock));
+        } catch (IllegalStateException exception) {
+            throw conflict("ORDER_STATUS_CONFLICT", exception.getMessage());
+        }
         return orderRepository.save(order);
     }
 

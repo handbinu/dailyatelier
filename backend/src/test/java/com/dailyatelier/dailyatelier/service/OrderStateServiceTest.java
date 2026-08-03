@@ -6,6 +6,7 @@ import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderRefundReason;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
@@ -186,6 +187,81 @@ class OrderStateServiceTest {
         assertThat(reloaded.getConfirmedAt()).isEqualTo(CREATED_AT.plusHours(5));
         assertThat(reloaded.getShippingCarrier()).isEqualTo("우체국택배");
         assertThat(reloaded.getTrackingNumber()).isEqualTo("1234-5678");
+    }
+
+    @Test
+    void buyerCompletesDeliveryBeforeConfirmingPurchase() {
+        orderStateService.markPaid(order.getOrderId());
+        orderStateService.startPreparing(order.getOrderId(), seller.getUserId());
+        orderStateService.ship(order.getOrderId(), seller.getUserId(), "우체국택배", "1234");
+
+        assertThatThrownBy(() -> orderStateService.markDelivered(order.getOrderId(), "other"))
+                .isInstanceOf(OrderApiException.class)
+                .satisfies(error -> assertThat(((OrderApiException) error).getStatus())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+
+        Order delivered = orderStateService.markDelivered(order.getOrderId(), buyer.getUserId());
+        assertThat(delivered.getStatus()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(orderStateService.confirm(order.getOrderId(), buyer.getUserId()).getStatus())
+                .isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void buyerRequestsRefundAndSellerApprovesExactlyOnce() {
+        orderStateService.markPaid(order.getOrderId());
+        Order requested = orderStateService.requestRefund(
+                order.getOrderId(), buyer.getUserId(), " 작품 상태 문제 ");
+        assertThat(requested.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.REQUESTED);
+        assertThat(requested.getRefundRequestReason()).isEqualTo("작품 상태 문제");
+
+        Order refunded = orderStateService.approveRefund(
+                order.getOrderId(), seller.getUserId(), "refund-key");
+        assertThat(refunded.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(orderStateService.approveRefund(
+                order.getOrderId(), seller.getUserId(), "refund-key").getStatus())
+                .isEqualTo(OrderStatus.REFUNDED);
+    }
+
+    @Test
+    void sellerRejectsRefundAndBuyerCanRequestAgain() {
+        orderStateService.markPaid(order.getOrderId());
+        orderStateService.requestRefund(order.getOrderId(), buyer.getUserId(), "첫 요청");
+        Order rejected = orderStateService.rejectRefund(order.getOrderId(), seller.getUserId());
+        assertThat(rejected.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.REJECTED);
+
+        Order requestedAgain = orderStateService.requestRefund(
+                order.getOrderId(), buyer.getUserId(), "추가 증빙 제출");
+        assertThat(requestedAgain.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.REQUESTED);
+        assertThat(requestedAgain.getRefundRequestReason()).isEqualTo("추가 증빙 제출");
+    }
+
+    @Test
+    void refundIsAllowedAfterShipping() {
+        orderStateService.markPaid(order.getOrderId());
+        orderStateService.startPreparing(order.getOrderId(), seller.getUserId());
+        orderStateService.ship(order.getOrderId(), seller.getUserId(), "우체국택배", "1234");
+        orderStateService.requestRefund(order.getOrderId(), buyer.getUserId(), "배송 중 파손");
+        assertThat(orderStateService.approveRefund(
+                order.getOrderId(), seller.getUserId(), "shipped-refund").getStatus())
+                .isEqualTo(OrderStatus.REFUNDED);
+    }
+
+    @Test
+    void refundIsRejectedAfterConfirmation() {
+        orderStateService.markPaid(order.getOrderId());
+        orderStateService.startPreparing(order.getOrderId(), seller.getUserId());
+        orderStateService.ship(order.getOrderId(), seller.getUserId(), "우체국택배", "5678");
+        orderStateService.markDelivered(order.getOrderId(), buyer.getUserId());
+        orderStateService.confirm(order.getOrderId(), buyer.getUserId());
+
+        assertThatThrownBy(() -> orderStateService.requestRefund(
+                order.getOrderId(), buyer.getUserId(), "확정 후 요청"))
+                .isInstanceOf(OrderApiException.class)
+                .satisfies(error -> assertThat(((OrderApiException) error).getStatus())
+                        .isEqualTo(org.springframework.http.HttpStatus.CONFLICT));
     }
 
     @Test

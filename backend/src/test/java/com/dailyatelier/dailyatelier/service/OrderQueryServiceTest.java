@@ -150,7 +150,8 @@ class OrderQueryServiceTest {
                 .satisfies(result -> {
                     assertThat(result.getOrderId())
                             .isEqualTo(newerPaidOrder.getOrderId());
-                    assertThat(result.getAvailableActions()).isEmpty();
+                    assertThat(result.getAvailableActions())
+                            .containsExactly(com.dailyatelier.dailyatelier.dto.OrderAction.REQUEST_REFUND);
                 });
         assertThat(outOfRange.getContent()).isEmpty();
         assertThat(outOfRange.getTotalElements()).isEqualTo(3);

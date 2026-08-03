@@ -30,7 +30,7 @@ class OrderStatusTest {
         assertThat(OrderStatus.PAID.canTransitionTo(OrderStatus.CANCELED))
                 .isFalse();
         assertThat(OrderStatus.DELIVERED.canTransitionTo(OrderStatus.REFUNDED))
-                .isFalse();
+                .isTrue();
         assertThat(OrderStatus.CONFIRMED.canTransitionTo(OrderStatus.PAYMENT_PENDING))
                 .isFalse();
         assertThat(OrderStatus.CANCELED.canTransitionTo(OrderStatus.PAID))

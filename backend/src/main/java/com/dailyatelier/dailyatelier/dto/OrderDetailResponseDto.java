@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.dto;
 
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -39,6 +40,10 @@ public class OrderDetailResponseDto {
     private LocalDateTime refundedAt;
     private String cancelReason;
     private String refundReason;
+    private OrderRefundRequestStatus refundRequestStatus;
+    private String refundRequestReason;
+    private LocalDateTime refundRequestedAt;
+    private LocalDateTime refundRejectedAt;
     private List<OrderAction> availableActions;
 
     public static OrderDetailResponseDto forBuyer(Order order) {
@@ -81,6 +86,10 @@ public class OrderDetailResponseDto {
                 order.getRefundedAt(),
                 order.getCancelReason(),
                 order.getRefundReason(),
+                order.getRefundRequestStatus(),
+                order.getRefundRequestReason(),
+                order.getRefundRequestedAt(),
+                order.getRefundRejectedAt(),
                 availableActions
         );
     }

@@ -5,5 +5,9 @@ public enum OrderAction {
     CANCEL,
     START_PREPARING,
     SHIP,
-    CONFIRM
+    MARK_DELIVERED,
+    CONFIRM,
+    REQUEST_REFUND,
+    APPROVE_REFUND,
+    REJECT_REFUND
 }

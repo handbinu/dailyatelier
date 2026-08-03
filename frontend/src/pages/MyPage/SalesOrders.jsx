@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  approveSellerOrderRefund,
   getSellerOrder,
   getSellerOrders,
+  rejectSellerOrderRefund,
   updateSellerOrderStatus,
 } from '../../api/orderApi'
 import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
@@ -167,6 +169,30 @@ export default function SalesOrders() {
     }
   }
 
+  const runRefundDecision = async (orderId, approve) => {
+    if (!window.confirm(approve ? '환불을 승인하시겠습니까?' : '환불을 거절하시겠습니까?')) return
+    if (!requestGuard.current.begin(orderId)) return
+    setProcessingId(orderId)
+    setError('')
+    setNotice('')
+    try {
+      const response = approve
+        ? await approveSellerOrderRefund(orderId, `order-refund:${orderId}`)
+        : await rejectSellerOrderRefund(orderId)
+      setDetails((current) => ({ ...current, [orderId]: response.data }))
+      await loadOrders()
+      setNotice(approve ? '환불을 승인했습니다.' : '환불을 거절했습니다.')
+    } catch (requestError) {
+      const orderError = handleRequestError(requestError, '환불 요청을 처리하지 못했습니다.')
+      if (orderError.shouldReload) {
+        await Promise.all([loadDetail(orderId, { force: true }), loadOrders()])
+      }
+    } finally {
+      requestGuard.current.end(orderId)
+      setProcessingId(null)
+    }
+  }
+
   const items = result?.content ?? []
 
   return (
@@ -237,6 +263,8 @@ export default function SalesOrders() {
                   event.preventDefault()
                   runAction(order.orderId, SELLER_ACTION.SHIP)
                 }}
+                onApproveRefund={() => runRefundDecision(order.orderId, true)}
+                onRejectRefund={() => runRefundDecision(order.orderId, false)}
               />
             ))}
           </div>
@@ -284,6 +312,8 @@ function SellerOrderItem({
   onShippingChange,
   onShippingCancel,
   onShip,
+  onApproveRefund,
+  onRejectRefund,
 }) {
   const actions = detail?.availableActions ?? order.availableActions ?? []
 
@@ -313,6 +343,16 @@ function SellerOrderItem({
           {actions.includes(SELLER_ACTION.SHIP) && (
             <button type="button" onClick={onOpenShipping} disabled={isProcessing}>
               발송 처리
+            </button>
+          )}
+          {actions.includes(SELLER_ACTION.APPROVE_REFUND) && (
+            <button type="button" onClick={onApproveRefund} disabled={isProcessing}>
+              환불 승인
+            </button>
+          )}
+          {actions.includes(SELLER_ACTION.REJECT_REFUND) && (
+            <button type="button" onClick={onRejectRefund} disabled={isProcessing}>
+              환불 거절
             </button>
           )}
           <button type="button" onClick={onToggle} aria-expanded={isOpen}>

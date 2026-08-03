@@ -19,12 +19,27 @@ final class OrderViewPolicy {
                     OrderAction.UPDATE_SHIPPING_ADDRESS,
                     OrderAction.CANCEL
             );
-            case DELIVERED -> List.of(OrderAction.CONFIRM);
+            case PAID, PREPARING -> order.getRefundRequestStatus()
+                    == com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus.REQUESTED
+                    ? List.of()
+                    : List.of(OrderAction.REQUEST_REFUND);
+            case SHIPPED -> order.getRefundRequestStatus()
+                    == com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus.REQUESTED
+                    ? List.of()
+                    : List.of(OrderAction.MARK_DELIVERED, OrderAction.REQUEST_REFUND);
+            case DELIVERED -> order.getRefundRequestStatus()
+                    == com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus.REQUESTED
+                    ? List.of()
+                    : List.of(OrderAction.CONFIRM, OrderAction.REQUEST_REFUND);
             default -> List.of();
         };
     }
 
     static List<OrderAction> sellerActions(Order order) {
+        if (order.getRefundRequestStatus()
+                == com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus.REQUESTED) {
+            return List.of(OrderAction.APPROVE_REFUND, OrderAction.REJECT_REFUND);
+        }
         if (order.getStatus() == OrderStatus.PAID) {
             return List.of(OrderAction.START_PREPARING);
         }

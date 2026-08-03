@@ -27,6 +27,12 @@ export const cancelBuyerOrder = (orderId) =>
 export const confirmBuyerOrder = (orderId) =>
   api.post(`/api/users/me/orders/${orderId}/confirm`)
 
+export const markBuyerOrderDelivered = (orderId) =>
+  api.post(`/api/users/me/orders/${orderId}/delivered`)
+
+export const requestBuyerOrderRefund = (orderId, reason) =>
+  api.post(`/api/users/me/orders/${orderId}/refund-request`, { reason })
+
 export const payBuyerOrder = (orderId, idempotencyKey) =>
   api.post(
     `/api/users/me/orders/${orderId}/payment`,
@@ -54,3 +60,11 @@ export const getSellerOrder = (orderId, { signal } = {}) =>
 
 export const updateSellerOrderStatus = (orderId, data) =>
   api.patch(`/api/artists/me/orders/${orderId}/status`, data)
+
+export const approveSellerOrderRefund = (orderId, idempotencyKey) =>
+  api.post(`/api/artists/me/orders/${orderId}/refund/approve`, null, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  })
+
+export const rejectSellerOrderRefund = (orderId) =>
+  api.post(`/api/artists/me/orders/${orderId}/refund/reject`)

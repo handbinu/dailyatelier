@@ -5,7 +5,9 @@ import {
   confirmBuyerOrder,
   getBuyerOrder,
   getBuyerOrders,
+  markBuyerOrderDelivered,
   payBuyerOrder,
+  requestBuyerOrderRefund,
   updateOrderShippingAddress,
 } from '../../api/orderApi'
 import { getUserProfile } from '../../api/userApi'
@@ -247,6 +249,11 @@ export default function OrderStatus() {
       && !window.confirm('작품을 수령하셨나요? 구매를 확정하시겠습니까?')) {
       return
     }
+    let refundReason = ''
+    if (action === 'REQUEST_REFUND') {
+      refundReason = window.prompt('환불 요청 사유를 입력해 주세요.')?.trim() ?? ''
+      if (!refundReason) return
+    }
     if (!requestGuard.current.begin(orderId)) return
 
     setProcessingId(orderId)
@@ -257,7 +264,11 @@ export default function OrderStatus() {
         ? cancelBuyerOrder(orderId)
         : action === 'PAY'
           ? payBuyerOrder(orderId, `order-payment:${orderId}`)
-          : confirmBuyerOrder(orderId)
+          : action === 'MARK_DELIVERED'
+            ? markBuyerOrderDelivered(orderId)
+            : action === 'REQUEST_REFUND'
+              ? requestBuyerOrderRefund(orderId, refundReason)
+              : confirmBuyerOrder(orderId)
       const { data } = await request
       setDetails((current) => ({ ...current, [orderId]: data }))
       await loadOrders()
@@ -265,7 +276,11 @@ export default function OrderStatus() {
         ? '낙찰 포기가 처리되었습니다.'
         : action === 'PAY'
           ? '포인트 결제가 완료되었습니다.'
-          : '구매가 확정되었습니다.')
+          : action === 'MARK_DELIVERED'
+            ? '배송 완료로 처리했습니다. 작품을 확인한 뒤 구매를 확정해 주세요.'
+            : action === 'REQUEST_REFUND'
+              ? '환불을 요청했습니다. 판매자 처리 결과를 기다려 주세요.'
+              : '구매가 확정되었습니다.')
     } catch (requestError) {
       const orderError = handleRequestError(
         requestError,
@@ -469,6 +484,26 @@ function OrderItem({
               disabled={isProcessing}
             >
               구매 확정
+            </button>
+          )}
+          {actions.includes('MARK_DELIVERED') && (
+            <button
+              type="button"
+              className={s.primaryBtn}
+              onClick={() => onAction('MARK_DELIVERED')}
+              disabled={isProcessing}
+            >
+              배송 완료
+            </button>
+          )}
+          {actions.includes('REQUEST_REFUND') && (
+            <button
+              type="button"
+              className={s.dangerBtn}
+              onClick={() => onAction('REQUEST_REFUND')}
+              disabled={isProcessing}
+            >
+              환불 요청
             </button>
           )}
           <button

@@ -1,6 +1,8 @@
 export const SELLER_ACTION = {
   START_PREPARING: 'START_PREPARING',
   SHIP: 'SHIP',
+  APPROVE_REFUND: 'APPROVE_REFUND',
+  REJECT_REFUND: 'REJECT_REFUND',
 }
 
 export const sellerActionLabel = (action) => {
