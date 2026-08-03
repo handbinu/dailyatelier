@@ -9,37 +9,38 @@ import {
 } from '../../api/pointApi'
 import { PageBanner, PageWrap } from './components/atoms'
 import { fmt } from './mockData'
+import { chargeRequestFor, invalidateChargeRequest } from '../../utils/chargeRequest'
 import s from './Charge.module.css'
 
 const PRESET_AMOUNTS = [10000, 30000, 50000, 100000, 200000, 300000]
 const PAYMENT_METHODS = [
-  { id: 'internal', label: '내부 포인트 충전', icon: '💰' },
+  { id: 'internal', label: '데모 포인트', icon: '💰' },
 ]
 const NOTICES = [
-  '충전된 적립금 환불은 결제 후 영업일 기준 7일 안에, 사용 이력이 없는 경우에 가능합니다.',
-  '잔액의 80% 이하 사용 시 환불 신청 가능하며 수수료(잔액의 10% 또는 1,000원 중 큰 금액)가 차감됩니다.',
-  '미성년자는 법정 대리인의 동의 후 충전하셔야 합니다.',
-  '적립금은 결제일로부터 5년 후 소멸되며, 회원 탈퇴 즉시 소멸됩니다.',
+  '이 충전은 포트폴리오 기능 체험을 위한 데모 포인트이며 실제 결제가 아닙니다.',
+  '데모 포인트는 계정당 사용 중인 예치 포인트를 포함해 최대 1,000,000P까지 보유할 수 있습니다.',
+  '데모 포인트는 현금 가치가 없으며 현금으로 환불하거나 출금할 수 없습니다.',
 ]
 
 export default function Charge() {
   const navigate = useNavigate()
   const [amount,    setAmount]    = useState(50000)
-  const [custom,    setCustom]    = useState('')
-  const [useCustom, setUseCustom] = useState(false)
   const [method,    setMethod]    = useState('internal')
   const [agreed,    setAgreed]    = useState(false)
   const [charging,  setCharging]  = useState(false)
   const [done,      setDone]      = useState(false)
   const [balance, setBalance] = useState(0)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [transactions, setTransactions] = useState([])
   const [charges, setCharges] = useState([])
-  const requestKey = useRef(null)
+  const chargeRequest = useRef(null)
 
   const token = localStorage.getItem('token')
 
-  const finalAmount = useCustom ? (Number(custom) || 0) : amount
+  const finalAmount = amount
   const predicted   = balance + finalAmount
 
   useEffect(() => {
@@ -48,6 +49,9 @@ export default function Charge() {
       return undefined
     }
     const controller = new AbortController()
+    setLoading(true)
+    setLoaded(false)
+    setError('')
     Promise.all([
       getPointSummary({ signal: controller.signal }),
       getPointTransactions({ size: 10, signal: controller.signal }),
@@ -57,27 +61,22 @@ export default function Charge() {
         setBalance(Number(summary.data.availablePoint ?? 0))
         setTransactions(transactionHistory.data?.content ?? [])
         setCharges(chargeHistory.data?.content ?? [])
+        setLoaded(true)
       })
       .catch((requestError) => {
         if (requestError.code !== 'ERR_CANCELED') {
           setError(requestError.response?.data?.message || '포인트 잔액을 불러오지 못했습니다.')
         }
       })
+      .finally(() => setLoading(false))
     return () => controller.abort()
-  }, [navigate, token])
+  }, [navigate, reloadKey, token])
 
   if (!token) return null
 
-  const handleCustom = (e) => {
-    const v = e.target.value.replace(/[^0-9]/g, '')
-    setCustom(v)
-    setUseCustom(true)
-  }
-
   const handlePreset = (val) => {
     setAmount(val)
-    setUseCustom(false)
-    setCustom('')
+    chargeRequest.current = invalidateChargeRequest()
   }
 
   const handleCharge = async (e) => {
@@ -86,9 +85,11 @@ export default function Charge() {
     if (!agreed) { alert('결제 유의사항에 동의해주세요.'); return }
     setCharging(true)
     setError('')
-    requestKey.current ??= crypto.randomUUID()
+    chargeRequest.current = chargeRequestFor(
+      chargeRequest.current, finalAmount, method, () => crypto.randomUUID(),
+    )
     try {
-      await chargePoint(finalAmount, requestKey.current)
+      await chargePoint(finalAmount, chargeRequest.current.key)
       const [summary, transactionHistory, chargeHistory] = await Promise.all([
         getPointSummary(),
         getPointTransactions({ size: 10 }),
@@ -116,11 +117,11 @@ export default function Charge() {
         <PageBanner title="충전 완료" crumb="적립금 충전" />
         <div className={s.doneWrap}>
           <div className={s.doneIcon}>💰</div>
-          <h2 className={s.doneTitle}>{fmt(finalAmount)}원 충전 완료!</h2>
-          <p className={s.doneSub}>현재 사용 가능 포인트 <strong>{fmt(balance)}원</strong></p>
+          <h2 className={s.doneTitle}>{fmt(finalAmount)}P 충전 완료!</h2>
+          <p className={s.doneSub}>현재 사용 가능 포인트 <strong>{fmt(balance)}P</strong></p>
           <div className={s.doneActions}>
             <button className={s.doneBtn} onClick={() => navigate('/mypage')}>마이페이지로</button>
-            <button className={`${s.doneBtn} ${s.doneBtnOutline}`} onClick={() => { setDone(false); setAgreed(false); requestKey.current = null }}>추가 충전</button>
+            <button className={`${s.doneBtn} ${s.doneBtnOutline}`} onClick={() => { setDone(false); setAgreed(false); chargeRequest.current = null }}>추가 충전</button>
           </div>
         </div>
       </PageWrap>
@@ -132,11 +133,17 @@ export default function Charge() {
       <PageBanner title="적립금 충전" crumb="충전하기" />
 
       <div className={s.body}>
+        <div className={s.demoBanner} role="note">
+          <strong>데모 포인트 충전</strong>
+          <span>실제 결제 없이 포트폴리오의 구매 흐름을 체험하는 기능입니다.</span>
+        </div>
         <form onSubmit={handleCharge} className={s.form}>
           {/* 현재 보유 */}
           <div className={s.balanceCard}>
             <span className={s.balanceLabel}>현재 보유 적립금</span>
-            <span className={s.balanceValue}>{fmt(balance)}원</span>
+            <span className={s.balanceValue}>
+              {loaded ? `${fmt(balance)}P` : (loading ? '조회 중…' : '—')}
+            </span>
           </div>
 
           {/* 충전 금액 선택 */}
@@ -147,36 +154,28 @@ export default function Charge() {
                 <button
                   key={v}
                   type="button"
-                  className={`${s.presetBtn} ${!useCustom && amount === v ? s.presetBtnActive : ''}`}
+                  className={`${s.presetBtn} ${amount === v ? s.presetBtnActive : ''}`}
                   onClick={() => handlePreset(v)}
                 >
                   {fmt(v)}P
                 </button>
               ))}
             </div>
-            <div className={s.customRow}>
-              <label className={s.customLabel}>직접 입력</label>
-              <div className={s.customInput}>
-                <input
-                  type="text"
-                  className={`${s.input} ${useCustom ? s.inputActive : ''}`}
-                  placeholder="금액 입력 (원)"
-                  value={custom}
-                  onChange={handleCustom}
-                  onFocus={() => setUseCustom(true)}
-                />
-                <span className={s.unit}>원</span>
-              </div>
-            </div>
-
             {/* 예상 잔액 */}
             <div className={s.predictRow}>
               <span className={s.predictLabel}>충전 후 예상 적립금</span>
-              <span className={s.predictValue}>{fmt(predicted)}원</span>
+              <span className={s.predictValue}>{loaded ? `${fmt(predicted)}P` : '—'}</span>
             </div>
           </section>
 
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <div className={s.errorBox} role="alert">
+              <span>{error}</span>
+              {!loaded && !loading && (
+                <button type="button" onClick={() => setReloadKey(value => value + 1)}>다시 조회</button>
+              )}
+            </div>
+          )}
 
           {/* 결제 수단 */}
           <section className={s.card}>
@@ -201,12 +200,12 @@ export default function Charge() {
             <h2 className={s.cardTitle}>결제 금액</h2>
             <div className={s.summaryRow}>
               <span>충전 적립금</span>
-              <span className={s.summaryAmt}>{fmt(finalAmount)}원</span>
+              <span className={s.summaryAmt}>{fmt(finalAmount)}P</span>
             </div>
             <hr className={s.hr} />
             <div className={`${s.summaryRow} ${s.summaryTotal}`}>
-              <span>최종 결제 금액</span>
-              <span>{fmt(finalAmount)}원</span>
+              <span>지급 데모 포인트</span>
+              <span>{fmt(finalAmount)}P</span>
             </div>
           </section>
 
@@ -234,7 +233,7 @@ export default function Charge() {
               : charges.map((charge) => (
                 <div className={s.summaryRow} key={charge.chargeId}>
                   <span>{charge.status}</span>
-                  <span>{fmt(charge.paidAmount || charge.requestedAmount)}원</span>
+                  <span>{fmt(charge.paidAmount || charge.requestedAmount)}P</span>
                 </div>
               ))}
           </section>
@@ -246,13 +245,13 @@ export default function Charge() {
               : transactions.map((transaction) => (
                 <div className={s.summaryRow} key={transaction.transactionId}>
                   <span>{transaction.description || transaction.type}</span>
-                  <span>{fmt(transaction.amount)}원</span>
+                  <span>{fmt(transaction.amount)}P</span>
                 </div>
               ))}
           </section>
 
-          <button type="submit" className={s.chargeBtn} disabled={charging || finalAmount < 1000}>
-            {charging ? '처리 중…' : `${fmt(finalAmount)}원 결제하기`}
+          <button type="submit" className={s.chargeBtn} disabled={charging || !loaded || loading}>
+            {charging ? '처리 중…' : `${fmt(finalAmount)}P 데모 충전`}
           </button>
         </form>
       </div>

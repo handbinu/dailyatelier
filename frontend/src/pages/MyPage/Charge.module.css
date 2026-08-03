@@ -5,6 +5,38 @@
   padding: var(--space-8) var(--space-6) var(--space-16);
 }
 .form { display: flex; flex-direction: column; gap: var(--space-5); }
+.demoBanner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-light);
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+}
+.demoBanner strong { color: var(--color-accent); }
+.errorBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+}
+.errorBox button {
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  cursor: pointer;
+}
 
 /* 현재 보유 */
 .balanceCard {
