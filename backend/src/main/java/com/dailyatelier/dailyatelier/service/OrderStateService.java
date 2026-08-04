@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.service;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderCancelReason;
 import com.dailyatelier.dailyatelier.entity.OrderRefundReason;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
@@ -67,6 +68,10 @@ public class OrderStateService implements OrderPaymentService {
     @Transactional
     public Order refund(Long orderId, OrderRefundReason reason, String idempotencyKey) {
         Order order = findForUpdate(orderId);
+        return refund(order, reason, idempotencyKey);
+    }
+
+    private Order refund(Order order, OrderRefundReason reason, String idempotencyKey) {
         if (order.getStatus() == OrderStatus.REFUNDED) {
             return order;
         }
@@ -172,18 +177,25 @@ public class OrderStateService implements OrderPaymentService {
     public Order approveRefund(Long orderId, String sellerId, String idempotencyKey) {
         Order order = findForUpdate(orderId);
         verifySeller(order, sellerId);
+        if (order.getRefundRequestStatus() == OrderRefundRequestStatus.APPROVED
+                && order.getStatus() == OrderStatus.REFUNDED) {
+            return order;
+        }
         try {
             order.approveRefund();
         } catch (IllegalStateException exception) {
             throw conflict("ORDER_STATUS_CONFLICT", exception.getMessage());
         }
-        return refund(orderId, OrderRefundReason.PAYMENT_CANCELED, idempotencyKey);
+        return refund(order, OrderRefundReason.PAYMENT_CANCELED, idempotencyKey);
     }
 
     @Transactional
     public Order rejectRefund(Long orderId, String sellerId) {
         Order order = findForUpdate(orderId);
         verifySeller(order, sellerId);
+        if (order.getRefundRequestStatus() == OrderRefundRequestStatus.REJECTED) {
+            return order;
+        }
         try {
             order.rejectRefund(LocalDateTime.now(clock));
         } catch (IllegalStateException exception) {

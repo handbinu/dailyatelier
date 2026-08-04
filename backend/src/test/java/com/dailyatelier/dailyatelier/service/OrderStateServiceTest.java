@@ -20,6 +20,7 @@ import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +85,9 @@ class OrderStateServiceTest {
 
     @Autowired
     private PointHoldRepository pointHoldRepository;
+
+    @Autowired
+    private PointTransactionRepository pointTransactionRepository;
 
     @Autowired
     private MutableClock clock;
@@ -218,9 +222,29 @@ class OrderStateServiceTest {
         Order refunded = orderStateService.approveRefund(
                 order.getOrderId(), seller.getUserId(), "refund-key");
         assertThat(refunded.getStatus()).isEqualTo(OrderStatus.REFUNDED);
-        assertThat(orderStateService.approveRefund(
-                order.getOrderId(), seller.getUserId(), "refund-key").getStatus())
-                .isEqualTo(OrderStatus.REFUNDED);
+        assertThat(refunded.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.APPROVED);
+        long transactionCount = pointTransactionRepository.countByUserId(buyer.getUserId());
+        long availableBalance = pointAccountRepository.findById(buyer.getUserId())
+                .orElseThrow()
+                .getAvailableBalance();
+
+        Order approvedAgain = orderStateService.approveRefund(
+                order.getOrderId(), seller.getUserId(), "another-refund-key");
+        assertThat(approvedAgain.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(approvedAgain.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.APPROVED);
+        assertThat(pointTransactionRepository.countByUserId(buyer.getUserId()))
+                .isEqualTo(transactionCount);
+        assertThat(pointAccountRepository.findById(buyer.getUserId())
+                .orElseThrow()
+                .getAvailableBalance()).isEqualTo(availableBalance);
+
+        assertThatThrownBy(() -> orderStateService.rejectRefund(
+                order.getOrderId(), seller.getUserId()))
+                .isInstanceOf(OrderApiException.class)
+                .satisfies(error -> assertThat(((OrderApiException) error).getCode())
+                        .isEqualTo("ORDER_STATUS_CONFLICT"));
     }
 
     @Test
@@ -230,6 +254,13 @@ class OrderStateServiceTest {
         Order rejected = orderStateService.rejectRefund(order.getOrderId(), seller.getUserId());
         assertThat(rejected.getRefundRequestStatus())
                 .isEqualTo(OrderRefundRequestStatus.REJECTED);
+        assertThat(orderStateService.rejectRefund(order.getOrderId(), seller.getUserId())
+                .getRefundRequestStatus()).isEqualTo(OrderRefundRequestStatus.REJECTED);
+        assertThatThrownBy(() -> orderStateService.approveRefund(
+                order.getOrderId(), seller.getUserId(), "rejected-refund"))
+                .isInstanceOf(OrderApiException.class)
+                .satisfies(error -> assertThat(((OrderApiException) error).getCode())
+                        .isEqualTo("ORDER_STATUS_CONFLICT"));
 
         Order requestedAgain = orderStateService.requestRefund(
                 order.getOrderId(), buyer.getUserId(), "추가 증빙 제출");

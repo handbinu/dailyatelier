@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.dto;
 
 import com.dailyatelier.dailyatelier.entity.Order;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,7 @@ public class OrderSummaryResponseDto {
     private boolean shippingAddressConfirmed;
     private String shippingCarrier;
     private String trackingNumber;
+    private OrderRefundRequestStatus refundRequestStatus;
     private List<OrderAction> availableActions;
 
     public static OrderSummaryResponseDto forBuyer(Order order) {
@@ -60,6 +62,7 @@ public class OrderSummaryResponseDto {
                 order.isShippingAddressConfirmed(),
                 order.getShippingCarrier(),
                 order.getTrackingNumber(),
+                order.getRefundRequestStatus(),
                 actions
         );
     }

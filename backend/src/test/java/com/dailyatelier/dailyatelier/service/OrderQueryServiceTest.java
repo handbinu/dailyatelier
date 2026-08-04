@@ -8,6 +8,7 @@ import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderShippingAddress;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
@@ -197,6 +198,48 @@ class OrderQueryServiceTest {
         assertThat(sellerDetail.getBuyerNickname()).isEqualTo("buyer");
         assertThat(sellerDetail.getAvailableActions())
                 .containsExactly(OrderAction.START_PREPARING);
+    }
+
+    @Test
+    void approvedRefundIsConsistentAcrossBuyerAndSellerViews() {
+        newerPaidOrder.requestRefund("작품 상태 문제", BASE_TIME.plusMinutes(3));
+        newerPaidOrder.approveRefund();
+        newerPaidOrder.transitionTo(
+                OrderStatus.REFUNDED,
+                BASE_TIME.plusMinutes(4),
+                "PAYMENT_CANCELED"
+        );
+        orderRepository.saveAndFlush(newerPaidOrder);
+
+        OrderPageResponseDto buyerList = orderQueryService.getBuyerOrders(
+                buyer.getUserId(), OrderStatus.REFUNDED, 0, 12);
+        OrderPageResponseDto sellerList = orderQueryService.getSellerOrders(
+                seller.getUserId(), OrderStatus.REFUNDED, 0, 12);
+        OrderDetailResponseDto buyerDetail = orderQueryService.getBuyerOrder(
+                buyer.getUserId(), newerPaidOrder.getOrderId());
+        OrderDetailResponseDto sellerDetail = orderQueryService.getSellerOrder(
+                seller.getUserId(), newerPaidOrder.getOrderId());
+
+        assertThat(buyerList.getContent()).singleElement().satisfies(result -> {
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+            assertThat(result.getRefundRequestStatus())
+                    .isEqualTo(OrderRefundRequestStatus.APPROVED);
+            assertThat(result.getAvailableActions()).isEmpty();
+        });
+        assertThat(sellerList.getContent()).singleElement().satisfies(result -> {
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+            assertThat(result.getRefundRequestStatus())
+                    .isEqualTo(OrderRefundRequestStatus.APPROVED);
+            assertThat(result.getAvailableActions()).isEmpty();
+        });
+        assertThat(buyerDetail.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(buyerDetail.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.APPROVED);
+        assertThat(buyerDetail.getAvailableActions()).isEmpty();
+        assertThat(sellerDetail.getStatus()).isEqualTo(OrderStatus.REFUNDED);
+        assertThat(sellerDetail.getRefundRequestStatus())
+                .isEqualTo(OrderRefundRequestStatus.APPROVED);
+        assertThat(sellerDetail.getAvailableActions()).isEmpty();
     }
 
     @Test

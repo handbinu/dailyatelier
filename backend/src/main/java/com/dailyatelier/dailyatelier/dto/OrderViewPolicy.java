@@ -36,7 +36,8 @@ final class OrderViewPolicy {
     }
 
     static List<OrderAction> sellerActions(Order order) {
-        if (order.getRefundRequestStatus()
+        if (canProcessRefundRequest(order.getStatus())
+                && order.getRefundRequestStatus()
                 == com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus.REQUESTED) {
             return List.of(OrderAction.APPROVE_REFUND, OrderAction.REJECT_REFUND);
         }
@@ -47,5 +48,12 @@ final class OrderViewPolicy {
             return List.of(OrderAction.SHIP);
         }
         return List.of();
+    }
+
+    private static boolean canProcessRefundRequest(OrderStatus status) {
+        return status == OrderStatus.PAID
+                || status == OrderStatus.PREPARING
+                || status == OrderStatus.SHIPPED
+                || status == OrderStatus.DELIVERED;
     }
 }

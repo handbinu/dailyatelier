@@ -328,6 +328,7 @@ public class Order {
 
     public void approveRefund() {
         requirePendingRefundRequest();
+        refundRequestStatus = OrderRefundRequestStatus.APPROVED;
     }
 
     private void requirePendingRefundRequest() {

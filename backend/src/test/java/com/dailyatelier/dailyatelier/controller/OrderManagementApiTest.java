@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.controller;
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
 import com.dailyatelier.dailyatelier.dto.OrderPageResponseDto;
 import com.dailyatelier.dailyatelier.entity.Order;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
@@ -307,6 +308,8 @@ class OrderManagementApiTest {
     @Test
     void sellerCanApproveOrRejectPendingRefundUsingPrincipal() throws Exception {
         Order refundedOrder = mockOrder(7L, OrderStatus.REFUNDED);
+        when(refundedOrder.getRefundRequestStatus())
+                .thenReturn(OrderRefundRequestStatus.APPROVED);
         Order paidOrder = mockOrder(8L, OrderStatus.PAID);
         when(orderStateService.approveRefund(7L, "seller", "refund-key"))
                 .thenReturn(refundedOrder);
@@ -317,7 +320,9 @@ class OrderManagementApiTest {
                         .with(authentication(artistAuthentication("seller")))
                         .header("Idempotency-Key", "refund-key"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REFUNDED"));
+                .andExpect(jsonPath("$.status").value("REFUNDED"))
+                .andExpect(jsonPath("$.refundRequestStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.availableActions").isEmpty());
 
         mockMvc.perform(post("/api/artists/me/orders/8/refund/reject")
                         .with(authentication(artistAuthentication("seller"))))
