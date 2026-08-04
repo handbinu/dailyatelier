@@ -5,6 +5,7 @@ import com.dailyatelier.dailyatelier.dto.PointSummaryResponseDto;
 import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.entity.PointCharge;
 import com.dailyatelier.dailyatelier.entity.PointChargeStatus;
+import com.dailyatelier.dailyatelier.exception.PointApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.service.PointChargeService;
 import com.dailyatelier.dailyatelier.service.PointQueryService;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,6 +54,35 @@ class PointApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availablePoint").value(70000))
                 .andExpect(jsonPath("$.heldPoint").value(30000));
+    }
+
+    @Test
+    void validPointHistoryPagesKeepExistingQueryContract() throws Exception {
+        when(pointQueryService.getTransactions("buyer", 0, 20)).thenReturn(Page.empty());
+        when(pointQueryService.getCharges("buyer", 1, 50)).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/users/me/points/transactions")
+                        .with(authentication(authToken("buyer"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        mockMvc.perform(get("/api/users/me/points/charges")
+                        .param("page", "1")
+                        .param("size", "50")
+                        .with(authentication(authToken("buyer"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        verify(pointQueryService).getTransactions("buyer", 0, 20);
+        verify(pointQueryService).getCharges("buyer", 1, 50);
+    }
+
+    @Test
+    void invalidPointHistoryPagesUseCommonBadRequestContract() throws Exception {
+        assertInvalidPageRequest("/api/users/me/points/transactions", -1, 20);
+        assertInvalidPageRequest("/api/users/me/points/charges", -1, 20);
+        assertInvalidPageRequest("/api/users/me/points/transactions", 0, 0);
+        assertInvalidPageRequest("/api/users/me/points/charges", 0, 51);
     }
 
     @Test
@@ -104,5 +136,35 @@ class PointApiTest {
 
     private UsernamePasswordAuthenticationToken authToken(String userId) {
         return new UsernamePasswordAuthenticationToken(userId, null, List.of());
+    }
+
+    private void assertInvalidPageRequest(String path, int page, int size) throws Exception {
+        if (path.endsWith("transactions")) {
+            when(pointQueryService.getTransactions("buyer", page, size))
+                    .thenThrow(invalidPageRequest());
+        } else {
+            when(pointQueryService.getCharges("buyer", page, size))
+                    .thenThrow(invalidPageRequest());
+        }
+
+        mockMvc.perform(get(path)
+                        .param("page", String.valueOf(page))
+                        .param("size", String.valueOf(size))
+                        .with(authentication(authToken("buyer"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_POINT_REQUEST"))
+                .andExpect(jsonPath("$.message")
+                        .value("페이지는 0 이상, 페이지 크기는 1 이상 50 이하여야 합니다."))
+                .andExpect(jsonPath("$.path").value(path));
+    }
+
+    private PointApiException invalidPageRequest() {
+        return new PointApiException(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_POINT_REQUEST",
+                "페이지는 0 이상, 페이지 크기는 1 이상 50 이하여야 합니다."
+        );
     }
 }
