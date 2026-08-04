@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { registerUser, checkUserId, checkNickname } from '../../api/authApi'
 import styles from './RegisterForm.module.css'
+import useDuplicateCheck from './useDuplicateCheck'
+
+const duplicateCheckers = { userId: checkUserId, nickname: checkNickname }
 
 function RegisterUser(){
     const navigator = useNavigate()
@@ -12,49 +15,31 @@ function RegisterUser(){
         userStatus: 0,
     })
     const [pwConfirm, setPwConfirm] = useState('')
-    const [checked, setChecked] = useState({ userId:false, nickname: false })
-    const [msgs, setMsgs] = useState({ userId:'', nickname:'', pw:''})
+    const [pwMsg, setPwMsg] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const {
+        checked,
+        checking,
+        messages,
+        invalidate,
+        check,
+    } = useDuplicateCheck(form, duplicateCheckers)
 
     const handleChange = (e) => {
         const {name, value} = e.target
         setForm({...form, [name]: value})
-        if(name === 'userId') setChecked((c)=> ({...c, userId:false}))
-        if(name === 'nickname') setChecked((c)=> ({...c, nickname:false}))
+        if(name === 'userId' || name === 'nickname') invalidate(name)
     }
 
-    const handleDuplicateCheck = async (field) => {
-        const value = form[field].trim()
-        if (!value){
-            setMsgs((m) => ({...m, [field]: '값을 입력해주세요.'}))
-            return;
-        }
-        try {
-            const res = field === 'userId'
-            ? await checkUserId(value)
-            : await checkNickname(value)
-
-            if(res.data.duplicate){
-                setMsgs((m) =>  ({...m, [field]: '이미 사용 중입니다'}))
-                setChecked((c) => ({...c, [field]: false}))
-            } else{
-                setMsgs((m) =>  ({...m, [field]: '사용 가능합니다. ✓'}))
-                setChecked((c) => ({...c, [field]: true}))
-            }
-        } catch{
-            setMsgs((m) => ({...m, [field]: '확인 중 오류가 발생했습니다.'}))
-        }
-    }
-    
     const handlePwConfirm = (e) => {
         setPwConfirm(e.target.value)
         if(e.target.value && form.password !== e.target.value){
-            setMsgs((m) => ({...m, pw:'비밀번호가 일치하지 않습니다.'}))
+            setPwMsg('비밀번호가 일치하지 않습니다.')
         } else if(e.target.value){
-            setMsgs((m) => ({...m, pw:'비밀번호가 일치합니다.'}))
+            setPwMsg('비밀번호가 일치합니다.')
         } else {
-            setMsgs((m) => ({ ...m, pw: '' }))
+            setPwMsg('')
         }
     }
     const handleSubmit = async (e) => {
@@ -92,15 +77,16 @@ function RegisterUser(){
                             value={form.userId} onChange={handleChange} required
                         />
                         <button type="button" className={styles.btnCheck}
-                            onClick={() => handleDuplicateCheck('userId')}>
-                            중복확인
+                            onClick={() => check('userId')}
+                            disabled={checking.userId}>
+                            {checking.userId ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
                     <p className={`${styles.msg} ${checked.userId ? styles.ok : styles.err}`}>
 
 
 
-                        {msgs.userId}
+                        {messages.userId}
                     </p>
                 </div>
 
@@ -120,7 +106,7 @@ function RegisterUser(){
                         value={pwConfirm} onChange={handlePwConfirm} required
                     />
                     <p className={`${styles.msg} ${form.password === pwConfirm && pwConfirm ? styles.ok : styles.err}`}>
-                        {msgs.pw}
+                        {pwMsg}
                     </p>
                 </div>
 
@@ -142,12 +128,13 @@ function RegisterUser(){
                             value={form.nickname} onChange={handleChange} required
                         />
                         <button type="button" className={styles.btnCheck}
-                            onClick={() => handleDuplicateCheck('nickname')}>
-                            중복확인
+                            onClick={() => check('nickname')}
+                            disabled={checking.nickname}>
+                            {checking.nickname ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
                     <p className={`${styles.msg} ${checked.nickname ? styles.ok : styles.err}`}>
-                        {msgs.nickname}
+                        {messages.nickname}
                     </p>
                 </div>
 
@@ -169,7 +156,9 @@ function RegisterUser(){
 
                 {error && <p className={styles.errMsg}>{error}</p>}
 
-                <button type="submit" className={styles.btnSubmit} disabled={loading}>
+                <button type="submit" className={styles.btnSubmit}
+                    disabled={loading || checking.userId || checking.nickname
+                        || !checked.userId || !checked.nickname}>
                     {loading ? '처리 중...' : '가입하기'}
                 </button>
             </form>
