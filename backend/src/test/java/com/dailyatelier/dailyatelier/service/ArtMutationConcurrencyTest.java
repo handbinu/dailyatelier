@@ -9,6 +9,7 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.BidApiException;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -31,7 +32,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -418,11 +418,11 @@ class ArtMutationConcurrencyTest {
             HttpStatus expectedStatus) {
         assertThatThrownBy(() -> future.get(5, TimeUnit.SECONDS))
                 .isInstanceOf(ExecutionException.class)
-                .hasCauseInstanceOf(ResponseStatusException.class)
+                .hasCauseInstanceOf(DomainApiException.class)
                 .satisfies(error -> {
-                    ResponseStatusException cause =
-                            (ResponseStatusException) error.getCause();
-                    assertThat(cause.getStatusCode()).isEqualTo(expectedStatus);
+                    DomainApiException cause =
+                            (DomainApiException) error.getCause();
+                    assertThat(cause.getStatus()).isEqualTo(expectedStatus);
                 });
     }
 

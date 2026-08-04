@@ -5,12 +5,15 @@ import com.dailyatelier.dailyatelier.dto.ApiErrorResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = PointController.class)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class PointApiExceptionHandler {
     @ExceptionHandler(PointApiException.class)
     public ResponseEntity<ApiErrorResponseDto> handlePointException(

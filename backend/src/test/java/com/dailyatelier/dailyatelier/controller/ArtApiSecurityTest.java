@@ -5,6 +5,7 @@ import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.service.ArtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -138,23 +138,42 @@ class ArtApiSecurityTest {
                 org.mockito.ArgumentMatchers.eq(4L),
                 org.mockito.ArgumentMatchers.eq("owner"),
                 org.mockito.ArgumentMatchers.any()
-        )).thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST));
+        )).thenThrow(new DomainApiException(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_AUCTION_PERIOD",
+                "Closing time must be after bid start time and current time"
+        ));
 
         mockMvc.perform(patch("/api/arts/4")
                         .with(authentication(stringAuthentication("owner")))
                         .contentType("application/json")
                         .content("{\"closingTime\":\"2026-07-01T10:00:00\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_AUCTION_PERIOD"))
+                .andExpect(jsonPath("$.message")
+                        .value("Closing time must be after bid start time and current time"))
+                .andExpect(jsonPath("$.path").value("/api/arts/4"));
     }
 
     @Test
     void missingDeleteTargetReturnsNotFound() throws Exception {
         when(artService.deleteArt(404L, "owner"))
-                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .thenThrow(new DomainApiException(
+                        HttpStatus.NOT_FOUND,
+                        "ART_NOT_FOUND",
+                        "Art not found"
+                ));
 
         mockMvc.perform(delete("/api/arts/404")
                         .with(authentication(stringAuthentication("owner"))))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("ART_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Art not found"))
+                .andExpect(jsonPath("$.path").value("/api/arts/404"));
     }
 
     @Test

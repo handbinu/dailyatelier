@@ -6,6 +6,7 @@ import com.dailyatelier.dailyatelier.dto.ArtUpdateRequestDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -22,7 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -341,9 +341,9 @@ class ArtServiceMutationTest {
             ThrowingCallable callable,
             HttpStatus expectedStatus) {
         assertThatThrownBy(callable::call)
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(DomainApiException.class)
                 .satisfies(error -> assertThat(
-                        ((ResponseStatusException) error).getStatusCode()
+                        ((DomainApiException) error).getStatus()
                 ).isEqualTo(expectedStatus));
     }
 

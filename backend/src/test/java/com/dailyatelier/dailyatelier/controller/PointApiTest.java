@@ -60,7 +60,13 @@ class PointApiTest {
                         .contentType("application/json")
                         .content("{\"amount\":10000}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_POINT_REQUEST"));
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_POINT_REQUEST"))
+                .andExpect(jsonPath("$.message")
+                        .value("충전 금액과 멱등성 키를 확인해 주세요."))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/users/me/points/charges"));
 
         PointCharge charge = mock(PointCharge.class);
         when(charge.getChargeId()).thenReturn(7L);
@@ -88,7 +94,12 @@ class PointApiTest {
     @Test
     void anonymousUserCannotReadPointData() throws Exception {
         mockMvc.perform(get("/api/users/me/points"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("인증이 필요합니다."))
+                .andExpect(jsonPath("$.path").value("/api/users/me/points"));
     }
 
     private UsernamePasswordAuthenticationToken authToken(String userId) {

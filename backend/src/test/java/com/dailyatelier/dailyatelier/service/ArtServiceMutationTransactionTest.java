@@ -12,6 +12,7 @@ import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.Review;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -35,7 +36,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -172,9 +172,9 @@ class ArtServiceMutationTransactionTest {
         reviewRepository.save(review);
 
         assertThatThrownBy(() -> artService.deleteArt(artId, "owner"))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(DomainApiException.class)
                 .satisfies(error -> assertThat(
-                        ((ResponseStatusException) error).getStatusCode()
+                        ((DomainApiException) error).getStatus()
                 ).isEqualTo(HttpStatus.CONFLICT));
 
         assertThat(artRepository.findById(artId)).isPresent();

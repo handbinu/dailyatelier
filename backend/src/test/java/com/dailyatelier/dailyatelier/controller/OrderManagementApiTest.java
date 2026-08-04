@@ -144,7 +144,11 @@ class OrderManagementApiTest {
         mockMvc.perform(get("/api/users/me/orders/404")
                         .with(authentication(userAuthentication("buyer"))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"));
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("주문을 찾을 수 없습니다."))
+                .andExpect(jsonPath("$.path").value("/api/users/me/orders/404"));
 
         mockMvc.perform(get("/api/users/me/orders/8")
                         .with(authentication(userAuthentication("buyer"))))
@@ -173,7 +177,13 @@ class OrderManagementApiTest {
         mockMvc.perform(post("/api/users/me/orders/8/confirm")
                         .with(authentication(userAuthentication("buyer"))))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_STATUS_CONFLICT"));
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("ORDER_STATUS_CONFLICT"))
+                .andExpect(jsonPath("$.message")
+                        .value("배송 완료 주문만 구매 확정할 수 있습니다."))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/users/me/orders/8/confirm"));
     }
 
     @Test
@@ -256,7 +266,11 @@ class OrderManagementApiTest {
         mockMvc.perform(get("/api/artists/me/orders")
                         .with(authentication(userAuthentication("buyer"))))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("접근 권한이 없습니다."))
+                .andExpect(jsonPath("$.path").value("/api/artists/me/orders"));
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.Address;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -18,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -37,7 +37,11 @@ public class UserService {
     public LoginResponseDto login(LoginRequestDto dto){
         User user = userRepository.findByUserId(dto.getUserId());
         if(user == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다");
+            throw new DomainApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_CREDENTIALS",
+                    "아이디 또는 비밀번호가 올바르지 않습니다"
+            );
         }
         String token = jwtTokenProvider.generateToken(user.getUserId(), user.getUserStatus());
         return new LoginResponseDto(token, user.getUserId(), user.getNickname(), user.getUserStatus());
@@ -90,7 +94,7 @@ public class UserService {
     public UserProfileDto getUserProfile(String userId) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다");
+            throw userNotFound();
         }
 
         UserProfileDto dto = new UserProfileDto();
@@ -131,16 +135,24 @@ public class UserService {
     public void updateUserProfile(String userId, ProfileUpdateDto dto) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다");
+            throw userNotFound();
         }
 
         // 비밀번호 변경 요청 시 검증
         if (dto.getNewPw() != null && !dto.getNewPw().isBlank()) {
             if (dto.getCurrentPw() == null || dto.getCurrentPw().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 비밀번호를 입력해주세요");
+                throw new DomainApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "CURRENT_PASSWORD_REQUIRED",
+                        "현재 비밀번호를 입력해주세요"
+                );
             }
             if (!passwordEncoder.matches(dto.getCurrentPw(), user.getPassword())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다");
+                throw new DomainApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "CURRENT_PASSWORD_MISMATCH",
+                        "현재 비밀번호가 일치하지 않습니다"
+                );
             }
             user.setPassword(passwordEncoder.encode(dto.getNewPw()));
         }
@@ -148,7 +160,11 @@ public class UserService {
         // 기본 정보 업데이트
         if (dto.getNickname() != null && !dto.getNickname().isBlank()) {
             if (!dto.getNickname().equals(user.getNickname()) && userRepository.existsByNickname(dto.getNickname())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미 존재하는 닉네임입니다");
+                throw new DomainApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "DUPLICATE_NICKNAME",
+                        "이미 존재하는 닉네임입니다"
+                );
             }
             user.setNickname(dto.getNickname());
         }
@@ -195,5 +211,13 @@ public class UserService {
             }
             artistRepository.save(artist);
         }
+    }
+
+    private DomainApiException userNotFound() {
+        return new DomainApiException(
+                HttpStatus.NOT_FOUND,
+                "USER_NOT_FOUND",
+                "사용자를 찾을 수 없습니다"
+        );
     }
 }

@@ -8,6 +8,7 @@ import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -22,7 +23,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -116,8 +116,8 @@ class ArtServiceTest {
         when(artRepository.findById(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> artService.getArt(404L, null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getStatus())
                         .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
@@ -170,8 +170,8 @@ class ArtServiceTest {
 
         assertThatThrownBy(() ->
                 artService.getMyArts(user.getUserId(), MyArtState.ALL, 0, 12))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getStatus())
                         .isEqualTo(HttpStatus.FORBIDDEN));
     }
 

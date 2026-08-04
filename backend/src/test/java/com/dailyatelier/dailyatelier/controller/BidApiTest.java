@@ -77,7 +77,10 @@ class BidApiTest {
                                 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("인증이 필요합니다."))
                 .andExpect(jsonPath("$.path").value("/api/arts/7/bids"));
     }
 
@@ -111,8 +114,11 @@ class BidApiTest {
                                 {"bidPrice": 150000}
                                 """))
                 .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.code").value("SELF_BID_NOT_ALLOWED"))
-                .andExpect(jsonPath("$.message").value("본인 작품에는 입찰할 수 없습니다."));
+                .andExpect(jsonPath("$.message").value("본인 작품에는 입찰할 수 없습니다."))
+                .andExpect(jsonPath("$.path").value("/api/arts/7/bids"));
     }
 
     private UsernamePasswordAuthenticationToken stringAuthentication(String userId) {

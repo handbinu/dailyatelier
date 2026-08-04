@@ -17,6 +17,7 @@ import com.dailyatelier.dailyatelier.entity.PointReferenceType;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
@@ -37,7 +38,6 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -66,7 +66,7 @@ public class ArtService {
 
     public ArtDetailResponseDto getArt(Long artId, String userId) {
         Art art = artRepository.findById(artId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Art not found"));
+                .orElseThrow(this::artNotFound);
         Artist artist = art.getArtist();
         boolean isOwner = userId != null
                 && artist.getUser() != null
@@ -97,14 +97,22 @@ public class ArtService {
             int size) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw new DomainApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
         }
         if (user.getUserStatus() == null || user.getUserStatus() != 1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only artist users can view their arts");
+            throw new DomainApiException(
+                    HttpStatus.FORBIDDEN,
+                    "ARTIST_ROLE_REQUIRED",
+                    "Only artist users can view their arts"
+            );
         }
 
         Artist artist = artistRepository.findByUser(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Artist profile not found"));
+                .orElseThrow(() -> new DomainApiException(
+                        HttpStatus.FORBIDDEN,
+                        "ARTIST_PROFILE_NOT_FOUND",
+                        "Artist profile not found"
+                ));
         PageRequest pageable = PageRequest.of(
                 Math.max(page, 0),
                 Math.min(Math.max(size, 1), MAX_PAGE_SIZE)
@@ -121,17 +129,29 @@ public class ArtService {
     public ArtResponseDto createArt(String userId, ArtCreateRequestDto dto) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw new DomainApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
         }
         if (user.getUserStatus() == null || user.getUserStatus() != 1) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only artist users can create art");
+            throw new DomainApiException(
+                    HttpStatus.FORBIDDEN,
+                    "ARTIST_ROLE_REQUIRED",
+                    "Only artist users can create art"
+            );
         }
 
         Artist artist = artistRepository.findByUser(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Artist profile not found"));
+                .orElseThrow(() -> new DomainApiException(
+                        HttpStatus.FORBIDDEN,
+                        "ARTIST_PROFILE_NOT_FOUND",
+                        "Artist profile not found"
+                ));
 
         if (dto.getClosingTime().isBefore(dto.getBidStartTime()) || dto.getClosingTime().isEqual(dto.getBidStartTime())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Closing time must be after bid start time");
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_AUCTION_PERIOD",
+                    "Closing time must be after bid start time"
+            );
         }
 
         Art art = new Art();
@@ -161,8 +181,9 @@ public class ArtService {
 
         boolean hasBid = bidRepository.existsByArt(art);
         if (hasBid && hasPriceOrPeriodChange(dto)) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.CONFLICT,
+                    "ART_BID_RESTRICTION",
                     "입찰 후에는 가격과 기간을 수정할 수 없습니다."
             );
         }
@@ -198,8 +219,9 @@ public class ArtService {
         }
 
         if (reviewRepository.existsByArt(art)) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.CONFLICT,
+                    "ART_HAS_REVIEW",
                     "리뷰가 있는 작품은 삭제할 수 없습니다."
             );
         }
@@ -219,14 +241,16 @@ public class ArtService {
             return;
         }
         PointHold hold = pointHoldRepository.findByIdForUpdate(linkedHold.getHoldId())
-                .orElseThrow(() -> new ResponseStatusException(
+                .orElseThrow(() -> new DomainApiException(
                         HttpStatus.CONFLICT,
+                        "ACTIVE_POINT_HOLD_NOT_FOUND",
                         "활성 포인트 예치를 찾을 수 없습니다."
                 ));
         PointAccount account = pointAccountRepository
                 .findByUserIdForUpdate(hold.getUser().getUserId())
-                .orElseThrow(() -> new ResponseStatusException(
+                .orElseThrow(() -> new DomainApiException(
                         HttpStatus.CONFLICT,
+                        "POINT_ACCOUNT_NOT_FOUND",
                         "포인트 계정을 찾을 수 없습니다."
                 ));
         long amount = hold.getAmount();
@@ -256,16 +280,14 @@ public class ArtService {
     private Art findArtForMutation(Long artId) {
         try {
             return artRepository.findByIdForUpdate(artId)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "Art not found"
-                    ));
+                    .orElseThrow(this::artNotFound);
         } catch (LockTimeoutException
                  | PessimisticLockException
                  | PessimisticLockingFailureException
                  | QueryTimeoutException exception) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.CONFLICT,
+                    "ART_UPDATE_CONFLICT",
                     "다른 작품 작업이 처리 중입니다. 잠시 후 다시 시도해 주세요.",
                     exception
             );
@@ -284,20 +306,23 @@ public class ArtService {
                 && owner.getUserStatus() == 1
                 && userId.equals(owner.getUserId());
         if (!isOwnerArtist) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.FORBIDDEN,
+                    "ART_ACCESS_DENIED",
                     "Only the owning artist can modify art"
             );
         }
         if (art.getArtStatus() == null || art.getArtStatus() != Art.STATUS_ACTIVE) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.CONFLICT,
+                    "ART_STATUS_CONFLICT",
                     "종료되거나 취소된 작품은 수정하거나 삭제할 수 없습니다."
             );
         }
         if (art.getClosingTime() == null || !now.isBefore(art.getClosingTime())) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.CONFLICT,
+                    "AUCTION_CLOSED",
                     "마감된 경매입니다."
             );
         }
@@ -317,8 +342,9 @@ public class ArtService {
                 || closingTime == null
                 || !closingTime.isAfter(bidStartTime)
                 || !closingTime.isAfter(now)) {
-            throw new ResponseStatusException(
+            throw new DomainApiException(
                     HttpStatus.BAD_REQUEST,
+                    "INVALID_AUCTION_PERIOD",
                     "Closing time must be after bid start time and current time"
             );
         }
@@ -404,5 +430,9 @@ public class ArtService {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "artId"));
+    }
+
+    private DomainApiException artNotFound() {
+        return new DomainApiException(HttpStatus.NOT_FOUND, "ART_NOT_FOUND", "Art not found");
     }
 }
