@@ -136,7 +136,7 @@ P0 사용자 흐름과 포인트 안전성인 1~3단계를 먼저 처리한다. 
 
 ### 7. 빈 DB 기준 Flyway 체계 구축
 
-- 상태: [ ] 미착수
+- 상태: 구현 및 빈 MySQL 자동 검증 완료 / 기존 DB 복제 환경 리허설은 BACKLOG 유지
 - 수정 대상 QA: `QA-007`
 - 수정 목적:
   - 빈 MySQL DB가 외부 Hibernate DDL 없이 Flyway 전체 이력만으로 생성되고 `ddl-auto=validate`를 통과하게 한다.
@@ -145,10 +145,10 @@ P0 사용자 흐름과 포인트 안전성인 1~3단계를 먼저 처리한다. 
   - 기존 V1~V5와의 버전·checksum 호환 방안
   - 빈 DB 전용 MySQL/Testcontainers 스키마 테스트와 배포 문서
 - 필요한 테스트와 검증:
-  - 격리된 빈 MySQL에서 최초 migration 전체 적용
-  - 적용 후 Hibernate `validate` 애플리케이션 컨텍스트 기동
-  - 두 번째 migrate 실행 건수 0과 필수 인덱스·외래키·체크 제약 확인
-  - 운영 DB 적용은 하지 않고 복제 환경 리허설을 BACKLOG에 유지
+  - [x] 격리된 빈 MySQL에서 최초 migration 전체 적용
+  - [x] 적용 후 Hibernate `validate` 애플리케이션 컨텍스트 기동
+  - [x] 두 번째 migrate 실행 건수 0과 필수 인덱스·외래키·체크 제약 확인
+  - [x] 운영 DB 적용은 하지 않고 복제 환경 리허설을 BACKLOG에 유지
 - 완료 조건:
   - 빈 DB에서 최신 스키마까지 Flyway만으로 생성된다.
   - 기존 설치 DB를 잘못 baseline하거나 이미 적용된 migration checksum을 깨뜨리지 않는 전략이 문서화된다.
