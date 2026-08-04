@@ -3,22 +3,19 @@ package com.dailyatelier.dailyatelier.repository;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
-        "spring.flyway.enabled=false",
+        "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=validate"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -26,27 +23,13 @@ import static org.assertj.core.api.Assertions.assertThat;
         named = "DAILYATELIER_MYSQL_SCHEMA_TEST",
         matches = "true"
 )
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PointLedgerMySqlSchemaTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private DataSource dataSource;
-
     private Flyway flyway;
-
-    @BeforeAll
-    void repairAndMigrate() {
-        flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .load();
-        flyway.repair();
-        flyway.migrate();
-    }
 
     @Test
     void pointTablesHaveRequiredConstraintsAndIndexes() {
@@ -133,7 +116,7 @@ class PointLedgerMySqlSchemaTest {
     }
 
     @Test
-    void migrationIsIdempotentAndEveryAccountMatchesLedgerSum() {
+    void migrationIsIdempotentAndPointBusinessTablesAreEmpty() {
         long accountCountBefore = count("point_account");
         long transactionCountBefore = count("point_transaction");
 
@@ -143,6 +126,10 @@ class PointLedgerMySqlSchemaTest {
         assertThat(count("point_account")).isEqualTo(accountCountBefore);
         assertThat(count("point_transaction"))
                 .isEqualTo(transactionCountBefore);
+        assertThat(accountCountBefore).isZero();
+        assertThat(transactionCountBefore).isZero();
+        assertThat(count("point_hold")).isZero();
+        assertThat(count("point_charge")).isZero();
 
         Integer mismatchCount = jdbcTemplate.queryForObject("""
                 select count(*)

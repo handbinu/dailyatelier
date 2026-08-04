@@ -1,29 +1,36 @@
 # Flyway 적용 가이드
 
-## 신규 빈 DB
+## 기준 스키마
 
-- 완전히 빈 MySQL 스키마에는 Flyway가 `V0`부터 최신 버전까지 순서대로
-  적용된다.
+- 현재 프로젝트에는 보존 대상 운영 DB와 공유 개발 DB가 없다.
+- 완전히 빈 MySQL 스키마에는 Flyway가
+  `V1__create_baseline_schema.sql`을 적용해 현재 최종 스키마를 생성한다.
+- 신규 V1에는 레거시 데이터 이관 DML이나 기존 스키마 호환을 위한 조건부
+  SQL을 포함하지 않는다.
 - Hibernate 설정은 `spring.jpa.hibernate.ddl-auto=validate`로 유지한다.
-- `V0`는 기존 V1이 전제하는 레거시 핵심 테이블만 생성한다. 적용된
-  migration은 수정하지 않고 새 버전을 추가해 checksum을 보존한다.
+- `baseline-on-migrate`와 `baseline-version`은 사용하지 않는다.
 
-## 기존 DB
+## 기존 개발 DB
 
-- Flyway 이력이 없고 레거시 테이블이 있는 DB에는
-  `spring.flyway.baseline-on-migrate=true`와
-  `spring.flyway.baseline-version=0`을 사용한다. Flyway가 버전 0을 baseline으로
-  기록해 V0는 건너뛰고 V1부터 적용한다.
-- 첫 실행 전에 대상이 의도한 레거시 스키마인지 확인한다. 임의 스키마나
-  부분 생성된 스키마를 수용하는 용도로 baseline을 사용하지 않는다.
-- 이미 Flyway 이력이 있는 DB에는 낮은 버전인 V0가 out-of-order로 적용되지
-  않는다. 기존 V1~V6 파일은 수정하지 않아 적용 이력의 checksum을 유지한다.
-- 운영 DB 적용과 복제 환경 리허설은 이 단계에서 수행하지 않는다. 기존 데이터
-  조사와 안전 이관은 다음 단계의 별도 migration 및 검증 범위다.
+- 기존 V0~V6 이력이 있는 개발 DB는 신규 V1의 업그레이드 대상이 아니라
+  재생성 대상이다.
+- 애플리케이션이나 테스트가 개발 DB를 자동으로 삭제하거나 초기화하지 않는다.
+- 개발 DB 삭제와 빈 스키마 재생성은 대상과 백업 필요성을 확인한 뒤 별도
+  승인을 받아 수동으로 수행한다.
+- 신규 V1 적용 이후에는 적용된 migration을 수정하지 않고 모든 변경을 V2
+  이상으로 순차 누적한다.
 
-## 빈 DB 통합 테스트
+## 빈 MySQL 통합 테스트
 
-`FlywayEmptyDatabaseMySqlTest`는 새로 만든 일회용 빈 스키마만 대상으로 실행한다.
-테스트 실행 전에 빈 스키마를 준비하고 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
-`DAILYATELIER_EMPTY_DB_TEST=true`를 설정한다. 테스트는 전체 migration,
-Hibernate validate 기동, 재실행 0건과 핵심 제약을 확인한다.
+`FlywayEmptyDatabaseMySqlTest`와 `PointLedgerMySqlSchemaTest`는 사용자가 준비한
+격리된 빈 MySQL 스키마만 대상으로 실행한다. 테스트 실행 전에 `DB_URL`,
+`DB_USERNAME`, `DB_PASSWORD`와 각 테스트의 활성화 환경변수를 설정한다.
+
+- `DAILYATELIER_EMPTY_DB_TEST=true`: 신규 V1 적용, 최종 스키마 객체,
+  Hibernate validate, 재실행 0건과 업무 데이터 0건을 검증한다.
+- `DAILYATELIER_MYSQL_SCHEMA_TEST=true`: 포인트 스키마의 인덱스·외래키·CHECK와
+  빈 원장 상태를 별도로 검증한다.
+
+두 테스트는 Flyway `clean`, 스키마 삭제, 테이블 삭제 또는 `repair`를 실행하지
+않는다. 지정한 DB가 비어 있지 않으면 테스트를 실패시키고 사용자가 승인한
+수동 초기화 절차를 기다린다.
