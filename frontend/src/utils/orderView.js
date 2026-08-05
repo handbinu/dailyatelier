@@ -35,9 +35,24 @@ export const ORDER_STATUS = {
     step: null,
   },
   REFUNDED: {
-    label: '환불',
+    label: '환불 완료',
     color: 'gray',
     step: null,
+  },
+}
+
+export const REFUND_REQUEST_STATUS = {
+  REQUESTED: {
+    label: '환불 요청됨',
+    color: 'orange',
+  },
+  APPROVED: {
+    label: '환불 승인됨',
+    color: 'green',
+  },
+  REJECTED: {
+    label: '환불 거절됨',
+    color: 'red',
   },
 }
 
@@ -65,6 +80,9 @@ export const getOrderStatusView = (status) =>
     color: 'gray',
     step: null,
   }
+
+export const getRefundRequestStatusView = (status) =>
+  REFUND_REQUEST_STATUS[status] ?? null
 
 export const getOrderError = (error, fallback) => {
   const status = error?.response?.status
