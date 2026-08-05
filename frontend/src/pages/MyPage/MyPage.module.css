@@ -516,6 +516,16 @@
 
 .miniSub { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px; }
 
+.miniOrderLink {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.miniOrderLink:hover { color: var(--color-accent-hover); }
+
 .emptyRetryButton {
   margin-top: var(--space-3);
   min-height: 38px;

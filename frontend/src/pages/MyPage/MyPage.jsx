@@ -442,6 +442,7 @@ function OverviewTab({
                 sub={`${T.finalBid} ${formatPrice(win.winningPrice)}원`}
                 badge="낙찰"
                 badgeColor="blue"
+                orderPath={`/mypage/order-status?artId=${win.artId}`}
               />
             ))}
           </div>
@@ -464,7 +465,7 @@ function EmptyState({ msg, onRetry }) {
   )
 }
 
-function MiniArtRow({ img, title, sub, badge, badgeColor }) {
+function MiniArtRow({ img, title, sub, badge, badgeColor, orderPath }) {
   return (
     <div className={styles.miniRow}>
       <img src={img} alt={title} className={styles.miniImg} onError={applyArtImageFallback} />
@@ -474,6 +475,9 @@ function MiniArtRow({ img, title, sub, badge, badgeColor }) {
           <Badge label={badge} color={badgeColor} />
         </div>
         <p className={styles.miniSub}>{sub}</p>
+        {orderPath && (
+          <Link to={orderPath} className={styles.miniOrderLink}>주문 확인</Link>
+        )}
       </div>
     </div>
   )
