@@ -13,6 +13,7 @@ import {
   formatOrderPrice,
   formatShippingAddress,
   getOrderError,
+  getRefundRequestStatusView,
   ORDER_FILTERS,
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
@@ -390,8 +391,8 @@ function SellerOrderItem({
                 {detail.preparingAt && <Meta label="준비 시각" value={formatOrderDate(detail.preparingAt)} />}
                 {detail.shippedAt && <Meta label="발송 시각" value={formatOrderDate(detail.shippedAt)} />}
                 {detail.cancelReason && <Meta label="취소 사유" value={detail.cancelReason} />}
-                {detail.refundReason && <Meta label="환불 사유" value={detail.refundReason} />}
               </div>
+              <SellerRefundStatus detail={detail} />
               <Link className={s.artLink} to={`/auction/${detail.artId}`}>작품 페이지</Link>
             </>
           ) : null}
@@ -439,5 +440,37 @@ function Meta({ label, value }) {
       <strong>{label}</strong>
       <span>{value || '-'}</span>
     </div>
+  )
+}
+
+function SellerRefundStatus({ detail }) {
+  const view = getRefundRequestStatusView(detail.refundRequestStatus)
+  if (!view) return null
+
+  const isRequested = detail.refundRequestStatus === 'REQUESTED'
+  const isApproved = detail.refundRequestStatus === 'APPROVED'
+  const message = isRequested
+    ? '구매자의 환불 요청입니다. 표시된 승인 또는 거절 작업으로 처리해 주세요.'
+    : isApproved
+      ? '환불 승인과 환불 처리가 완료되었습니다. 추가로 할 작업은 없습니다.'
+      : '환불 거절 처리가 완료되었으며, 주문은 위에 표시된 현재 상태로 유지됩니다. 추가 환불 처리 작업은 없습니다.'
+  const processedAt = isApproved ? detail.refundedAt : detail.refundRejectedAt
+
+  return (
+    <section className={s.refundStatus} aria-label="환불 요청 상태">
+      <strong>{view.label}</strong>
+      <p>{message}</p>
+      <dl>
+        {detail.refundRequestReason && (
+          <div><dt>요청 사유</dt><dd>{detail.refundRequestReason}</dd></div>
+        )}
+        {detail.refundRequestedAt && (
+          <div><dt>요청 시각</dt><dd>{formatOrderDate(detail.refundRequestedAt)}</dd></div>
+        )}
+        {processedAt && (
+          <div><dt>처리 시각</dt><dd>{formatOrderDate(processedAt)}</dd></div>
+        )}
+      </dl>
+    </section>
   )
 }

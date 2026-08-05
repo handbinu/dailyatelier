@@ -18,6 +18,7 @@ import {
   formatShippingAddress,
   getOrderError,
   getOrderStatusView,
+  getRefundRequestStatusView,
   ORDER_FILTERS,
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
@@ -525,6 +526,7 @@ function OrderItem({
           ) : detail ? (
             <>
               <OrderProgress status={detail.status} />
+              <BuyerRefundStatus detail={detail} />
               <OrderMeta detail={detail} />
 
               {isEditing && (
@@ -604,7 +606,6 @@ function OrderMeta({ detail }) {
     ['배송 완료', detail.deliveredAt],
     ['구매 확정', detail.confirmedAt],
     ['취소', detail.canceledAt],
-    ['환불', detail.refundedAt],
   ].filter(([, value]) => value)
 
   return (
@@ -641,9 +642,6 @@ function OrderMeta({ detail }) {
       {detail.cancelReason && (
         <MetaRow label="취소 사유" value={detail.cancelReason} />
       )}
-      {detail.refundReason && (
-        <MetaRow label="환불 사유" value={detail.refundReason} />
-      )}
       {statusTimes.map(([label, value]) => (
         <MetaRow
           key={label}
@@ -652,6 +650,38 @@ function OrderMeta({ detail }) {
         />
       ))}
     </div>
+  )
+}
+
+function BuyerRefundStatus({ detail }) {
+  const view = getRefundRequestStatusView(detail.refundRequestStatus)
+  if (!view) return null
+
+  const isRequested = detail.refundRequestStatus === 'REQUESTED'
+  const isApproved = detail.refundRequestStatus === 'APPROVED'
+  const message = isRequested
+    ? '판매자의 확인을 기다리고 있습니다. 현재 추가로 할 작업은 없습니다.'
+    : isApproved
+      ? '환불이 완료되었습니다. 추가로 할 작업은 없습니다.'
+      : '환불 요청이 거절되어 주문은 위에 표시된 현재 상태로 계속 진행됩니다. 현재 처리 중인 환불은 없습니다.'
+  const processedAt = isApproved ? detail.refundedAt : detail.refundRejectedAt
+
+  return (
+    <section className={s.refundStatus} aria-label="환불 요청 상태">
+      <strong className={s.refundStatusTitle}>{view.label}</strong>
+      <p>{message}</p>
+      <dl className={s.refundStatusMeta}>
+        {detail.refundRequestReason && (
+          <div><dt>요청 사유</dt><dd>{detail.refundRequestReason}</dd></div>
+        )}
+        {detail.refundRequestedAt && (
+          <div><dt>요청 시각</dt><dd>{formatOrderDate(detail.refundRequestedAt)}</dd></div>
+        )}
+        {processedAt && (
+          <div><dt>처리 시각</dt><dd>{formatOrderDate(processedAt)}</dd></div>
+        )}
+      </dl>
+    </section>
   )
 }
 
