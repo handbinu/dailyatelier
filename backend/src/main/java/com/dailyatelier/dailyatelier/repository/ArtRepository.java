@@ -23,6 +23,42 @@ public interface ArtRepository extends JpaRepository<Art, Long> {
 
     Page<Art> findByArtist(Artist artist, Pageable pageable);
 
+    @Query(
+            value = """
+                    select new com.dailyatelier.dailyatelier.dto.ArtResponseDto(
+                        art.artId,
+                        artist.artistCode,
+                        artist.artistName,
+                        art.name,
+                        art.descript,
+                        art.material,
+                        art.wIntro,
+                        art.startPrice,
+                        art.currentPrice,
+                        art.bidStartTime,
+                        art.closingTime,
+                        art.imgPath,
+                        art.artStatus
+                    )
+                    from Art art
+                    join art.artist artist
+                    where artist.artistCode = :artistId
+                      and art.artStatus in :publicStatuses
+                    order by art.closingTime asc, art.artId desc
+                    """,
+            countQuery = """
+                    select count(art)
+                    from Art art
+                    join art.artist artist
+                    where artist.artistCode = :artistId
+                      and art.artStatus in :publicStatuses
+                    """
+    )
+    Page<com.dailyatelier.dailyatelier.dto.ArtResponseDto> findPublicArtsByArtistId(
+            @Param("artistId") String artistId,
+            @Param("publicStatuses") List<Integer> publicStatuses,
+            Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
     @Query("select art from Art art where art.artId = :artId")
