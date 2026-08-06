@@ -33,6 +33,8 @@ import ArtistReview from './pages/MyPage/ArtistReview.jsx'
 import SalesOrders  from './pages/MyPage/SalesOrders'
 import ArtDetail    from './pages/Auction/ArtDetail'
 import AuctionTotal from './pages/Auction/AuctionTotal'
+import ArtistList   from './pages/Artist/ArtistList'
+import ArtistDetail from './pages/Artist/ArtistDetail'
 
 function PreparingPage({ title }) {
   return (
@@ -69,6 +71,8 @@ function App() {
           <Route path="/auction/analog"  element={<PreparingPage title="실물 경매" />} />
           <Route path="/auction/artist"  element={<PreparingPage title="작가별 작품" />} />
           <Route path="/auction/:id"     element={<ArtDetail />} />
+          <Route path="/artists"         element={<ArtistList />} />
+          <Route path="/artists/:artistId" element={<ArtistDetail />} />
           <Route path="/artist-introduce" element={<PreparingPage title="작가소개" />} />
           <Route path="/developer"       element={<PreparingPage title="개발자 소개" />} />
           <Route path="/info"            element={<PreparingPage title="경매 진행방법" />} />
