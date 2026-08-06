@@ -44,6 +44,8 @@ export default function Header() {
   const [openIdx, setOpenIdx] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchType, setSearchType] = useState('artwork')
+  const [searchKeyword, setSearchKeyword] = useState('')
   const [, setAuthVersion] = useState(0)
 
   const token = localStorage.getItem('token')
@@ -77,6 +79,44 @@ export default function Header() {
     clearStoredAuth()
     navigate('/login')
   }
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+
+    if (searchType === 'artist') {
+      const keyword = searchKeyword.trim()
+      navigate(keyword ? `/artists?keyword=${encodeURIComponent(keyword)}` : '/artists')
+    } else {
+      navigate(`/search?q=${encodeURIComponent(searchKeyword)}`)
+    }
+
+    setMobileOpen(false)
+  }
+
+  const renderSearchForm = (className = '') => (
+    <form className={`${styles.searchWrap} ${className}`} onSubmit={handleSearch} role="search">
+      <select
+        aria-label="검색 유형"
+        className={styles.searchType}
+        value={searchType}
+        onChange={(event) => setSearchType(event.target.value)}
+      >
+        <option value="artwork">작품</option>
+        <option value="artist">작가</option>
+      </select>
+      <input
+        type="text"
+        aria-label="검색어"
+        placeholder={searchType === 'artist' ? '작가 검색' : '작품 검색'}
+        className={styles.searchInput}
+        value={searchKeyword}
+        onChange={(event) => setSearchKeyword(event.target.value)}
+      />
+      <button type="submit" className={styles.searchBtn} aria-label="검색">
+        <SearchIcon />
+      </button>
+    </form>
+  )
 
   return (
     <header ref={headerRef} className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
@@ -123,19 +163,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className={styles.searchWrap}>
-          <input
-            type="text"
-            placeholder="작품 검색"
-            className={styles.searchInput}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') navigate(`/search?q=${encodeURIComponent(e.target.value)}`)
-            }}
-          />
-          <button className={styles.searchBtn} aria-label="검색">
-            <SearchIcon />
-          </button>
-        </div>
+        {renderSearchForm()}
 
         <div className={styles.userMenu}>
           {token ? (
@@ -183,6 +211,7 @@ export default function Header() {
 
       {mobileOpen && (
         <div className={styles.mobileMenu}>
+          {renderSearchForm(styles.mobileSearch)}
           {NAV_ITEMS.map((item) => (
             <div key={item.label} className={styles.mobileSection}>
               <p className={styles.mobileSectionLabel}>{item.label}</p>
