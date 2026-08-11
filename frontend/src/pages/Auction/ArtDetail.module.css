@@ -81,6 +81,11 @@
   background: var(--color-success-bg);
 }
 
+.status_upcoming {
+  color: #fff;
+  background: #526579;
+}
+
 .status_ended {
   color: var(--color-text-sub);
   background: var(--color-surface-alt);

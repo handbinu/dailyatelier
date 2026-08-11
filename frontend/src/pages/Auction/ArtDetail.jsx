@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { createBid, getArt } from '../../api/artApi'
 import { addArtLike, getArtLikeStatus, removeArtLike } from '../../api/userApi'
-import { formatClosingTime, formatPrice, getDeadlineMeta } from '../../utils/artDisplay'
+import { formatClosingTime, formatPrice, getAuctionStatusMeta, getDeadlineMeta } from '../../utils/artDisplay'
 import {
   applyArtImageFallback,
   applyArtImageFallbackIfBlank,
@@ -10,13 +10,8 @@ import {
 } from '../../utils/artImage'
 import styles from './ArtDetail.module.css'
 
-const STATUS_META = {
-  0: { label: '진행 중', tone: 'active' },
-  1: { label: '종료', tone: 'ended' },
-  2: { label: '낙찰', tone: 'won' },
-}
-
 const MAX_BID_PRICE = 2_100_000_000
+const LIST_PATH_PATTERN = /^\/(?:search|auction\/(?:total|digital|analog))(?:\?.*)?$/
 
 export default function ArtDetail() {
   const { id } = useParams()
@@ -38,9 +33,9 @@ export default function ArtDetail() {
 
   const listPath = useMemo(() => {
     const previousPath = location.state?.from
-    return typeof previousPath === 'string' && previousPath.startsWith('/auction/total')
+    return typeof previousPath === 'string' && LIST_PATH_PATTERN.test(previousPath)
       ? previousPath
-      : '/auction/total?page=1'
+      : '/auction/total'
   }, [location.state])
 
   useEffect(() => {
@@ -249,8 +244,8 @@ export default function ArtDetail() {
   }
 
   const deadline = getDeadlineMeta(art.closingTime)
-  const status = STATUS_META[art.artStatus] ?? { label: '상태 미정', tone: 'ended' }
-  const isUrgent = art.artStatus === 0 && deadline.isUrgent
+  const status = getAuctionStatusMeta(art, now)
+  const isUrgent = status.phase === 'ONGOING' && deadline.isUrgent
   const imageSrc = getArtImageSrc(art.imgPath)
   const isLoggedIn = Boolean(localStorage.getItem('token'))
   const bidStartTimestamp = new Date(art.bidStartTime).getTime()

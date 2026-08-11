@@ -5,20 +5,26 @@ export const SORTS = ['ENDING_SOON', 'NEWEST', 'PRICE_ASC', 'PRICE_DESC']
 
 const allowed = { format: FORMATS, category: CATEGORIES, status: STATUSES, sort: SORTS }
 
-export function normalizeSearchParams(input) {
+export function normalizeSearchParams(input, {
+  allowedKeys = ['q', 'artist', 'format', 'category', 'status', 'sort', 'page'],
+  allowedCategories = CATEGORIES,
+} = {}) {
   const normalized = new URLSearchParams()
   for (const key of ['q', 'artist']) {
+    if (!allowedKeys.includes(key)) continue
     const value = input.get(key)?.trim()
     if (value) normalized.set(key, value)
   }
   for (const key of ['format', 'category', 'status']) {
+    if (!allowedKeys.includes(key)) continue
     const value = input.get(key)
-    if (allowed[key].includes(value)) normalized.set(key, value)
+    const values = key === 'category' ? allowedCategories : allowed[key]
+    if (values.includes(value)) normalized.set(key, value)
   }
   const sort = input.get('sort')
-  if (SORTS.includes(sort) && sort !== 'ENDING_SOON') normalized.set('sort', sort)
+  if (allowedKeys.includes('sort') && SORTS.includes(sort) && sort !== 'ENDING_SOON') normalized.set('sort', sort)
   const page = Number(input.get('page'))
-  if (Number.isSafeInteger(page) && page > 1) normalized.set('page', String(page))
+  if (allowedKeys.includes('page') && Number.isSafeInteger(page) && page > 1) normalized.set('page', String(page))
   return normalized
 }
 

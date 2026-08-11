@@ -31,3 +31,15 @@ export const getDeadlineMeta = (closingTime) => {
   }
   return { label: '진행 중', isUrgent: false, isClosed: false }
 }
+
+export const getAuctionStatusMeta = ({ artStatus, bidStartTime, closingTime }, now = Date.now()) => {
+  if (artStatus === 2) return { label: '낙찰', tone: 'won', phase: 'ENDED' }
+  if (artStatus !== 0) return { label: '종료', tone: 'ended', phase: 'ENDED' }
+
+  const start = new Date(bidStartTime).getTime()
+  const closing = new Date(closingTime).getTime()
+  if (Number.isNaN(start) || Number.isNaN(closing)) return { label: '상태 미정', tone: 'ended', phase: 'UNKNOWN' }
+  if (now < start) return { label: '예정', tone: 'upcoming', phase: 'UPCOMING' }
+  if (now >= closing) return { label: '종료', tone: 'ended', phase: 'ENDED' }
+  return { label: '진행 중', tone: 'active', phase: 'ONGOING' }
+}

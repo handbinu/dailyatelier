@@ -68,8 +68,8 @@ function App() {
           <Route path="/notice"          element={<PreparingPage title="공지 사항" />} />
           <Route path="/event"           element={<PreparingPage title="이벤트 안내" />} />
           <Route path="/auction/total"   element={<AuctionTotal />} />
-          <Route path="/auction/digital" element={<PreparingPage title="디지털 경매" />} />
-          <Route path="/auction/analog"  element={<PreparingPage title="실물 경매" />} />
+          <Route path="/auction/digital" element={<AuctionTotal type="digital" />} />
+          <Route path="/auction/analog"  element={<AuctionTotal type="analog" />} />
           <Route path="/auction/artist"  element={<PreparingPage title="작가별 작품" />} />
           <Route path="/auction/:id"     element={<ArtDetail />} />
           <Route path="/artists"         element={<ArtistList />} />
