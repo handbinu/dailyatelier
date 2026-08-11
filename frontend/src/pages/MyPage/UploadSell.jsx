@@ -9,11 +9,27 @@ const DEFAULT_FORM = {
   name: '',
   descript: '',
   material: '',
+  format: '',
+  category: '',
   wIntro: '',
   startPrice: '',
   bidStartTime: '',
   closingTime: '',
 }
+
+const CATEGORY_OPTIONS = [
+  ['OIL_PAINTING', '유화'],
+  ['WATERCOLOR', '수채화'],
+  ['ACRYLIC_PAINTING', '아크릴화'],
+  ['DRAWING', '드로잉'],
+  ['DIGITAL_ART', '디지털 아트'],
+  ['PRINTMAKING', '판화'],
+  ['PHOTOGRAPHY', '사진'],
+  ['SCULPTURE', '조각'],
+  ['CRAFT', '공예'],
+  ['MIXED_MEDIA', '혼합 매체'],
+  ['OTHER', '기타'],
+]
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -102,7 +118,15 @@ export default function UploadSell() {
     const closing = new Date(form.closingTime)
 
     if (!form.name.trim()) nextErrors.name = '작품명을 입력해 주세요.'
-    if (!form.material.trim()) nextErrors.material = '재료를 입력해 주세요.'
+    if (!form.format) nextErrors.format = '작품 형태를 선택해 주세요.'
+    if (!form.category) nextErrors.category = '작품 카테고리를 선택해 주세요.'
+    if (form.format === 'DIGITAL' && form.category && form.category !== 'DIGITAL_ART') {
+      nextErrors.category = '디지털 작품은 디지털 아트 카테고리만 선택할 수 있습니다.'
+    }
+    if (form.format === 'PHYSICAL' && form.category === 'DIGITAL_ART') {
+      nextErrors.category = '실물 작품은 디지털 아트 외 카테고리를 선택해 주세요.'
+    }
+    if (!form.material.trim()) nextErrors.material = '재료·기법을 입력해 주세요.'
     if (!Number.isInteger(startPrice) || startPrice < 1) {
       nextErrors.startPrice = '시작가격은 1원 이상의 정수로 입력해 주세요.'
     }
@@ -222,7 +246,7 @@ export default function UploadSell() {
 
           <section className={s.card}>
             <h2 className={s.cardTitle}>작품 정보</h2>
-            <p className={s.cardLead}>작품 설명은 분위기와 특징 위주로, 재료는 짧게 분리해서 적어주세요.</p>
+            <p className={s.cardLead}>작품 설명은 분위기와 특징 위주로, 분류와 재료·기법은 구분해서 적어주세요.</p>
             <div className={s.fieldGrid}>
               <FormField label="작품명 *" error={errors.name}>
                 <input
@@ -245,7 +269,25 @@ export default function UploadSell() {
                 />
               </FormField>
 
-              <FormField label="재료 *" error={errors.material}>
+              <div className={s.classificationGrid}>
+                <FormField label="작품 형태 *" error={errors.format}>
+                  <select className={s.input} value={form.format} onChange={setValue('format')} required>
+                    <option value="">형태 선택</option>
+                    <option value="DIGITAL">디지털</option>
+                    <option value="PHYSICAL">실물</option>
+                  </select>
+                </FormField>
+                <FormField label="카테고리 *" error={errors.category}>
+                  <select className={s.input} value={form.category} onChange={setValue('category')} required>
+                    <option value="">카테고리 선택</option>
+                    {CATEGORY_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </FormField>
+              </div>
+
+              <FormField label="재료·기법 *" error={errors.material}>
                 <input
                   className={s.input}
                   value={form.material}
@@ -325,10 +367,10 @@ export default function UploadSell() {
 
 function FormField({ label, error, children }) {
   return (
-    <div className={s.field}>
+    <label className={s.field}>
       <p className={s.fieldLabel}>{label}</p>
       {children}
       {error && <p className={s.errMsg}>{error}</p>}
-    </div>
+    </label>
   )
 }

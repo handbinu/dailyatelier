@@ -3,6 +3,12 @@ import api from './authApi'
 export const getArts = ({ page = 0, size = 12, signal } = {}) =>
   api.get('/api/arts', { params: { page, size }, signal })
 
+export const searchArts = ({ q, artist, format, category, status, sort, page = 0, size = 12, signal } = {}) =>
+  api.get('/api/arts/search', {
+    params: { q, artist, format, category, status, sort, page, size },
+    signal,
+  })
+
 export const getArt = (artId, { signal } = {}) =>
   api.get(`/api/arts/${artId}`, { signal })
 

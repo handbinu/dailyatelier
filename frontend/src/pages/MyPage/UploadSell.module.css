@@ -155,6 +155,12 @@
   gap: var(--space-4);
 }
 
+.classificationGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
 .errMsg {
   font-size: var(--font-size-xs);
   color: var(--color-error);
@@ -269,7 +275,8 @@
 }
 
 @media (max-width: 560px) {
-  .timeGrid {
+  .timeGrid,
+  .classificationGrid {
     grid-template-columns: 1fr;
   }
 

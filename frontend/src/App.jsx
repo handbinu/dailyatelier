@@ -35,6 +35,7 @@ import ArtDetail    from './pages/Auction/ArtDetail'
 import AuctionTotal from './pages/Auction/AuctionTotal'
 import ArtistList   from './pages/Artist/ArtistList'
 import ArtistDetail from './pages/Artist/ArtistDetail'
+import ArtSearch from './pages/Search/ArtSearch'
 
 function PreparingPage({ title }) {
   return (
@@ -78,7 +79,7 @@ function App() {
           <Route path="/info"            element={<PreparingPage title="경매 진행방법" />} />
           <Route path="/qna"             element={<PreparingPage title="고객센터" />} />
           <Route path="/q-list"          element={<PreparingPage title="Q&A" />} />
-          <Route path="/search"          element={<PreparingPage title="검색 결과" />} />
+          <Route path="/search"          element={<ArtSearch />} />
 
           {/* ── 보호된 라우트 (로그인 필수) ── */}
           <Route element={<PrivateRoute />}>

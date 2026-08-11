@@ -23,7 +23,7 @@ api.interceptors.request.use((config) => {
 const isPublicArtGetRequest = (config = {}) => {
     const method = (config.method || 'get').toLowerCase()
     const url = config.url || ''
-    return method === 'get' && /^\/api\/arts(?:\/\d+)?$/.test(url)
+    return method === 'get' && /^\/api\/arts(?:\/search|\/\d+)?$/.test(url)
 }
 
 const removeAuthorizationHeader = (config) => {
