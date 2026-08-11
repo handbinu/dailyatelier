@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.service.ArtService;
+import com.dailyatelier.dailyatelier.service.ArtSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -40,6 +41,9 @@ class ArtApiSecurityTest {
 
     @MockitoBean
     private ArtService artService;
+
+    @MockitoBean
+    private ArtSearchService artSearchService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

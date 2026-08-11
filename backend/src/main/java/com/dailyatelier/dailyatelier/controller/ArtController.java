@@ -4,8 +4,11 @@ import com.dailyatelier.dailyatelier.dto.ArtCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
+import com.dailyatelier.dailyatelier.dto.ArtSearchRequestDto;
+import com.dailyatelier.dailyatelier.dto.ArtSearchResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtUpdateRequestDto;
 import com.dailyatelier.dailyatelier.service.ArtService;
+import com.dailyatelier.dailyatelier.service.ArtSearchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +32,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ArtController {
     private final ArtService artService;
+    private final ArtSearchService artSearchService;
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ArtSearchResponseDto>> searchArts(
+            @Valid ArtSearchRequestDto request) {
+        return ResponseEntity.ok(artSearchService.search(
+                request.toCriteria(), request.getPage(), request.getSize()
+        ));
+    }
 
     @GetMapping
     public ResponseEntity<Page<ArtResponseDto>> getActiveArts(
