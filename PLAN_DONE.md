@@ -4,6 +4,38 @@
 > 완료 기록은 핵심 구현, 주요 설계 결정, 검증 결과와 후속 범위만 요약한다.
 > 과거 계획의 상세 체크리스트, 구현 전 조사, 변경 예정 파일 목록과 단계별 작업 절차 전문은 옮기지 않는다.
 
+## 작품 탐색 기능
+
+### 완료 범위
+
+- 1단계에서 작품 형태·카테고리·등록 시각, 검색 상태·정렬 모델과 동적 조회 기반을 추가했다.
+- 2단계에서 비로그인 접근이 가능한 `GET /api/arts/search`와 구조화된 오류 응답 계약을 구현했다.
+- 3단계에서 `/search`의 검색·필터·정렬·페이지네이션·URL 동기화와 작품 등록 분류 UX를 구현했다.
+- 4단계에서 검색과 세 경매 목록의 조회·카드·로딩·오류·빈 상태·페이지네이션을 통합하고 상세 왕복 URL을 보존했다.
+
+### 주요 구현 계약
+
+- 형태는 `DIGITAL`, `PHYSICAL`, 카테고리는 확정된 `ArtCategory` enum을 사용하고 `material`은 재료·매체·기법 설명으로 유지한다.
+- `UPCOMING`은 `now < bidStartTime`, `ONGOING`은 `bidStartTime <= now < closingTime`, `ENDED`는 판매·유찰 처리 작품과 `closingTime <= now`인 활성 작품이며, 취소 작품은 공개 탐색에서 제외한다.
+- `ENDING_SOON`, `NEWEST`, `PRICE_ASC`, `PRICE_DESC`는 각 기준 동률 시 작품 ID 내림차순으로 정렬한다. API 페이지는 0부터, 화면 URL 페이지는 1부터 시작한다.
+- `/search`는 예정·진행·종료 전체 공개 작품을 탐색한다. `/auction/total`은 `ONGOING`, `/auction/digital`은 `ONGOING + DIGITAL`, `/auction/analog`는 `ONGOING + PHYSICAL`을 preset으로 강제하고 URL 쿼리로 덮어쓰지 못하게 한다.
+- 경매 URL은 형태별 허용 카테고리·정렬·페이지만 보존하고, 작품 상세에서 목록으로 돌아갈 때 원래 검색·경매 URL을 복원한다.
+
+### 자동 검증
+
+- 백엔드 전체 271건 중 264건 통과, 실패·오류 0건, 환경 의존 7건 제외를 확인했다. 정렬 동률, 예정·진행·종료 시간 경계, 취소 제외가 포함됐다.
+- 프론트 컴포넌트 42건과 유틸리티 15건이 모두 통과했다.
+- ESLint, production build, `git diff --check`가 모두 통과했다.
+- 실제 MySQL 빈 DB에 Flyway V1→V2→V3를 적용하고 Hibernate schema validation을 통과했다. V1·V2·V3의 `success=1`, V3 필수 컬럼·인덱스, 재실행 시 추가 migration 0건을 확인했다.
+
+### 브라우저 대표 QA
+
+- `/search`에서 상태 필터 변경과 URL 동기화, `/auction/total`의 진행 작품 제한, `/auction/digital`과 `/auction/analog`의 진행 상태·형태 preset을 확인했다.
+- 고정 preset과 충돌하는 URL 쿼리가 제거되고 고정 조건이 유지되는 것을 확인했다.
+- 경매 목록 → 작품 상세 → 목록 복귀 시 원래 카테고리·정렬 URL이 복원되는 것을 확인했다.
+- 모바일 390×844에서 검색·경매 화면의 가로 넘침, 필터 겹침, 카드 깨짐이 없었고 브라우저 콘솔 경고·오류는 0건이었다.
+- API로 QA 데이터를 준비하는 과정에서 PowerShell 요청 인코딩으로 한글 작품명이 `?`로 저장됐지만, 제품의 검색·상태·형태·URL 기능 문제가 아니며 QA 데이터 생성 클라이언트의 문자 인코딩 문제였다.
+
 ## 작품 조회 흐름
 
 ## 1. 백엔드 API 계약
