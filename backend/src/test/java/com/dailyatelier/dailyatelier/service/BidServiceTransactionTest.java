@@ -98,6 +98,8 @@ class BidServiceTransactionTest {
 
         LocalDateTime now = LocalDateTime.now();
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName("트랜잭션 테스트 작품");
         art.setStartPrice(100_000);

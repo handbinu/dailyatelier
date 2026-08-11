@@ -9,6 +9,8 @@ import com.dailyatelier.dailyatelier.dto.MyArtQueryDto;
 import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
 import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PointHold;
@@ -153,12 +155,15 @@ public class ArtService {
                     "Closing time must be after bid start time"
             );
         }
+        validateClassification(dto.getFormat(), dto.getCategory());
 
         Art art = new Art();
         art.setArtist(artist);
         art.setName(dto.getName().trim());
         art.setDescript(blankToNull(dto.getDescript()));
         art.setMaterial(blankToNull(dto.getMaterial()));
+        art.setFormat(dto.getFormat());
+        art.setCategory(dto.getCategory());
         art.setWIntro(blankToNull(dto.getWIntro()));
         art.setStartPrice(dto.getStartPrice());
         art.setCurrentPrice(dto.getStartPrice());
@@ -166,6 +171,7 @@ public class ArtService {
         art.setClosingTime(dto.getClosingTime());
         art.setImgPath(dto.getImgPath().trim());
         art.setArtStatus(Art.STATUS_ACTIVE);
+        art.setCreatedAt(LocalDateTime.now(clock));
 
         return toResponse(artRepository.save(art));
     }
@@ -195,6 +201,9 @@ public class ArtService {
                 ? dto.getClosingTime()
                 : art.getClosingTime();
         validateAuctionPeriod(bidStartTime, closingTime, now);
+        ArtFormat format = dto.isFormatProvided() ? dto.getFormat() : art.getFormat();
+        ArtCategory category = dto.isCategoryProvided() ? dto.getCategory() : art.getCategory();
+        validateClassification(format, category);
 
         applyUpdate(art, dto);
         return toResponse(artRepository.save(art));
@@ -367,6 +376,12 @@ public class ArtService {
         if (dto.isMaterialProvided()) {
             art.setMaterial(blankToNull(dto.getMaterial()));
         }
+        if (dto.isFormatProvided()) {
+            art.setFormat(dto.getFormat());
+        }
+        if (dto.isCategoryProvided()) {
+            art.setCategory(dto.getCategory());
+        }
         if (dto.isWIntroProvided()) {
             art.setWIntro(blankToNull(dto.getWIntro()));
         }
@@ -420,6 +435,20 @@ public class ArtService {
                 art.getBidCount(),
                 result
         );
+    }
+
+    private void validateClassification(ArtFormat format, ArtCategory category) {
+        boolean valid = format != null
+                && category != null
+                && (format == ArtFormat.DIGITAL)
+                == (category == ArtCategory.DIGITAL_ART);
+        if (!valid) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_ART_CLASSIFICATION",
+                    "Digital format requires digital art category and vice versa"
+            );
+        }
     }
 
     private String blankToNull(String value) {

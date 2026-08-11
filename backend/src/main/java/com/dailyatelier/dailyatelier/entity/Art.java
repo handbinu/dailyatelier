@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -39,6 +40,14 @@ public class Art {
     @Column(length = 120)
     private String material;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ArtFormat format;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ArtCategory category;
+
     @Column(length = 500)
     private String wIntro;
 
@@ -59,6 +68,10 @@ public class Art {
 
     @Column(nullable = false)
     private Integer artStatus;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winning_bid_id")

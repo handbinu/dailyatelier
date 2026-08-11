@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface ArtRepository extends JpaRepository<Art, Long> {
+public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchRepository {
     Page<Art> findByArtStatus(Integer artStatus, Pageable pageable);
 
     Page<Art> findByArtist(Artist artist, Pageable pageable);

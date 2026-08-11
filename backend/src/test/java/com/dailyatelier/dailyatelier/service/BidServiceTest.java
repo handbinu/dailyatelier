@@ -362,6 +362,8 @@ class BidServiceTest {
 
     private Art createOpenArt(String sellerId, int currentPrice) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtId(1L);
         art.setArtist(createArtist(createUser(sellerId)));
         art.setName("테스트 작품");

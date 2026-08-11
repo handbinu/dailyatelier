@@ -148,6 +148,8 @@ class BidRepositoryTest {
 
     private Art saveArt(Artist artist, String name, int currentPrice) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName(name);
         art.setStartPrice(100_000);

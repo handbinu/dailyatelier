@@ -1,9 +1,12 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
+import com.dailyatelier.dailyatelier.dto.ArtCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtUpdateRequestDto;
 import com.dailyatelier.dailyatelier.entity.Art;
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
@@ -29,6 +32,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -92,6 +97,59 @@ class ArtServiceMutationTest {
         );
         lenient().when(artRepository.save(any(Art.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void createStoresRequiredClassificationAndClockCreatedAt() {
+        User user = new User();
+        user.setUserId("owner");
+        user.setUserStatus(1);
+        Artist artist = new Artist();
+        artist.setArtistCode("artist-code");
+        artist.setArtistName("작가");
+        artist.setUser(user);
+        ArtCreateRequestDto request = createRequest();
+        request.setFormat(ArtFormat.DIGITAL);
+        request.setCategory(ArtCategory.DIGITAL_ART);
+        when(userRepository.findByUserId("owner")).thenReturn(user);
+        when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
+
+        artService.createArt("owner", request);
+
+        ArgumentCaptor<Art> saved = ArgumentCaptor.forClass(Art.class);
+        verify(artRepository).save(saved.capture());
+        assertThat(saved.getValue().getFormat()).isEqualTo(ArtFormat.DIGITAL);
+        assertThat(saved.getValue().getCategory()).isEqualTo(ArtCategory.DIGITAL_ART);
+        assertThat(saved.getValue().getCreatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void rejectsInvalidClassificationOnCreateAndUpdate() {
+        User user = new User();
+        user.setUserId("owner");
+        user.setUserStatus(1);
+        Artist artist = new Artist();
+        artist.setUser(user);
+        ArtCreateRequestDto create = createRequest();
+        create.setFormat(ArtFormat.DIGITAL);
+        create.setCategory(ArtCategory.OIL_PAINTING);
+        when(userRepository.findByUserId("owner")).thenReturn(user);
+        when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
+
+        assertThatThrownBy(() -> artService.createArt("owner", create))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("INVALID_ART_CLASSIFICATION"));
+
+        Art art = createActiveArt("owner");
+        ArtUpdateRequestDto update = new ArtUpdateRequestDto();
+        update.setFormat(ArtFormat.DIGITAL);
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+        assertThatThrownBy(() -> artService.updateArt(1L, "owner", update))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("INVALID_ART_CLASSIFICATION"));
     }
 
     @Test
@@ -306,6 +364,16 @@ class ArtServiceMutationTest {
         return request;
     }
 
+    private ArtCreateRequestDto createRequest() {
+        ArtCreateRequestDto request = new ArtCreateRequestDto();
+        request.setName("작품");
+        request.setStartPrice(100_000);
+        request.setBidStartTime(NOW.plusHours(1));
+        request.setClosingTime(NOW.plusDays(1));
+        request.setImgPath("image.jpg");
+        return request;
+    }
+
     private void stubLockedArt(Art art) {
         when(artRepository.findByIdForUpdate(1L))
                 .thenReturn(Optional.of(art));
@@ -327,6 +395,8 @@ class ArtServiceMutationTest {
         art.setName("테스트 작품");
         art.setDescript("기존 설명");
         art.setMaterial("캔버스");
+        art.setFormat(ArtFormat.PHYSICAL);
+        art.setCategory(ArtCategory.OIL_PAINTING);
         art.setWIntro("기존 소개");
         art.setStartPrice(100_000);
         art.setCurrentPrice(120_000);

@@ -95,6 +95,8 @@ class OrderExpirationServiceTest {
         artist = artistRepository.save(artist);
 
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName("만료 테스트 작품");
         art.setStartPrice(100_000);

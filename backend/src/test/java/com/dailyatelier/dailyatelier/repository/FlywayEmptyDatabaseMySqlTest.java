@@ -35,7 +35,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
             Map.entry("users", 10),
             Map.entry("artist", 6),
-            Map.entry("art", 15),
+            Map.entry("art", 18),
             Map.entry("bid", 5),
             Map.entry("orders", 44),
             Map.entry("address", 4),
@@ -51,6 +51,9 @@ class FlywayEmptyDatabaseMySqlTest {
 
     private static final Set<String> EXPECTED_INDEXES = Set.of(
             "idx_art_close_candidates",
+            "idx_art_public_search",
+            "idx_art_created",
+            "idx_art_current_price",
             "idx_orders_buyer_status_created",
             "idx_orders_seller_status_created",
             "idx_orders_payment_expiration",
@@ -61,16 +64,19 @@ class FlywayEmptyDatabaseMySqlTest {
             "idx_callback_status_received"
     );
 
-    private static final Map<String, String> EXPECTED_INDEX_COLUMNS = Map.of(
-            "idx_art_close_candidates", "art_status,closing_time,art_id",
-            "idx_orders_buyer_status_created", "buyer_id,status,created_at",
-            "idx_orders_seller_status_created", "seller_id,status,created_at",
-            "idx_orders_payment_expiration", "status,payment_due_at,order_id",
-            "idx_point_transaction_user_created", "user_id,created_at,transaction_id",
-            "idx_point_transaction_reference", "reference_type,reference_id,type",
-            "idx_point_hold_art_created", "art_id,created_at",
-            "idx_point_hold_user_status_created", "user_id,status,created_at",
-            "idx_callback_status_received", "status,received_at,callback_event_id"
+    private static final Map<String, String> EXPECTED_INDEX_COLUMNS = Map.ofEntries(
+            Map.entry("idx_art_public_search", "art_status,format,category,closing_time,art_id"),
+            Map.entry("idx_art_created", "created_at,art_id"),
+            Map.entry("idx_art_current_price", "current_price,art_id"),
+            Map.entry("idx_art_close_candidates", "art_status,closing_time,art_id"),
+            Map.entry("idx_orders_buyer_status_created", "buyer_id,status,created_at"),
+            Map.entry("idx_orders_seller_status_created", "seller_id,status,created_at"),
+            Map.entry("idx_orders_payment_expiration", "status,payment_due_at,order_id"),
+            Map.entry("idx_point_transaction_user_created", "user_id,created_at,transaction_id"),
+            Map.entry("idx_point_transaction_reference", "reference_type,reference_id,type"),
+            Map.entry("idx_point_hold_art_created", "art_id,created_at"),
+            Map.entry("idx_point_hold_user_status_created", "user_id,status,created_at"),
+            Map.entry("idx_callback_status_received", "status,received_at,callback_event_id")
     );
 
     private static final Set<String> EXPECTED_UNIQUE_CONSTRAINTS = Set.of(
@@ -172,7 +178,7 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(14);
@@ -191,6 +197,9 @@ class FlywayEmptyDatabaseMySqlTest {
         assertThat(expectedIndexColumns()).isEqualTo(EXPECTED_INDEX_COLUMNS);
         assertImportantColumn("users", "reserve", "int", false, "0");
         assertImportantColumn("art", "active_point_hold_id", "bigint", true, null);
+        assertImportantColumn("art", "format", "varchar", false, null);
+        assertImportantColumn("art", "category", "varchar", false, null);
+        assertImportantColumn("art", "created_at", "datetime", false, null);
         assertImportantColumn("orders", "payment_method", "varchar", false, null);
         assertImportantColumn("orders", "refund_request_status", "varchar", true, null);
     }

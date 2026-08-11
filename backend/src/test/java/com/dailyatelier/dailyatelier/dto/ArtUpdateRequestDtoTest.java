@@ -48,7 +48,9 @@ class ArtUpdateRequestDtoTest {
                           "startPrice": null,
                           "bidStartTime": null,
                           "closingTime": null,
-                          "imgPath": null
+                          "imgPath": null,
+                          "format": null,
+                          "category": null
                         }
                         """,
                 ArtUpdateRequestDto.class
@@ -61,7 +63,9 @@ class ArtUpdateRequestDtoTest {
                         "시작가는 필수입니다.",
                         "경매 시작 시각은 필수입니다.",
                         "경매 마감 시각은 필수입니다.",
-                        "이미지 경로는 비어 있을 수 없습니다."
+                        "이미지 경로는 비어 있을 수 없습니다.",
+                        "작품 형태는 필수입니다.",
+                        "작품 카테고리는 필수입니다."
                 );
     }
 

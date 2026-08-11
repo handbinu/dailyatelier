@@ -1,5 +1,7 @@
 package com.dailyatelier.dailyatelier.dto;
 
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.constraints.AssertTrue;
@@ -26,6 +28,10 @@ public class ArtUpdateRequestDto {
     @Size(max = 120)
     private String material;
 
+    private ArtFormat format;
+
+    private ArtCategory category;
+
     @Size(max = 500)
     private String wIntro;
 
@@ -46,6 +52,12 @@ public class ArtUpdateRequestDto {
 
     @JsonIgnore
     private boolean materialProvided;
+
+    @JsonIgnore
+    private boolean formatProvided;
+
+    @JsonIgnore
+    private boolean categoryProvided;
 
     @JsonIgnore
     private boolean wIntroProvided;
@@ -83,6 +95,18 @@ public class ArtUpdateRequestDto {
         this.material = material;
     }
 
+    @JsonSetter("format")
+    public void setFormat(ArtFormat format) {
+        this.formatProvided = true;
+        this.format = format;
+    }
+
+    @JsonSetter("category")
+    public void setCategory(ArtCategory category) {
+        this.categoryProvided = true;
+        this.category = category;
+    }
+
     @JsonSetter("wIntro")
     public void setWIntro(String wIntro) {
         this.wIntroProvided = true;
@@ -103,6 +127,8 @@ public class ArtUpdateRequestDto {
                 || closingTimeProvided
                 || descriptProvided
                 || materialProvided
+                || formatProvided
+                || categoryProvided
                 || wIntroProvided
                 || imgPathProvided;
     }
@@ -129,5 +155,17 @@ public class ArtUpdateRequestDto {
     @AssertTrue(message = "이미지 경로는 비어 있을 수 없습니다.")
     public boolean isProvidedImgPathValid() {
         return !imgPathProvided || imgPath != null && !imgPath.isBlank();
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "작품 형태는 필수입니다.")
+    public boolean isProvidedFormatValid() {
+        return !formatProvided || format != null;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "작품 카테고리는 필수입니다.")
+    public boolean isProvidedCategoryValid() {
+        return !categoryProvided || category != null;
     }
 }

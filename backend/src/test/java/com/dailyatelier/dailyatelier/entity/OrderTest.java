@@ -29,6 +29,8 @@ class OrderTest {
         artist.setUser(seller);
 
         art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtId(1L);
         art.setArtist(artist);
         art.setName("테스트 작품");

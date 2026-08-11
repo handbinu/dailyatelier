@@ -442,6 +442,8 @@ class ArtMutationConcurrencyTest {
 
     private Art saveOpenArt(String name) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName(name);
         art.setDescript("기존 설명");

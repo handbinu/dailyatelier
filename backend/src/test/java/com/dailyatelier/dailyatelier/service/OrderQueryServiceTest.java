@@ -278,6 +278,8 @@ class OrderQueryServiceTest {
             Artist orderArtist,
             LocalDateTime createdAt) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(orderArtist);
         art.setName(suffix + " 작품");
         art.setStartPrice(100_000);

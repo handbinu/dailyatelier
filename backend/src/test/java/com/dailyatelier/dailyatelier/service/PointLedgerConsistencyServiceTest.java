@@ -227,10 +227,12 @@ class PointLedgerConsistencyServiceTest {
     private void insertArt(long artId, Long activeHoldId) {
         jdbcTemplate.update("""
                 insert into art (
-                    art_id, name, start_price, current_price, bid_start_time,
-                    closing_time, img_path, art_status, active_point_hold_id
-                ) values (?, '테스트 작품', 1000, 1000, current_timestamp,
-                          current_timestamp, '/test.jpg', 0, ?)
+                    art_id, name, format, category, start_price, current_price,
+                    bid_start_time, closing_time, img_path, art_status,
+                    created_at, active_point_hold_id
+                ) values (?, '테스트 작품', 'PHYSICAL', 'OTHER', 1000, 1000,
+                          current_timestamp, current_timestamp, '/test.jpg', 0,
+                          current_timestamp, ?)
                 """, artId, activeHoldId);
     }
 

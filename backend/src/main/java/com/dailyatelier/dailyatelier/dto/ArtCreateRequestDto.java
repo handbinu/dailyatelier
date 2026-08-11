@@ -1,5 +1,7 @@
 package com.dailyatelier.dailyatelier.dto;
 
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +20,12 @@ public class ArtCreateRequestDto {
     private String descript;
 
     private String material;
+
+    @NotNull
+    private ArtFormat format;
+
+    @NotNull
+    private ArtCategory category;
 
     private String wIntro;
 

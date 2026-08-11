@@ -79,6 +79,8 @@ class ArtRepositoryExpiredAuctionTest {
 
     private Art saveArt(String name, LocalDateTime closingTime, int artStatus) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName(name);
         art.setStartPrice(100_000);

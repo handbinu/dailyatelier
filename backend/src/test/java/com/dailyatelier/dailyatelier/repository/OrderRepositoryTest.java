@@ -69,6 +69,8 @@ class OrderRepositoryTest {
         artist = artistRepository.save(artist);
 
         art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtist(artist);
         art.setName("원래 작품명");
         art.setStartPrice(100_000);

@@ -183,6 +183,8 @@ class AuctionCloseServiceTest {
 
     private Art createArt(LocalDateTime closingTime) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtId(1L);
         art.setStartPrice(100_000);
         art.setCurrentPrice(100_000);

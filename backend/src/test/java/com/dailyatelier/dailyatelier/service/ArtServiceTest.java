@@ -220,6 +220,8 @@ class ArtServiceTest {
 
     private Art createArt(Long artId, int artStatus, String ownerUserId) {
         Art art = new Art();
+        art.setFormat(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        art.setCategory(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         art.setArtId(artId);
         art.setArtist(createArtist(createUser(ownerUserId, 1)));
         art.setName("테스트 작품 " + artId);
