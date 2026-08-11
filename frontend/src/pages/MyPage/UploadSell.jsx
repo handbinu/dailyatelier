@@ -31,6 +31,11 @@ const CATEGORY_OPTIONS = [
   ['OTHER', '기타'],
 ]
 
+const isCategoryAllowed = (format, category) => (
+  (format === 'DIGITAL' && category === 'DIGITAL_ART')
+  || (format === 'PHYSICAL' && category !== 'DIGITAL_ART')
+)
+
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const CLOUDINARY_FOLDER = 'arts'
@@ -66,6 +71,16 @@ export default function UploadSell() {
   const setValue = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [key]: '' }))
+  }
+
+  const handleFormatChange = (e) => {
+    const format = e.target.value
+    setForm((prev) => ({
+      ...prev,
+      format,
+      category: isCategoryAllowed(format, prev.category) ? prev.category : '',
+    }))
+    setErrors((prev) => ({ ...prev, format: '', category: '' }))
   }
 
   const clearImage = () => {
@@ -221,6 +236,8 @@ export default function UploadSell() {
     )
   }
 
+  const categoryOptions = CATEGORY_OPTIONS.filter(([category]) => isCategoryAllowed(form.format, category))
+
   return (
     <PageWrap>
       <PageBanner title="작품 등록" crumb="작품 등록" />
@@ -271,16 +288,22 @@ export default function UploadSell() {
 
               <div className={s.classificationGrid}>
                 <FormField label="작품 형태 *" error={errors.format}>
-                  <select className={s.input} value={form.format} onChange={setValue('format')} required>
+                  <select className={s.input} value={form.format} onChange={handleFormatChange} required>
                     <option value="">형태 선택</option>
                     <option value="DIGITAL">디지털</option>
                     <option value="PHYSICAL">실물</option>
                   </select>
                 </FormField>
                 <FormField label="카테고리 *" error={errors.category}>
-                  <select className={s.input} value={form.category} onChange={setValue('category')} required>
+                  <select
+                    className={s.input}
+                    value={form.category}
+                    onChange={setValue('category')}
+                    disabled={!form.format}
+                    required
+                  >
                     <option value="">카테고리 선택</option>
-                    {CATEGORY_OPTIONS.map(([value, label]) => (
+                    {categoryOptions.map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
                     ))}
                   </select>
