@@ -8,9 +8,9 @@ import {
   applyArtImageFallbackIfBlank,
   getArtImageSrc,
 } from '../../utils/artImage'
+import { MAX_BID_PRICE, parseIntegerPrice } from '../../utils/bidPricePolicy'
 import styles from './ArtDetail.module.css'
 
-const MAX_BID_PRICE = 2_100_000_000
 const LIST_PATH_PATTERN = /^\/(?:search|auction\/(?:total|digital|analog))(?:\?.*)?$/
 
 export default function ArtDetail() {
@@ -148,8 +148,10 @@ export default function ArtDetail() {
     try {
       const { data } = await getArt(id)
       setArt(data)
+      return data
     } catch {
       // 기존 상세 정보를 유지하고 사용자가 다시 시도할 수 있게 한다.
+      return null
     }
   }
 
@@ -157,21 +159,24 @@ export default function ArtDetail() {
     event.preventDefault()
     if (bidSubmitting) return
 
-    const normalizedPrice = bidPrice.trim()
-    if (!/^\d+$/.test(normalizedPrice)) {
+    const amount = parseIntegerPrice(bidPrice)
+    if (amount === null) {
       setBidFeedback({ type: 'error', message: '입찰 금액을 원 단위 정수로 입력해 주세요.' })
       return
     }
 
-    const amount = Number(normalizedPrice)
-    if (!Number.isSafeInteger(amount) || amount < 1 || amount > MAX_BID_PRICE) {
+    if (amount < 1 || amount > MAX_BID_PRICE) {
       setBidFeedback({ type: 'error', message: '입찰 금액은 1원 이상 21억 원 이하로 입력해 주세요.' })
       return
     }
-    if (amount <= art.currentPrice) {
+    if (art.nextMinimumBidPrice === null) {
+      setBidFeedback({ type: 'error', message: '최소 증분을 적용하면 시스템 최대 입찰가를 초과합니다.' })
+      return
+    }
+    if (amount < art.nextMinimumBidPrice) {
       setBidFeedback({
         type: 'error',
-        message: `현재가보다 높은 금액을 입력해 주세요. 최소 ${formatPrice(art.currentPrice + 1)}원입니다.`,
+        message: `최소 입찰 가능 금액은 ${formatPrice(art.nextMinimumBidPrice)}원입니다.`,
       })
       return
     }
@@ -180,7 +185,12 @@ export default function ArtDetail() {
     setBidFeedback(null)
     try {
       const { data } = await createBid(art.artId, amount)
-      setArt((currentArt) => ({ ...currentArt, currentPrice: data.currentPrice }))
+      setArt((currentArt) => ({
+        ...currentArt,
+        currentPrice: data.currentPrice,
+        minimumBidIncrement: data.minimumBidIncrement,
+        nextMinimumBidPrice: data.nextMinimumBidPrice,
+      }))
       setBidPrice('')
       setBidFeedback({
         type: 'success',
@@ -190,9 +200,7 @@ export default function ArtDetail() {
       const statusCode = requestError.response?.status
       const errorCode = requestError.response?.data?.code
 
-      if (statusCode === 409) {
-        await refreshArtAfterBidError()
-      }
+      const refreshedArt = statusCode === 409 ? await refreshArtAfterBidError() : null
 
       if (statusCode === 401) {
         setBidFeedback({ type: 'error', message: '로그인이 만료되었습니다. 다시 로그인해 주세요.' })
@@ -202,9 +210,20 @@ export default function ArtDetail() {
           message: '다른 입찰이 처리 중입니다. 갱신된 현재가를 확인하고 다시 시도해 주세요.',
         })
       } else if (errorCode === 'BID_TOO_LOW') {
+        const latestMinimum = refreshedArt?.nextMinimumBidPrice
         setBidFeedback({
           type: 'error',
-          message: '현재가가 먼저 갱신되었습니다. 새 현재가보다 높은 금액을 입력해 주세요.',
+          message: latestMinimum === null
+            ? '최소 증분을 적용하면 시스템 최대 입찰가를 초과합니다.'
+            : latestMinimum !== undefined
+              ? `현재가가 갱신되었습니다. 최소 입찰 가능 금액은 ${formatPrice(latestMinimum)}원입니다.`
+              : requestError.response?.data?.message || '현재가가 갱신되었습니다. 최신 입찰 가능 금액을 확인해 주세요.',
+        })
+      } else if (errorCode === 'BID_LIMIT_REACHED') {
+        setArt((currentArt) => ({ ...currentArt, nextMinimumBidPrice: null }))
+        setBidFeedback({
+          type: 'error',
+          message: '최소 증분을 적용하면 시스템 최대 입찰가를 초과합니다.',
         })
       } else {
         setBidFeedback({
@@ -263,8 +282,8 @@ export default function ArtDetail() {
     bidDisabledReason = `${formatClosingTime(art.bidStartTime)}부터 입찰할 수 있습니다.`
   } else if (now >= closingTimestamp) {
     bidDisabledReason = '마감된 경매에는 입찰할 수 없습니다.'
-  } else if (art.currentPrice >= MAX_BID_PRICE) {
-    bidDisabledReason = '입찰 가능 최고 금액에 도달했습니다.'
+  } else if (art.nextMinimumBidPrice === null) {
+    bidDisabledReason = '최소 증분을 적용하면 시스템 최대 입찰가를 초과합니다.'
   } else if (!isLoggedIn) {
     bidDisabledReason = '로그인 후 입찰할 수 있습니다.'
   }
@@ -320,29 +339,41 @@ export default function ArtDetail() {
             </p>
           </div>
 
-          <p className={styles.price}>
-            <span className={styles.priceLabel}>현재가</span>
-            <strong>{formatPrice(art.currentPrice)}원</strong>
-            <small>시작가 {formatPrice(art.startPrice)}원</small>
-          </p>
+          <dl className={styles.priceSummary}>
+            <div className={styles.currentPriceItem}>
+              <dt>현재가</dt>
+              <dd>{formatPrice(art.currentPrice)}원</dd>
+              <small>시작가 {formatPrice(art.startPrice)}원</small>
+            </div>
+            <div>
+              <dt>다음 입찰 가능 금액</dt>
+              <dd>{art.nextMinimumBidPrice === null ? '입찰 한도 도달' : `${formatPrice(art.nextMinimumBidPrice)}원`}</dd>
+            </div>
+            <div>
+              <dt>최소 입찰 증분</dt>
+              <dd>{formatPrice(art.minimumBidIncrement)}원</dd>
+            </div>
+          </dl>
 
           <form className={styles.bidForm} onSubmit={handleBidSubmit}>
             <div className={styles.bidHeading}>
               <div>
                 <h2>입찰하기</h2>
-                <p>현재가보다 최소 1원 높은 금액을 입력해 주세요.</p>
+                <p>표시된 다음 입찰 가능 금액 이상으로 입력해 주세요.</p>
               </div>
               {canBid && (
                 <span className={styles.minimumBid}>
-                  최소 {formatPrice(art.currentPrice + 1)}원
+                  최소 {formatPrice(art.nextMinimumBidPrice)}원
                 </span>
               )}
             </div>
 
             <div className={styles.bidControls}>
-              <label className={styles.bidInputWrap}>
+              <label className={styles.bidInputWrap} htmlFor="bid-price">
                 <span className={styles.srOnly}>입찰 금액</span>
                 <input
+                  id="bid-price"
+                  aria-label="입찰 금액"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -351,7 +382,7 @@ export default function ArtDetail() {
                     setBidPrice(event.target.value.replace(/[^\d]/g, ''))
                     setBidFeedback(null)
                   }}
-                  placeholder={canBid ? `${formatPrice(art.currentPrice + 1)}원 이상` : '입찰 불가'}
+                  placeholder={canBid ? `${formatPrice(art.nextMinimumBidPrice)}원 이상` : '입찰 불가'}
                   disabled={!canBid || bidSubmitting}
                   aria-describedby="bid-help"
                 />
@@ -377,6 +408,7 @@ export default function ArtDetail() {
             </div>
 
             <div id="bid-help" className={styles.bidHelp} aria-live="polite">
+              <p className={styles.bidNotice}>다른 사용자의 입찰로 현재가가 바뀔 수 있으며, 서버가 최신 금액으로 최종 확인합니다.</p>
               {bidDisabledReason && <p className={styles.bidNotice}>{bidDisabledReason}</p>}
               {bidFeedback && (
                 <p className={bidFeedback.type === 'success' ? styles.bidSuccess : styles.bidError}>

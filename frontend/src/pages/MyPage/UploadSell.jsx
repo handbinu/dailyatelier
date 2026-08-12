@@ -2,6 +2,13 @@
 import { useNavigate } from 'react-router-dom'
 import api from '../../api/authApi'
 import { createArt } from '../../api/artApi'
+import {
+  DEFAULT_MINIMUM_BID_INCREMENT,
+  getMinimumBidIncrementError,
+  getNextMinimumBidPrice,
+  MAX_BID_PRICE,
+  parseIntegerPrice,
+} from '../../utils/bidPricePolicy'
 import { PageBanner, PageWrap } from './components/atoms'
 import s from './UploadSell.module.css'
 
@@ -13,6 +20,7 @@ const DEFAULT_FORM = {
   category: '',
   wIntro: '',
   startPrice: '',
+  minimumBidIncrement: String(DEFAULT_MINIMUM_BID_INCREMENT),
   bidStartTime: '',
   closingTime: '',
 }
@@ -128,7 +136,8 @@ export default function UploadSell() {
 
   const validate = () => {
     const nextErrors = {}
-    const startPrice = Number(form.startPrice)
+    const startPrice = parseIntegerPrice(form.startPrice)
+    const minimumBidIncrement = parseIntegerPrice(form.minimumBidIncrement)
     const bidStart = new Date(form.bidStartTime)
     const closing = new Date(form.closingTime)
 
@@ -142,8 +151,14 @@ export default function UploadSell() {
       nextErrors.category = '실물 작품은 디지털 아트 외 카테고리를 선택해 주세요.'
     }
     if (!form.material.trim()) nextErrors.material = '재료·기법을 입력해 주세요.'
-    if (!Number.isInteger(startPrice) || startPrice < 1) {
-      nextErrors.startPrice = '시작가격은 1원 이상의 정수로 입력해 주세요.'
+    if (startPrice === null || startPrice < 1 || startPrice > MAX_BID_PRICE) {
+      nextErrors.startPrice = '시작가격은 1원 이상 21억 원 이하의 정수로 입력해 주세요.'
+    }
+    const incrementError = getMinimumBidIncrementError(form.minimumBidIncrement)
+    if (incrementError) nextErrors.minimumBidIncrement = incrementError
+    if (!nextErrors.startPrice && !incrementError
+      && getNextMinimumBidPrice(startPrice, minimumBidIncrement) === null) {
+      nextErrors.startPrice = '시작가와 최소 입찰 증분의 합은 21억 원 이하여야 합니다.'
     }
     if (!form.bidStartTime) nextErrors.bidStartTime = '입찰 시작 시간을 선택해 주세요.'
     if (!form.closingTime) nextErrors.closingTime = '입찰 종료 시간을 선택해 주세요.'
@@ -201,6 +216,7 @@ export default function UploadSell() {
         wIntro: form.wIntro.trim(),
         imgPath: uploaded.secure_url,
         startPrice: Number(form.startPrice),
+        minimumBidIncrement: Number(form.minimumBidIncrement),
       }
       const { data } = await createArt(payload)
       setCreatedArt(data)
@@ -222,6 +238,7 @@ export default function UploadSell() {
           <div className={s.doneMeta}>
             <span>작품 번호 {createdArt.artId}</span>
             <span>현재가 {Number(createdArt.currentPrice).toLocaleString()}원</span>
+            <span>최소 입찰 증분 {Number(createdArt.minimumBidIncrement).toLocaleString()}원</span>
           </div>
           <div className={s.doneActions}>
             <button className={s.doneBtn} onClick={() => navigate(`/auction/${createdArt.artId}`)}>
@@ -237,6 +254,11 @@ export default function UploadSell() {
   }
 
   const categoryOptions = CATEGORY_OPTIONS.filter(([category]) => isCategoryAllowed(form.format, category))
+  const startPrice = parseIntegerPrice(form.startPrice)
+  const increment = parseIntegerPrice(form.minimumBidIncrement)
+  const incrementError = getMinimumBidIncrementError(form.minimumBidIncrement)
+  const firstBidPrice = startPrice !== null && startPrice >= 1 && startPrice <= MAX_BID_PRICE
+    && !incrementError ? getNextMinimumBidPrice(startPrice, increment) : null
 
   return (
     <PageWrap>
@@ -343,6 +365,7 @@ export default function UploadSell() {
                     className={s.input}
                     type="number"
                     min={1}
+                    max={MAX_BID_PRICE}
                     step={1}
                     value={form.startPrice}
                     onChange={setValue('startPrice')}
@@ -351,6 +374,37 @@ export default function UploadSell() {
                   <span className={s.priceUnit}>원</span>
                 </div>
               </FormField>
+
+              <div className={s.field}>
+                <label className={s.fieldLabel} htmlFor="minimum-bid-increment">최소 입찰 증분 *</label>
+                <div className={s.priceRow}>
+                  <input
+                    id="minimum-bid-increment"
+                    className={s.input}
+                    type="number"
+                    min="100"
+                    max="10000000"
+                    step="100"
+                    value={form.minimumBidIncrement}
+                    onChange={setValue('minimumBidIncrement')}
+                    aria-describedby={`minimum-bid-increment-help minimum-bid-increment-example${errors.minimumBidIncrement ? ' minimum-bid-increment-error' : ''}`}
+                    aria-invalid={Boolean(errors.minimumBidIncrement)}
+                  />
+                  <span className={s.priceUnit}>원</span>
+                </div>
+                <div id="minimum-bid-increment-help" className={s.fieldHelp}>
+                  <p>다음 입찰자는 현재가보다 최소 이 금액만큼 높게 입찰해야 합니다.</p>
+                  <p>100원 단위 · 기본 1,000원</p>
+                </div>
+                <p id="minimum-bid-increment-example" className={s.priceExample} aria-live="polite">
+                  {firstBidPrice !== null
+                    ? `첫 입찰 가능 금액은 ${firstBidPrice.toLocaleString()}원부터입니다.`
+                    : '유효한 시작가와 최소 입찰 증분을 입력하면 첫 입찰 가능 금액을 확인할 수 있습니다.'}
+                </p>
+                {errors.minimumBidIncrement && (
+                  <p id="minimum-bid-increment-error" className={s.errMsg}>{errors.minimumBidIncrement}</p>
+                )}
+              </div>
 
               <div className={s.timeGrid}>
                 <FormField label="입찰 시작 시간 *" error={errors.bidStartTime}>
@@ -391,7 +445,7 @@ export default function UploadSell() {
 function FormField({ label, error, children }) {
   return (
     <label className={s.field}>
-      <p className={s.fieldLabel}>{label}</p>
+      <span className={s.fieldLabel}>{label}</span>
       {children}
       {error && <p className={s.errMsg}>{error}</p>}
     </label>

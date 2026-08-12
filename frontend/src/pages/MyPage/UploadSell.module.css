@@ -88,6 +88,21 @@
   line-height: 1.6;
 }
 
+.fieldHelp {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+}
+
+.priceExample {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-light);
+  color: var(--color-accent-hover);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
 .input:focus,
 .textarea:focus {
   outline: none;

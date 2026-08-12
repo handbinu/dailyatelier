@@ -143,30 +143,47 @@
   font-weight: var(--font-weight-bold);
 }
 
-.price {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
+.priceSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
   padding: var(--space-4) 0 var(--space-2);
   margin-top: var(--space-2);
   border-top: 1px solid var(--color-border);
 }
 
-.priceLabel {
+.priceSummary > div {
+  min-width: 0;
+}
+
+.priceSummary dt {
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-text-muted);
 }
 
-.price strong {
+.priceSummary dd {
+  margin-top: var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.priceSummary .currentPriceItem {
+  grid-column: 1 / -1;
+}
+
+.priceSummary .currentPriceItem dd {
   font-size: clamp(1.7rem, 2.8vw, 2.4rem);
   color: var(--color-accent);
   font-weight: 900;
   letter-spacing: -.03em;
 }
 
-.price small {
+.priceSummary small {
+  display: block;
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
@@ -583,9 +600,12 @@
     width: auto;
   }
 
-  .price {
-    flex-direction: column;
-    gap: var(--space-1);
+  .priceSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .priceSummary .currentPriceItem {
+    grid-column: auto;
   }
 
   .bidHeading,
