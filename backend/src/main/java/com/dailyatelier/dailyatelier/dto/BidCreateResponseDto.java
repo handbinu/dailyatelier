@@ -12,6 +12,8 @@ public class BidCreateResponseDto {
     private Long artId;
     private Integer bidPrice;
     private Integer currentPrice;
+    private Integer minimumBidIncrement;
+    private Integer nextMinimumBidPrice;
     private LocalDateTime bidTime;
     private long availablePoint;
     private long heldPoint;
@@ -22,6 +24,16 @@ public class BidCreateResponseDto {
             Integer bidPrice,
             Integer currentPrice,
             LocalDateTime bidTime) {
-        this(bidId, artId, bidPrice, currentPrice, bidTime, 0L, 0L);
+        this(
+                bidId,
+                artId,
+                bidPrice,
+                currentPrice,
+                null,
+                null,
+                bidTime,
+                0L,
+                0L
+        );
     }
 }

@@ -39,6 +39,31 @@ class ArtUpdateRequestDtoTest {
     }
 
     @Test
+    void distinguishesMissingMinimumBidIncrementFromExplicitNull() throws Exception {
+        ArtUpdateRequestDto missing = objectMapper.readValue(
+                "{\"material\":\"캔버스\"}", ArtUpdateRequestDto.class);
+        ArtUpdateRequestDto explicitNull = objectMapper.readValue(
+                "{\"minimumBidIncrement\":null}", ArtUpdateRequestDto.class);
+
+        assertThat(missing.isMinimumBidIncrementProvided()).isFalse();
+        assertThat(explicitNull.isMinimumBidIncrementProvided()).isTrue();
+        assertThat(messages(validator.validate(explicitNull)))
+                .contains("최소 입찰 증분은 필수입니다.");
+    }
+
+    @Test
+    void validatesProvidedMinimumBidIncrementRangeAndUnit() throws Exception {
+        ArtUpdateRequestDto valid = objectMapper.readValue(
+                "{\"minimumBidIncrement\":100}", ArtUpdateRequestDto.class);
+        ArtUpdateRequestDto invalid = objectMapper.readValue(
+                "{\"minimumBidIncrement\":150}", ArtUpdateRequestDto.class);
+
+        assertThat(validator.validate(valid)).isEmpty();
+        assertThat(messages(validator.validate(invalid)))
+                .contains("최소 입찰 증분은 100원 이상 10,000,000원 이하의 100원 단위여야 합니다.");
+    }
+
+    @Test
     void rejectsEmptyPatchAndNullRequiredValues() throws Exception {
         ArtUpdateRequestDto empty =
                 objectMapper.readValue("{}", ArtUpdateRequestDto.class);

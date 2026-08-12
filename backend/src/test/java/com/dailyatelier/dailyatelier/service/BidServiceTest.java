@@ -241,6 +241,85 @@ class BidServiceTest {
     }
 
     @Test
+    void createBidUsesConfiguredIncrementAndReportsActualMinimumPrice() {
+        Art art = createOpenArt("seller", 100_000);
+        art.setMinimumBidIncrement(2_000);
+        stubBidderAndArt(art);
+
+        assertThatThrownBy(() -> bidService.createBid(
+                1L, "bidder", createRequest(101_999)))
+                .isInstanceOf(BidApiException.class)
+                .satisfies(error -> {
+                    BidApiException exception = (BidApiException) error;
+                    assertThat(exception.getCode()).isEqualTo("BID_TOO_LOW");
+                    assertThat(exception.getMessage()).contains("102,000원");
+                });
+        verify(bidRepository, never()).save(any());
+        verify(pointAccountRepository, never()).save(any());
+    }
+
+    @Test
+    void createBidAllowsNonHundredUnitAmountAboveMinimum() {
+        Art art = createOpenArt("seller", 100_000);
+        stubBidderAndArt(art);
+        when(artRepository.save(art)).thenReturn(art);
+        when(bidRepository.save(any(Bid.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BidCreateResponseDto response =
+                bidService.createBid(1L, "bidder", createRequest(101_001));
+
+        assertThat(response.getCurrentPrice()).isEqualTo(101_001);
+        assertThat(response.getMinimumBidIncrement()).isEqualTo(1_000);
+        assertThat(response.getNextMinimumBidPrice()).isEqualTo(102_001);
+    }
+
+    @Test
+    void createBidRejectsWhenNextMinimumPriceExceedsSystemLimitBeforeSaving() {
+        Art art = createOpenArt("seller", 2_100_000_000);
+        stubBidderAndArt(art);
+
+        assertBidError(
+                () -> bidService.createBid(1L, "bidder", createRequest(2_100_000_000)),
+                HttpStatus.CONFLICT,
+                "BID_LIMIT_REACHED"
+        );
+        verify(bidRepository, never()).save(any());
+        verify(pointAccountRepository, never()).findByUserIdForUpdate(any());
+    }
+
+    @Test
+    void createBidAllowsSystemLimitAndReturnsNoNextMinimumPrice() {
+        Art art = createOpenArt("seller", 2_099_999_000);
+        User bidder = createUser("bidder");
+        when(artRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(art));
+        when(userRepository.findByUserId("bidder")).thenReturn(bidder);
+        when(pointAccountRepository.findByUserIdForUpdate("bidder"))
+                .thenReturn(Optional.of(PointAccount.open(bidder, 3_000_000_000L, NOW)));
+        when(artRepository.save(art)).thenReturn(art);
+        when(bidRepository.save(any(Bid.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BidCreateResponseDto response = bidService.createBid(
+                1L, "bidder", createRequest(2_100_000_000));
+
+        assertThat(response.getCurrentPrice()).isEqualTo(2_100_000_000);
+        assertThat(response.getMinimumBidIncrement()).isEqualTo(1_000);
+        assertThat(response.getNextMinimumBidPrice()).isNull();
+    }
+
+    @Test
+    void createBidHandlesAbnormalIntegerMaximumFixtureWithoutOverflow() {
+        Art art = createOpenArt("seller", Integer.MAX_VALUE);
+        stubBidderAndArt(art);
+
+        assertBidError(
+                () -> bidService.createBid(1L, "bidder", createRequest(2_100_000_000)),
+                HttpStatus.CONFLICT,
+                "BID_LIMIT_REACHED"
+        );
+        verify(bidRepository, never()).save(any());
+    }
+
+    @Test
     void createBidRejectsAmountOutsideIntegerPolicy() {
         Art art = createOpenArt("seller", 100_000);
         stubBidderAndArt(art);

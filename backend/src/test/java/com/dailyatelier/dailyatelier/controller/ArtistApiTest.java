@@ -176,6 +176,7 @@ class ArtistApiTest {
                 "작품 소개",
                 100_000,
                 120_000,
+                1_000,
                 LocalDateTime.of(2026, 8, 1, 10, 0),
                 LocalDateTime.of(2026, 8, 31, 18, 0),
                 "https://example.com/art.jpg",

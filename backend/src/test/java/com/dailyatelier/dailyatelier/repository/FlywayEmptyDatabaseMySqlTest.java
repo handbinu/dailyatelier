@@ -35,7 +35,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
             Map.entry("users", 10),
             Map.entry("artist", 6),
-            Map.entry("art", 18),
+            Map.entry("art", 19),
             Map.entry("bid", 5),
             Map.entry("orders", 44),
             Map.entry("address", 4),
@@ -155,19 +155,24 @@ class FlywayEmptyDatabaseMySqlTest {
             "chk_point_hold_amount",
             "chk_point_charge_requested_amount",
             "chk_point_charge_paid_amount",
-            "chk_callback_attempt_count"
+            "chk_callback_attempt_count",
+            "chk_art_minimum_bid_increment"
     );
 
-    private static final Map<String, String> EXPECTED_CHECK_CLAUSES = Map.of(
-            "chk_point_account_available", "available_balance>=0",
-            "chk_point_account_held", "held_balance>=0",
-            "chk_point_transaction_amount", "amount>0",
-            "chk_point_transaction_available_after", "available_balance_after>=0",
-            "chk_point_transaction_held_after", "held_balance_after>=0",
-            "chk_point_hold_amount", "amount>0",
-            "chk_point_charge_requested_amount", "requested_amount>0",
-            "chk_point_charge_paid_amount", "paid_amount>=0",
-            "chk_callback_attempt_count", "attempt_count>=0"
+    private static final Map<String, String> EXPECTED_CHECK_CLAUSES = Map.ofEntries(
+            Map.entry("chk_point_account_available", "available_balance>=0"),
+            Map.entry("chk_point_account_held", "held_balance>=0"),
+            Map.entry("chk_point_transaction_amount", "amount>0"),
+            Map.entry("chk_point_transaction_available_after", "available_balance_after>=0"),
+            Map.entry("chk_point_transaction_held_after", "held_balance_after>=0"),
+            Map.entry("chk_point_hold_amount", "amount>0"),
+            Map.entry("chk_point_charge_requested_amount", "requested_amount>0"),
+            Map.entry("chk_point_charge_paid_amount", "paid_amount>=0"),
+            Map.entry("chk_callback_attempt_count", "attempt_count>=0"),
+            Map.entry(
+                    "chk_art_minimum_bid_increment",
+                    "minimum_bid_incrementbetween100and10000000andminimum_bid_increment%100=0"
+            )
     );
 
     @Autowired
@@ -178,7 +183,7 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(14);
@@ -200,6 +205,7 @@ class FlywayEmptyDatabaseMySqlTest {
         assertImportantColumn("art", "format", "varchar", false, null);
         assertImportantColumn("art", "category", "varchar", false, null);
         assertImportantColumn("art", "created_at", "datetime", false, null);
+        assertImportantColumn("art", "minimum_bid_increment", "int", false, "1000");
         assertImportantColumn("orders", "payment_method", "varchar", false, null);
         assertImportantColumn("orders", "refund_request_status", "varchar", true, null);
     }
@@ -303,6 +309,7 @@ class FlywayEmptyDatabaseMySqlTest {
         clauses.replaceAll((name, clause) -> clause
                 .replace("`", "")
                 .replace(" ", "")
+                .replaceAll("(?i)mod\\(([^,]+),([^)]+)\\)", "$1%$2")
                 .replace("(", "")
                 .replace(")", "")
                 .toLowerCase());

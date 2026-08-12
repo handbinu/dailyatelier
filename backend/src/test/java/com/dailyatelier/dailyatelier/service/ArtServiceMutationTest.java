@@ -213,6 +213,44 @@ class ArtServiceMutationTest {
     }
 
     @Test
+    void updatesMinimumBidIncrementBeforeStartAndRejectsItAtStartBoundary() {
+        Art beforeStart = createActiveArt("owner");
+        beforeStart.setBidStartTime(NOW.plusNanos(1));
+        ArtUpdateRequestDto update = new ArtUpdateRequestDto();
+        update.setMinimumBidIncrement(2_000);
+        stubLockedArt(beforeStart);
+        when(bidRepository.existsByArt(beforeStart)).thenReturn(false);
+
+        ArtResponseDto response = artService.updateArt(1L, "owner", update);
+
+        assertThat(response.getMinimumBidIncrement()).isEqualTo(2_000);
+
+        Art atBoundary = createActiveArt("owner");
+        atBoundary.setBidStartTime(NOW);
+        stubLockedArt(atBoundary);
+        when(bidRepository.existsByArt(atBoundary)).thenReturn(false);
+
+        assertThatThrownBy(() -> artService.updateArt(1L, "owner", update))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("MINIMUM_BID_INCREMENT_LOCKED"));
+    }
+
+    @Test
+    void rejectsMinimumBidIncrementAfterBid() {
+        Art art = createActiveArt("owner");
+        ArtUpdateRequestDto request = new ArtUpdateRequestDto();
+        request.setMinimumBidIncrement(2_000);
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(true);
+
+        assertThatThrownBy(() -> artService.updateArt(1L, "owner", request))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("ART_BID_RESTRICTION"));
+    }
+
+    @Test
     void rejectsNonOwnerAndNonArtistOwner() {
         Art art = createActiveArt("owner");
         ArtUpdateRequestDto request = descriptionRequest();

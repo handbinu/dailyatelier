@@ -35,6 +35,7 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
                         art.wIntro,
                         art.startPrice,
                         art.currentPrice,
+                        art.minimumBidIncrement,
                         art.bidStartTime,
                         art.closingTime,
                         art.imgPath,

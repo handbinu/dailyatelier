@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.dto;
 
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
+import com.dailyatelier.dailyatelier.service.AuctionPricePolicy;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.constraints.AssertTrue;
@@ -17,6 +18,8 @@ public class ArtUpdateRequestDto {
     @Min(1)
     @Max(2_100_000_000)
     private Integer startPrice;
+
+    private Integer minimumBidIncrement;
 
     private LocalDateTime bidStartTime;
 
@@ -40,6 +43,9 @@ public class ArtUpdateRequestDto {
 
     @JsonIgnore
     private boolean startPriceProvided;
+
+    @JsonIgnore
+    private boolean minimumBidIncrementProvided;
 
     @JsonIgnore
     private boolean bidStartTimeProvided;
@@ -69,6 +75,12 @@ public class ArtUpdateRequestDto {
     public void setStartPrice(Integer startPrice) {
         this.startPriceProvided = true;
         this.startPrice = startPrice;
+    }
+
+    @JsonSetter("minimumBidIncrement")
+    public void setMinimumBidIncrement(Integer minimumBidIncrement) {
+        this.minimumBidIncrementProvided = true;
+        this.minimumBidIncrement = minimumBidIncrement;
     }
 
     @JsonSetter("bidStartTime")
@@ -123,6 +135,7 @@ public class ArtUpdateRequestDto {
     @AssertTrue(message = "수정할 필드를 하나 이상 입력해야 합니다.")
     public boolean isAnyFieldProvided() {
         return startPriceProvided
+                || minimumBidIncrementProvided
                 || bidStartTimeProvided
                 || closingTimeProvided
                 || descriptProvided
@@ -137,6 +150,20 @@ public class ArtUpdateRequestDto {
     @AssertTrue(message = "시작가는 필수입니다.")
     public boolean isProvidedStartPriceValid() {
         return !startPriceProvided || startPrice != null;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "최소 입찰 증분은 필수입니다.")
+    public boolean isProvidedMinimumBidIncrementPresent() {
+        return !minimumBidIncrementProvided || minimumBidIncrement != null;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "최소 입찰 증분은 100원 이상 10,000,000원 이하의 100원 단위여야 합니다.")
+    public boolean isProvidedMinimumBidIncrementValid() {
+        return !minimumBidIncrementProvided
+                || minimumBidIncrement == null
+                || AuctionPricePolicy.isValidMinimumBidIncrement(minimumBidIncrement);
     }
 
     @JsonIgnore

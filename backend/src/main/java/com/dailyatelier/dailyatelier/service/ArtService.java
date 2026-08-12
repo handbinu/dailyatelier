@@ -84,6 +84,10 @@ public class ArtService {
                 art.getWIntro(),
                 art.getStartPrice(),
                 art.getCurrentPrice(),
+                art.getMinimumBidIncrement(),
+                AuctionPricePolicy.nextMinimumBidPrice(
+                        art.getCurrentPrice(), art.getMinimumBidIncrement()
+                ).orElse(null),
                 art.getBidStartTime(),
                 art.getClosingTime(),
                 art.getImgPath(),
@@ -156,6 +160,7 @@ public class ArtService {
             );
         }
         validateClassification(dto.getFormat(), dto.getCategory());
+        validateFirstBidPrice(dto.getStartPrice(), dto.getMinimumBidIncrement());
 
         Art art = new Art();
         art.setArtist(artist);
@@ -167,6 +172,7 @@ public class ArtService {
         art.setWIntro(blankToNull(dto.getWIntro()));
         art.setStartPrice(dto.getStartPrice());
         art.setCurrentPrice(dto.getStartPrice());
+        art.setMinimumBidIncrement(dto.getMinimumBidIncrement());
         art.setBidStartTime(dto.getBidStartTime());
         art.setClosingTime(dto.getClosingTime());
         art.setImgPath(dto.getImgPath().trim());
@@ -194,6 +200,15 @@ public class ArtService {
             );
         }
 
+        if (dto.isMinimumBidIncrementProvided()
+                && !now.isBefore(art.getBidStartTime())) {
+            throw new DomainApiException(
+                    HttpStatus.CONFLICT,
+                    "MINIMUM_BID_INCREMENT_LOCKED",
+                    "경매 시작 후에는 최소 입찰 증분을 수정할 수 없습니다."
+            );
+        }
+
         LocalDateTime bidStartTime = dto.isBidStartTimeProvided()
                 ? dto.getBidStartTime()
                 : art.getBidStartTime();
@@ -201,6 +216,13 @@ public class ArtService {
                 ? dto.getClosingTime()
                 : art.getClosingTime();
         validateAuctionPeriod(bidStartTime, closingTime, now);
+        Integer startPrice = dto.isStartPriceProvided()
+                ? dto.getStartPrice()
+                : art.getStartPrice();
+        Integer minimumBidIncrement = dto.isMinimumBidIncrementProvided()
+                ? dto.getMinimumBidIncrement()
+                : art.getMinimumBidIncrement();
+        validateFirstBidPrice(startPrice, minimumBidIncrement);
         ArtFormat format = dto.isFormatProvided() ? dto.getFormat() : art.getFormat();
         ArtCategory category = dto.isCategoryProvided() ? dto.getCategory() : art.getCategory();
         validateClassification(format, category);
@@ -339,6 +361,7 @@ public class ArtService {
 
     private boolean hasPriceOrPeriodChange(ArtUpdateRequestDto dto) {
         return dto.isStartPriceProvided()
+                || dto.isMinimumBidIncrementProvided()
                 || dto.isBidStartTimeProvided()
                 || dto.isClosingTimeProvided();
     }
@@ -363,6 +386,9 @@ public class ArtService {
         if (dto.isStartPriceProvided()) {
             art.setStartPrice(dto.getStartPrice());
             art.setCurrentPrice(dto.getStartPrice());
+        }
+        if (dto.isMinimumBidIncrementProvided()) {
+            art.setMinimumBidIncrement(dto.getMinimumBidIncrement());
         }
         if (dto.isBidStartTimeProvided()) {
             art.setBidStartTime(dto.getBidStartTime());
@@ -402,6 +428,7 @@ public class ArtService {
                 art.getWIntro(),
                 art.getStartPrice(),
                 art.getCurrentPrice(),
+                art.getMinimumBidIncrement(),
                 art.getBidStartTime(),
                 art.getClosingTime(),
                 art.getImgPath(),
@@ -447,6 +474,18 @@ public class ArtService {
                     HttpStatus.BAD_REQUEST,
                     "INVALID_ART_CLASSIFICATION",
                     "Digital format requires digital art category and vice versa"
+            );
+        }
+    }
+
+    private void validateFirstBidPrice(
+            Integer startPrice,
+            Integer minimumBidIncrement) {
+        if (AuctionPricePolicy.nextMinimumBidPrice(startPrice, minimumBidIncrement).isEmpty()) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_FIRST_BID_PRICE",
+                    "시작가와 최소 입찰 증분의 합은 2,100,000,000원 이하여야 합니다."
             );
         }
     }

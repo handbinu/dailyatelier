@@ -17,6 +17,7 @@ public class ArtResponseDto {
     private String wIntro;
     private Integer startPrice;
     private Integer currentPrice;
+    private Integer minimumBidIncrement;
     private LocalDateTime bidStartTime;
     private LocalDateTime closingTime;
     private String imgPath;

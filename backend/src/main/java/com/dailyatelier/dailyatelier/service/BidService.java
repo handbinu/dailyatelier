@@ -43,7 +43,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BidService {
     private static final int MIN_BID_PRICE = 1;
-    private static final int MAX_BID_PRICE = 2_100_000_000;
     private static final int MAX_PAGE_SIZE = 50;
     private static final long IMMINENT_HOURS = 24;
 
@@ -73,7 +72,7 @@ public class BidService {
         validateBidderIsNotSeller(art, userId);
         LocalDateTime bidTime = LocalDateTime.now(clock);
         validateAuctionIsOpen(art, bidTime);
-        validateBidPrice(request == null ? null : request.getBidPrice(), art.getCurrentPrice());
+        validateBidPrice(request == null ? null : request.getBidPrice(), art);
 
         Integer bidPrice = request.getBidPrice();
         PointHold activeHold = art.getActivePointHold();
@@ -98,6 +97,10 @@ public class BidService {
                 art.getArtId(),
                 savedBid.getBidPrice(),
                 art.getCurrentPrice(),
+                art.getMinimumBidIncrement(),
+                AuctionPricePolicy.nextMinimumBidPrice(
+                        art.getCurrentPrice(), art.getMinimumBidIncrement()
+                ).orElse(null),
                 savedBid.getBidTime(),
                 accounts.get(bidder.getUserId()).getAvailableBalance(),
                 accounts.get(bidder.getUserId()).getHeldBalance()
@@ -269,19 +272,28 @@ public class BidService {
         }
     }
 
-    private void validateBidPrice(Integer bidPrice, Integer currentPrice) {
-        if (bidPrice == null || bidPrice < MIN_BID_PRICE || bidPrice > MAX_BID_PRICE) {
+    private void validateBidPrice(Integer bidPrice, Art art) {
+        if (bidPrice == null
+                || bidPrice < MIN_BID_PRICE
+                || bidPrice > AuctionPricePolicy.MAX_BID_PRICE) {
             throw new BidApiException(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_BID_AMOUNT",
                     "입찰 금액은 1원 이상 21억 원 이하의 정수여야 합니다."
             );
         }
-        if (currentPrice == null || bidPrice <= currentPrice) {
+        Integer minimumBidPrice = AuctionPricePolicy.nextMinimumBidPrice(
+                art.getCurrentPrice(), art.getMinimumBidIncrement()
+        ).orElseThrow(() -> new BidApiException(
+                HttpStatus.CONFLICT,
+                "BID_LIMIT_REACHED",
+                "최소 입찰 증분을 적용하면 시스템 최대 입찰가를 초과합니다."
+        ));
+        if (bidPrice < minimumBidPrice) {
             throw new BidApiException(
                     HttpStatus.CONFLICT,
                     "BID_TOO_LOW",
-                    "입찰 금액은 현재가보다 높아야 합니다."
+                    "입찰 금액은 최소 %,d원 이상이어야 합니다.".formatted(minimumBidPrice)
             );
         }
     }

@@ -1,5 +1,6 @@
 package com.dailyatelier.dailyatelier.entity;
 
+import com.dailyatelier.dailyatelier.service.AuctionPricePolicy;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -56,6 +57,9 @@ public class Art {
 
     @Column(nullable = false)
     private Integer currentPrice;
+
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 1000")
+    private Integer minimumBidIncrement = AuctionPricePolicy.DEFAULT_MINIMUM_BID_INCREMENT;
 
     @Column(nullable = false)
     private LocalDateTime bidStartTime;

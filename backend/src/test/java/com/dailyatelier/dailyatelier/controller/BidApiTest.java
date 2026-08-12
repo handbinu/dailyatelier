@@ -48,6 +48,8 @@ class BidApiTest {
                         7L,
                         150_000,
                         150_000,
+                        1_000,
+                        151_000,
                         LocalDateTime.of(2026, 7, 23, 18, 30),
                         50_000,
                         150_000
@@ -64,6 +66,8 @@ class BidApiTest {
                 .andExpect(jsonPath("$.artId").value(7))
                 .andExpect(jsonPath("$.bidPrice").value(150000))
                 .andExpect(jsonPath("$.currentPrice").value(150000))
+                .andExpect(jsonPath("$.minimumBidIncrement").value(1000))
+                .andExpect(jsonPath("$.nextMinimumBidPrice").value(151000))
                 .andExpect(jsonPath("$.availablePoint").value(50000))
                 .andExpect(jsonPath("$.heldPoint").value(150000));
     }
@@ -119,6 +123,46 @@ class BidApiTest {
                 .andExpect(jsonPath("$.code").value("SELF_BID_NOT_ALLOWED"))
                 .andExpect(jsonPath("$.message").value("본인 작품에는 입찰할 수 없습니다."))
                 .andExpect(jsonPath("$.path").value("/api/arts/7/bids"));
+    }
+
+    @Test
+    void lowBidReturnsStructuredConflictWithActualMinimumPrice() throws Exception {
+        when(bidService.createBid(eq(7L), eq("bidder"), any(BidCreateRequestDto.class)))
+                .thenThrow(new BidApiException(
+                        HttpStatus.CONFLICT,
+                        "BID_TOO_LOW",
+                        "입찰 금액은 최소 151,000원 이상이어야 합니다."
+                ));
+
+        mockMvc.perform(post("/api/arts/7/bids")
+                        .with(authentication(stringAuthentication("bidder")))
+                        .contentType("application/json")
+                        .content("""
+                                {"bidPrice": 150999}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BID_TOO_LOW"))
+                .andExpect(jsonPath("$.message").value(
+                        "입찰 금액은 최소 151,000원 이상이어야 합니다."));
+    }
+
+    @Test
+    void bidLimitReturnsStructuredConflict() throws Exception {
+        when(bidService.createBid(eq(7L), eq("bidder"), any(BidCreateRequestDto.class)))
+                .thenThrow(new BidApiException(
+                        HttpStatus.CONFLICT,
+                        "BID_LIMIT_REACHED",
+                        "최소 입찰 증분을 적용하면 시스템 최대 입찰가를 초과합니다."
+                ));
+
+        mockMvc.perform(post("/api/arts/7/bids")
+                        .with(authentication(stringAuthentication("bidder")))
+                        .contentType("application/json")
+                        .content("""
+                                {"bidPrice": 2100000000}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BID_LIMIT_REACHED"));
     }
 
     private UsernamePasswordAuthenticationToken stringAuthentication(String userId) {
