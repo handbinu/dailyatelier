@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageBanner, StarDisplay, Empty, PageWrap, ActionBtn } from './components/atoms'
 import { MOCK_REVIEWS, fmt } from './mockData'
+import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import s from './MyReview.module.css'
 
 const PER_PAGE = 6
@@ -159,12 +160,14 @@ function Pagination({ current, total, onChange }) {
 
 /* ── 리뷰 상세 모달 ──────────────────────────────────────── */
 function ReviewModal({ review, onClose }) {
-  const handleBg = (e) => { if (e.target === e.currentTarget) onClose() }
-
   return (
-    <div className={s.modalDim} onClick={handleBg} role="dialog" aria-modal="true">
-      <div className={s.modal}>
-        <button className={s.modalClose} onClick={onClose} aria-label="닫기">✕</button>
+    <AccessibleDialog
+      onClose={onClose}
+      labelledBy="my-review-dialog-title"
+      overlayClassName={s.modalDim}
+      contentClassName={s.modal}
+    >
+        <button className={s.modalClose} onClick={onClose} aria-label="닫기" data-dialog-initial-focus>✕</button>
 
         <div className={s.modalInner}>
           {/* 이미지 */}
@@ -174,7 +177,7 @@ function ReviewModal({ review, onClose }) {
 
           {/* 내용 */}
           <div className={s.modalDetail}>
-            <p className={s.modalArtName}>{review.artName}</p>
+            <h2 id="my-review-dialog-title" className={s.modalArtName}>{review.artName}</h2>
             <div className={s.modalMeta}>
               <StarDisplay star={review.star} />
               <span className={s.modalDate}>{review.createdAt}</span>
@@ -194,7 +197,6 @@ function ReviewModal({ review, onClose }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </AccessibleDialog>
   )
 }

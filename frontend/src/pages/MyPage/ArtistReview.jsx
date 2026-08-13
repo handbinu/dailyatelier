@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageBanner, StarDisplay, Empty, PageWrap } from './components/atoms'
 import { MOCK_ARTIST_REVIEWS, MOCK_MY_ARTS, fmt } from './mockData'
+import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import s from './ArtistReview.module.css'
 
 const PER_PAGE   = 6
@@ -187,12 +188,15 @@ function Pagination({ current, total, onChange }) {
 
 /* ── 리뷰 상세 모달 ───────────────────────────────────── */
 function ReviewModal({ review, onClose }) {
-  const handleBg = (e) => { if (e.target === e.currentTarget) onClose() }
-
   return (
-    <div className={s.modalDim} onClick={handleBg} role="dialog" aria-modal="true">
-      <div className={s.modal}>
-        <button className={s.modalClose} onClick={onClose} aria-label="닫기">✕</button>
+    <AccessibleDialog
+      onClose={onClose}
+      labelledBy="artist-review-dialog-title"
+      overlayClassName={s.modalDim}
+      contentClassName={s.modal}
+    >
+        <h2 id="artist-review-dialog-title" className="sr-only">{review.artName} 리뷰 상세</h2>
+        <button className={s.modalClose} onClick={onClose} aria-label="닫기" data-dialog-initial-focus>✕</button>
 
         <div className={s.modalInner}>
           {/* 작품 이미지 */}
@@ -244,7 +248,6 @@ function ReviewModal({ review, onClose }) {
             <button className={s.closeFullBtn} onClick={onClose}>닫기</button>
           </div>
         </div>
-      </div>
-    </div>
+    </AccessibleDialog>
   )
 }

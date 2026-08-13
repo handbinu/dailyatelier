@@ -9,6 +9,7 @@ import {
   getArtImageSrc,
 } from '../../utils/artImage'
 import { MAX_BID_PRICE, parseIntegerPrice } from '../../utils/bidPricePolicy'
+import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import styles from './ArtDetail.module.css'
 
 const LIST_PATH_PATTERN = /^\/(?:search|auction\/(?:total|digital|analog))(?:\?.*)?$/
@@ -100,25 +101,6 @@ export default function ArtDetail() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    if (!isModalOpen) return undefined
-
-    const originalOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setIsModalOpen(false)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = originalOverflow
-    }
-  }, [isModalOpen])
 
   const handleLike = async () => {
     if (!localStorage.getItem('token')) {
@@ -455,33 +437,30 @@ export default function ArtDetail() {
       )}
 
       {isModalOpen && (
-        <div
-          className={styles.modalDim}
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setIsModalOpen(false)}
+        <AccessibleDialog
+          onClose={() => setIsModalOpen(false)}
+          labelledBy="art-image-dialog-title"
+          overlayClassName={styles.modalDim}
+          contentClassName={styles.modal}
         >
-          <div
-            className={styles.modal}
-            onClick={(event) => event.stopPropagation()}
+          <h2 id="art-image-dialog-title" className={styles.srOnly}>{art.name} 원본 이미지</h2>
+          <button
+            type="button"
+            className={styles.modalClose}
+            onClick={() => setIsModalOpen(false)}
+            aria-label="닫기"
+            data-dialog-initial-focus
           >
-            <button
-              type="button"
-              className={styles.modalClose}
-              onClick={() => setIsModalOpen(false)}
-              aria-label="닫기"
-            >
-              ×
-            </button>
-            <img
-              className={styles.modalImage}
-              src={imageSrc}
-              alt={art.name}
-              onError={applyArtImageFallback}
-              onLoad={applyArtImageFallbackIfBlank}
-            />
-          </div>
-        </div>
+            ×
+          </button>
+          <img
+            className={styles.modalImage}
+            src={imageSrc}
+            alt={art.name}
+            onError={applyArtImageFallback}
+            onLoad={applyArtImageFallbackIfBlank}
+          />
+        </AccessibleDialog>
       )}
     </div>
   )

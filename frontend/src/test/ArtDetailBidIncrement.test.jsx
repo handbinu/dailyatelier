@@ -39,6 +39,18 @@ describe('작품 상세 최소 입찰 증분', () => {
     expect(screen.getByText(/서버가 최신 금액으로 최종 확인합니다/)).toBeVisible()
   })
 
+  it('원본 이미지 dialog를 접근 가능한 제목과 닫기 동작으로 제공한다', async () => {
+    renderPage()
+    const opener = await screen.findByRole('button', { name: '여름 원본 이미지 보기' })
+    opener.focus()
+    fireEvent.click(opener)
+
+    expect(screen.getByRole('dialog', { name: '여름 원본 이미지' })).toBeVisible()
+    await waitFor(() => expect(screen.getByRole('button', { name: '닫기' })).toHaveFocus())
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('최소가보다 1원 낮으면 차단하고 100원 배수가 아닌 유효 입찰은 전송한다', async () => {
     createBid.mockResolvedValue({ data: { bidPrice: 31001, currentPrice: 31001, minimumBidIncrement: 1000, nextMinimumBidPrice: 32001 } })
     renderPage()

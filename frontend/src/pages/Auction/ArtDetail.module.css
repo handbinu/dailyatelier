@@ -452,9 +452,9 @@
 
 .modalImage {
   display: block;
-  max-width: 100%;
+  max-width: min(calc(100vw - (var(--space-4) * 2)), 1100px);
   max-height: 92vh;
-  width: auto;
+  width: min(calc(100vw - (var(--space-4) * 2)), 1100px);
   height: auto;
   object-fit: contain;
 }
