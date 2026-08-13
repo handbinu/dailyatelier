@@ -23,6 +23,7 @@ import {
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
 import { createLoginState } from '../../utils/loginReturn'
+import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import { PageBanner, PageWrap } from './components/atoms'
 import {
   OrderFeedback,
@@ -41,6 +42,16 @@ const EMPTY_ADDRESS = {
   address2: '',
   saveAsDefault: false,
 }
+const ADDRESS_FIELDS = [
+  ['recipientName', '받는 분'],
+  ['recipientPhone', '연락처'],
+  ['zipCode', '우편번호'],
+  ['address1', '기본 주소'],
+  ['address2', '상세 주소'],
+]
+
+const hasChangedAddress = (previous, next) => ADDRESS_FIELDS.some(([field]) =>
+  String(previous?.[field] ?? '').trim() !== String(next?.[field] ?? '').trim())
 
 const getInitialAddress = (order, profile) => {
   if (order?.shippingAddress) {
@@ -77,6 +88,7 @@ export default function OrderStatus() {
   const [processingId, setProcessingId] = useState(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [addressConfirmation, setAddressConfirmation] = useState(null)
   const requestGuard = useRef(createOrderRequestGuard())
 
   const handleRequestError = useCallback((requestError, fallback) => {
@@ -220,27 +232,81 @@ export default function OrderStatus() {
     }))
   }
 
-  const submitAddress = async (event, orderId) => {
-    event.preventDefault()
+  const saveAddress = async (orderId, nextAddress, { closeDialog = false } = {}) => {
     if (!requestGuard.current.begin(orderId)) return
     setProcessingId(orderId)
     setError('')
     setNotice('')
 
     try {
-      await updateOrderShippingAddress(orderId, addressForm)
+      await updateOrderShippingAddress(orderId, nextAddress)
       await Promise.all([
         loadDetail(orderId, { force: true }),
         loadOrders(),
       ])
+      if (closeDialog) setAddressConfirmation(null)
       setEditingOrderId(null)
       setNotice('배송지를 확정했습니다.')
     } catch (requestError) {
-      handleRequestError(requestError, '배송지를 저장하지 못했습니다.')
+      const orderError = handleRequestError(
+        requestError,
+        '배송지를 저장하지 못했습니다.',
+      )
+      if (closeDialog) setAddressConfirmation(null)
+      if (orderError.shouldReload) {
+        await Promise.all([
+          loadDetail(orderId, { force: true }),
+          loadOrders(),
+        ])
+        setError(orderError.message)
+      }
     } finally {
       requestGuard.current.end(orderId)
       setProcessingId(null)
     }
+  }
+
+  const submitAddress = async (event, orderId) => {
+    event.preventDefault()
+    const order = result?.content?.find((item) => item.orderId === orderId)
+    const nextAddress = { ...addressForm }
+
+    if (order?.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed) {
+      const latestDetail = await loadDetail(orderId, { force: true })
+      if (!latestDetail) return
+      const previousAddress = latestDetail?.shippingAddress
+      const isServerConfirmed = Boolean(
+        latestDetail?.addressConfirmedAt && previousAddress,
+      )
+
+      if (isServerConfirmed && hasChangedAddress(previousAddress, nextAddress)) {
+        setAddressConfirmation({
+          orderId,
+          orderNumber: latestDetail.orderNumber || order.orderNumber,
+          artName: latestDetail.artName || order.artName,
+          previousAddress: getInitialAddress(latestDetail, null),
+          nextAddress,
+        })
+        return
+      }
+    }
+
+    await saveAddress(orderId, nextAddress)
+  }
+
+  const cancelAddressConfirmation = () => {
+    if (!addressConfirmation || processingId === addressConfirmation.orderId) return
+    setAddressForm(addressConfirmation.previousAddress)
+    setAddressConfirmation(null)
+  }
+
+  const confirmAddressChange = () => {
+    if (!addressConfirmation) return
+    saveAddress(
+      addressConfirmation.orderId,
+      addressConfirmation.nextAddress,
+      { closeDialog: true },
+    )
   }
 
   const runOrderAction = async (orderId, action) => {
@@ -400,6 +466,14 @@ export default function OrderStatus() {
           </Link>
         </div>
       </div>
+      {addressConfirmation && (
+        <ShippingAddressConfirmationDialog
+          confirmation={addressConfirmation}
+          saving={processingId === addressConfirmation.orderId}
+          onCancel={cancelAddressConfirmation}
+          onConfirm={confirmAddressChange}
+        />
+      )}
     </PageWrap>
   )
 }
@@ -800,5 +874,79 @@ function ShippingAddressForm({
         </button>
       </div>
     </form>
+  )
+}
+
+function ShippingAddressConfirmationDialog({
+  confirmation,
+  saving,
+  onCancel,
+  onConfirm,
+}) {
+  const titleId = `shipping-confirmation-title-${confirmation.orderId}`
+  const descriptionId = `shipping-confirmation-description-${confirmation.orderId}`
+
+  return (
+    <AccessibleDialog
+      onClose={onCancel}
+      labelledBy={titleId}
+      describedBy={descriptionId}
+      overlayClassName={s.confirmationOverlay}
+      contentClassName={s.confirmationDialog}
+      closeOnBackdrop={!saving}
+    >
+      <div className={s.confirmationHeading}>
+        <h2 id={titleId}>배송지 변경을 확정할까요?</h2>
+        <p id={descriptionId}>
+          결제와 배송이 시작되기 전에 이 주문의 확정 배송지가 변경됩니다.
+        </p>
+      </div>
+
+      <dl className={s.confirmationOrder}>
+        <div><dt>작품</dt><dd>{confirmation.artName}</dd></div>
+        <div><dt>주문 번호</dt><dd>{confirmation.orderNumber}</dd></div>
+      </dl>
+
+      <div className={s.addressComparison}>
+        <div className={s.comparisonHeader} aria-hidden="true">
+          <span>항목</span><span>기존 배송지</span><span>변경 배송지</span>
+        </div>
+        {ADDRESS_FIELDS.map(([field, label]) => {
+          const previousRawValue = confirmation.previousAddress[field] ?? ''
+          const nextRawValue = confirmation.nextAddress[field] ?? ''
+          const previousValue = previousRawValue || '-'
+          const nextValue = nextRawValue || '-'
+          const changed = String(previousRawValue).trim()
+            !== String(nextRawValue).trim()
+          return (
+            <div
+              key={field}
+              className={`${s.comparisonRow} ${changed ? s.comparisonChanged : ''}`}
+            >
+              <strong>{label}{changed ? ' (변경됨)' : ''}</strong>
+              <div><span>기존</span><p>{previousValue}</p></div>
+              <div><span>변경</span><p>{nextValue}</p></div>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className={s.cancelNotice}>
+        취소하면 입력한 변경 내용은 사라지고 마지막으로 확정된 배송지로 복원됩니다.
+      </p>
+      <div className={s.confirmationActions} aria-busy={saving}>
+        <button
+          type="button"
+          data-dialog-initial-focus
+          onClick={onCancel}
+          disabled={saving}
+        >
+          취소
+        </button>
+        <button type="button" onClick={onConfirm} disabled={saving}>
+          {saving ? '저장 중…' : '배송지 변경 확정'}
+        </button>
+      </div>
+    </AccessibleDialog>
   )
 }

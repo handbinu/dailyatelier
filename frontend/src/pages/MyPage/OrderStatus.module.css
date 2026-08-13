@@ -343,7 +343,7 @@
   margin-top: var(--space-4);
 }
 .formActions button {
-  min-height: 40px;
+  min-height: 44px;
   padding: var(--space-2) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -357,6 +357,49 @@
   background: var(--color-primary);
 }
 .formActions button:disabled { opacity: .5; cursor: default; }
+
+.confirmationOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(18, 24, 22, .62);
+}
+.confirmationDialog {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.confirmationHeading h2 { color: var(--color-text); font-size: var(--font-size-xl); }
+.confirmationHeading p { margin-top: var(--space-2); color: var(--color-text-sub); font-size: var(--font-size-sm); }
+.confirmationOrder { display: grid; gap: var(--space-2); margin-top: var(--space-5); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-alt); }
+.confirmationOrder div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: var(--space-3); }
+.confirmationOrder dt { color: var(--color-text-muted); font-size: var(--font-size-xs); font-weight: 700; }
+.confirmationOrder dd { min-width: 0; overflow-wrap: anywhere; color: var(--color-text); font-size: var(--font-size-sm); }
+.addressComparison { margin-top: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+.comparisonHeader, .comparisonRow { display: grid; grid-template-columns: 110px repeat(2, minmax(0, 1fr)); }
+.comparisonHeader { color: var(--color-text-muted); background: var(--color-surface-alt); font-size: var(--font-size-xs); font-weight: 700; }
+.comparisonHeader span, .comparisonRow > strong, .comparisonRow > div { min-width: 0; padding: var(--space-3); }
+.comparisonRow { border-top: 1px solid var(--color-border); }
+.comparisonRow > strong { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.comparisonRow > div { border-left: 1px solid var(--color-border); }
+.comparisonRow > div > span { display: none; color: var(--color-text-muted); font-size: 11px; font-weight: 700; }
+.comparisonRow p { min-width: 0; overflow-wrap: anywhere; color: var(--color-text-sub); font-size: var(--font-size-sm); }
+.comparisonChanged { background: var(--color-error-bg); }
+.comparisonChanged > strong { color: var(--color-error); }
+.comparisonChanged > div:last-child p { color: var(--color-error); font-weight: 700; }
+.cancelNotice { margin-top: var(--space-4); padding: var(--space-3); border-left: 4px solid var(--color-accent); color: var(--color-text-sub); background: var(--color-bg); font-size: var(--font-size-sm); overflow-wrap: anywhere; }
+.confirmationActions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-5); }
+.confirmationActions button { min-height: 44px; padding: var(--space-2) var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-sub); background: var(--color-surface); cursor: pointer; }
+.confirmationActions button:last-child { color: #fff; border-color: var(--color-primary); background: var(--color-primary); }
+.confirmationActions button:disabled { opacity: .5; cursor: default; }
 
 /* 상세 액션 */
 .detailActions { display: flex; gap: var(--space-3); }
@@ -428,4 +471,12 @@
   .detailPanel { padding: var(--space-4); }
   .pagination { gap: var(--space-2); }
   .pagination button { flex: 1; padding-right: var(--space-3); padding-left: var(--space-3); }
+  .confirmationDialog { padding: var(--space-4); }
+  .comparisonHeader { display: none; }
+  .comparisonRow { grid-template-columns: 1fr; }
+  .comparisonRow > strong { padding-bottom: var(--space-2); }
+  .comparisonRow > div { border-top: 1px dashed var(--color-border); border-left: 0; }
+  .comparisonRow > div > span { display: block; margin-bottom: var(--space-1); }
+  .confirmationActions { flex-direction: column-reverse; }
+  .confirmationActions button { width: 100%; }
 }
