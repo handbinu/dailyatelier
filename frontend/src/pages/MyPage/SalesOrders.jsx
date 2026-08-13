@@ -11,7 +11,6 @@ import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
 import {
   formatOrderDate,
   formatOrderPrice,
-  formatShippingAddress,
   getOrderError,
   getRefundRequestStatusView,
   ORDER_FILTERS,
@@ -32,6 +31,12 @@ import s from './SalesOrders.module.css'
 
 const PAGE_SIZE = 12
 const EMPTY_SHIPPING = { shippingCarrier: '', trackingNumber: '' }
+const SELLER_ACTION_LABELS = {
+  [SELLER_ACTION.START_PREPARING]: '배송 준비',
+  [SELLER_ACTION.SHIP]: '발송 처리',
+  [SELLER_ACTION.APPROVE_REFUND]: '환불 승인',
+  [SELLER_ACTION.REJECT_REFUND]: '환불 거절',
+}
 
 export default function SalesOrders() {
   const navigate = useNavigate()
@@ -345,24 +350,40 @@ function SellerOrderItem({
           aria-label={`${order.artName} 주문 작업`}
         >
           {actions.includes(SELLER_ACTION.START_PREPARING) && (
-            <button type="button" onClick={onPrepare} disabled={isProcessing}>
+            <button
+              type="button"
+              className={s.primaryAction}
+              onClick={onPrepare}
+              disabled={isProcessing}
+            >
               배송 준비
             </button>
           )}
           {actions.includes(SELLER_ACTION.SHIP) && (
-            <button type="button" onClick={onOpenShipping} disabled={isProcessing}>
+            <button
+              type="button"
+              className={s.primaryAction}
+              onClick={onOpenShipping}
+              disabled={isProcessing}
+            >
               발송 처리
             </button>
           )}
-          {actions.includes(SELLER_ACTION.APPROVE_REFUND) && (
-            <button type="button" onClick={onApproveRefund} disabled={isProcessing}>
-              환불 승인
-            </button>
-          )}
-          {actions.includes(SELLER_ACTION.REJECT_REFUND) && (
-            <button type="button" onClick={onRejectRefund} disabled={isProcessing}>
-              환불 거절
-            </button>
+          {(actions.includes(SELLER_ACTION.APPROVE_REFUND)
+            || actions.includes(SELLER_ACTION.REJECT_REFUND)) && (
+            <div className={s.refundActions} role="group" aria-label="환불 결정">
+              <span>환불 결정</span>
+              {actions.includes(SELLER_ACTION.APPROVE_REFUND) && (
+                <button type="button" onClick={onApproveRefund} disabled={isProcessing}>
+                  환불 승인
+                </button>
+              )}
+              {actions.includes(SELLER_ACTION.REJECT_REFUND) && (
+                <button type="button" onClick={onRejectRefund} disabled={isProcessing}>
+                  환불 거절
+                </button>
+              )}
+            </div>
           )}
           <button
             type="button"
@@ -387,44 +408,82 @@ function SellerOrderItem({
             <p>주문 상세를 불러오는 중입니다.</p>
           ) : detail ? (
             <>
-              <div className={s.meta}>
+              <section className={s.detailOverview} aria-labelledby={`${detailId}-status`}>
+                <div>
+                  <h3 id={`${detailId}-status`}>현재 주문 상태</h3>
+                  <OrderStatusBadge status={detail.status} />
+                </div>
+                <div>
+                  <strong>다음 가능한 작업</strong>
+                  <p>{getNextActionText(actions)}</p>
+                </div>
+              </section>
+
+              <section className={s.meta} aria-labelledby={`${detailId}-order`}>
+                <h3 id={`${detailId}-order`}>주문·결제</h3>
                 <Meta label="주문 번호" value={detail.orderNumber} />
-                <Meta
-                  label="구매자"
-                  value={`${detail.buyerName} (${detail.buyerNickname}) · ${detail.buyerPhone}`}
-                />
-                <Meta
-                  label="배송지"
-                  value={detail.shippingAddress
-                    ? `${detail.shippingAddress.recipientName} · ${detail.shippingAddress.recipientPhone} · ${formatShippingAddress(detail.shippingAddress)}`
-                    : '배송지 미확정'}
-                />
+                <Meta label="주문 일자" value={formatOrderDate(detail.createdAt)} />
                 <Meta label="낙찰가" value={formatOrderPrice(detail.winningPrice)} />
-                {detail.shippingCarrier && (
-                  <Meta
-                    label="배송 정보"
-                    value={`${detail.shippingCarrier} · ${detail.trackingNumber}`}
-                  />
+                <Meta label="결제 시각" value={formatOptionalDate(detail.paidAt)} />
+                <Meta label="준비 시각" value={formatOptionalDate(detail.preparingAt)} />
+                <Meta label="취소 사유" value={detail.cancelReason} />
+              </section>
+
+              <section className={s.meta} aria-labelledby={`${detailId}-buyer`}>
+                <h3 id={`${detailId}-buyer`}>구매자 연락처</h3>
+                <Meta label="이름" value={detail.buyerName} />
+                <Meta label="닉네임" value={detail.buyerNickname} />
+                <Meta label="전화번호" value={detail.buyerPhone} />
+              </section>
+
+              <section className={s.meta} aria-labelledby={`${detailId}-address`}>
+                <h3 id={`${detailId}-address`}>배송지</h3>
+                {detail.shippingAddress ? (
+                  <>
+                    <Meta label="받는 분" value={detail.shippingAddress.recipientName} />
+                    <Meta label="연락처" value={detail.shippingAddress.recipientPhone} />
+                    <Meta label="우편번호" value={detail.shippingAddress.zipCode} />
+                    <Meta label="기본 주소" value={detail.shippingAddress.address1} />
+                    <Meta label="상세 주소" value={detail.shippingAddress.address2} />
+                  </>
+                ) : (
+                  <p className={s.emptyValue}>배송지 미확정</p>
                 )}
-                {detail.paidAt && <Meta label="결제 시각" value={formatOrderDate(detail.paidAt)} />}
-                {detail.preparingAt && <Meta label="준비 시각" value={formatOrderDate(detail.preparingAt)} />}
-                {detail.shippedAt && <Meta label="발송 시각" value={formatOrderDate(detail.shippedAt)} />}
-                {detail.cancelReason && <Meta label="취소 사유" value={detail.cancelReason} />}
+              </section>
+
+              <section className={s.meta} aria-labelledby={`${detailId}-shipping`}>
+                <h3 id={`${detailId}-shipping`}>발송 정보</h3>
+                <Meta label="택배사" value={detail.shippingCarrier} />
+                <Meta label="송장번호" value={detail.trackingNumber} />
+                <Meta label="발송 시각" value={formatOptionalDate(detail.shippedAt)} />
+              </section>
+
+              <SellerRefundStatus detail={detail} headingId={`${detailId}-refund`} />
+              <div className={s.secondaryActions}>
+                <Link className={s.artLink} to={`/auction/${detail.artId}`}>
+                  작품 페이지로 이동
+                </Link>
               </div>
-              <SellerRefundStatus detail={detail} />
-              <Link className={s.artLink} to={`/auction/${detail.artId}`}>작품 페이지</Link>
             </>
           ) : null}
 
           {isShipping && (
-            <form className={s.shippingForm} onSubmit={onShip}>
+            <form
+              className={s.shippingForm}
+              onSubmit={onShip}
+              aria-busy={isProcessing}
+            >
               <h3>발송 정보</h3>
+              <p id={`${detailId}-shipping-help`}>
+                택배사와 송장번호를 확인한 뒤 발송 정보를 저장해 주세요.
+              </p>
               <label>
                 택배사
                 <input
                   name="shippingCarrier"
                   value={shippingForm.shippingCarrier}
                   onChange={onShippingChange}
+                  aria-describedby={`${detailId}-shipping-help`}
                   maxLength={50}
                   required
                 />
@@ -435,6 +494,7 @@ function SellerOrderItem({
                   name="trackingNumber"
                   value={shippingForm.trackingNumber}
                   onChange={onShippingChange}
+                  aria-describedby={`${detailId}-shipping-help`}
                   maxLength={100}
                   required
                 />
@@ -462,7 +522,16 @@ function Meta({ label, value }) {
   )
 }
 
-function SellerRefundStatus({ detail }) {
+function formatOptionalDate(value) {
+  return value ? formatOrderDate(value) : '-'
+}
+
+function getNextActionText(actions) {
+  const labels = actions.map((action) => SELLER_ACTION_LABELS[action]).filter(Boolean)
+  return labels.length > 0 ? labels.join(', ') : '현재 가능한 작업이 없습니다.'
+}
+
+function SellerRefundStatus({ detail, headingId }) {
   const view = getRefundRequestStatusView(detail.refundRequestStatus)
   if (!view) return null
 
@@ -476,7 +545,8 @@ function SellerRefundStatus({ detail }) {
   const processedAt = isApproved ? detail.refundedAt : detail.refundRejectedAt
 
   return (
-    <section className={s.refundStatus} aria-label="환불 요청 상태">
+    <section className={s.refundStatus} aria-labelledby={headingId}>
+      <h3 id={headingId}>환불 요청 상태</h3>
       <strong>{view.label}</strong>
       <p>{message}</p>
       <dl>
