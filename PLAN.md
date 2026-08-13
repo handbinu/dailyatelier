@@ -413,3 +413,66 @@
 
 기능 커밋에는 각 기능 코드와 직접 관련된 테스트만 포함한다. `PLAN.md`의 계획·검증
 상태와 `BACKLOG.md` 완료 표시는 전체 검증 후 네 번째 문서 커밋에서만 처리한다.
+
+---
+
+## 공통 dialog 키보드·스크린리더 접근성 개선
+
+### 목표와 범위
+
+기존 작품 원본 이미지와 구매자·작가 리뷰 dialog 3곳에 공통 키보드·스크린리더
+계약을 적용한다. 배송지 재확정 modal 등 새로운 후속 기능은 구현하지 않는다.
+
+### 1단계 — 공통 접근성 dialog 기반
+
+- [x] portal로 dialog를 `document.body`에 렌더링하면서 기존 overlay·content CSS
+      class를 그대로 적용할 수 있게 한다.
+- [x] 최초 포커스, Tab·Shift+Tab focus trap, Escape 종료와 열기 전 요소로의
+      focus return을 공통 처리한다.
+- [x] opener가 제거됐거나 focus할 수 없는 경우 오류 없이 복귀를 생략한다.
+- [x] `dialog`, `aria-modal`, 제목과 선택적 설명 연결 계약을 제공한다.
+- [x] 배경 root에 inert를 적용하고 기존 body overflow 값을 보존해 닫기, unmount와
+      라우트 이동 시 원래 상태로 복원한다.
+- [x] overlay 클릭 닫기와 내부 클릭 유지 정책을 공통 처리한다.
+- [x] 공통 동작과 cleanup을 컴포넌트 테스트로 검증한다.
+
+### 2단계 — 기존 dialog 전환
+
+- [x] 작품 원본 이미지 dialog의 기존 이미지, 배경 클릭, 닫기와 body scroll 동작을
+      공통 기반으로 옮기고 스크린리더용 제목을 연결한다.
+- [x] 구매자·작가 리뷰 dialog에 실제 제목을 연결하고 기존 리뷰 내용, 닫기와 수정
+      동작을 유지한다.
+- [x] 기존 modal CSS, z-index와 모바일 레이아웃을 유지하고 중복 Escape·overflow
+      코드를 제거한다.
+- [x] 기존 사용처 회귀 테스트를 추가한다.
+
+### 3단계 — 검증과 문서
+
+- [x] lint, 단위·컴포넌트 테스트, production build와 `git diff --check`를 통과한다.
+- [x] 데스크톱과 390px에서 세 dialog의 focus trap, Escape, focus return, 배경 차단,
+      scroll 복원, overlay 클릭과 기존 레이아웃을 확인한다.
+- [x] 검증 후 공통 dialog BACKLOG 항목만 완료 처리하고 배송지 재확정 modal은
+      미완료로 유지한다.
+
+### 검증 결과
+
+- ESLint, 단위 테스트 15개, 컴포넌트 테스트 68개와 production build가 통과했고
+  `git diff --check` 오류가 없다.
+- 브라우저에서 데스크톱의 세 dialog와 390px 작품·작가 리뷰 dialog의 최초 포커스,
+  Tab·Shift+Tab 순환, Escape·버튼 종료, opener 포커스 복귀와 모바일 경계 내
+  레이아웃을 확인했다. 구매자 리뷰 동작은 컴포넌트 회귀 테스트로 보완했으며
+  브라우저 도구의 데스크톱 viewport는 1280px로 제한됐다.
+- 배경 inert와 body scroll 잠금·복원, dialog 열린 상태의 라우트 이동 cleanup,
+  Portal 렌더링과 콘솔 오류 없음도 확인했다. 기존 overflow 값 복원, 제거된 opener,
+  overlay·내부 클릭은 컴포넌트 테스트로 보완했다.
+- Flyway는 기존 4개 migration과 schema version 4를 검증했으며 추가 migration 없이
+  백엔드를 기동했다. QA 중 제품 코드 외 DB 데이터는 변경하지 않았다.
+
+### 커밋 경계
+
+1. `48c9f32` `feat(frontend): 공통 접근성 dialog 기반 추가`
+2. `f42854a` `fix(frontend): 기존 dialog 접근성 계약 적용`
+3. `chore: 공통 dialog 접근성 검증 결과 정리`
+
+기능 코드와 관련 테스트는 각 기능 커밋에 포함하고 계획·검증 결과와 BACKLOG 완료
+표시는 세 번째 문서 커밋에서만 처리한다.
