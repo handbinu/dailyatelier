@@ -124,6 +124,11 @@ a {
 }
 a:hover { color: var(--color-accent); }
 
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 button {
   cursor: pointer;
   font-family: inherit;
@@ -297,4 +302,8 @@ hr {
   html { font-size: 15px; }
   .container { padding-inline: var(--space-3); }
   .btn--lg { font-size: var(--font-size-base); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }

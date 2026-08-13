@@ -33,13 +33,36 @@ export default function Home() {
   const [newArtsError, setNewArtsError] = useState('')
   const [newArtsRetryKey, setNewArtsRetryKey] = useState(0)
   const timerRef = useRef(null)
+  const reduceMotionRef = useRef(false)
 
   /* 자동 슬라이드 */
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setSlideIdx((i) => (i + 1) % SLIDES.length)
-    }, 4000)
-    return () => clearInterval(timerRef.current)
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+    const stopTimer = () => {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    const startTimer = () => {
+      stopTimer()
+      if (reduceMotionRef.current) return
+      timerRef.current = setInterval(() => {
+        setSlideIdx((i) => (i + 1) % SLIDES.length)
+      }, 4000)
+    }
+    const syncMotionPreference = (event) => {
+      reduceMotionRef.current = event.matches
+      if (event.matches) stopTimer()
+      else startTimer()
+    }
+
+    reduceMotionRef.current = mediaQuery.matches
+    startTimer()
+    mediaQuery.addEventListener('change', syncMotionPreference)
+    return () => {
+      stopTimer()
+      mediaQuery.removeEventListener('change', syncMotionPreference)
+    }
   }, [])
 
   useEffect(() => {
@@ -67,7 +90,9 @@ export default function Home() {
 
   const goSlide = (idx) => {
     clearInterval(timerRef.current)
+    timerRef.current = null
     setSlideIdx(idx)
+    if (reduceMotionRef.current) return
     timerRef.current = setInterval(
       () => setSlideIdx((i) => (i + 1) % SLIDES.length),
       4000

@@ -564,6 +564,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .slide,
+  .slideArrow,
+  .dot,
+  .introduceBtn,
+  .bestCard,
+  .bestImgWrap img,
+  .filterTab,
+  .artCard,
+  .artImgWrap img,
+  .artOverlay,
+  .artBidBtn {
+    transition: none;
+  }
+
   .homeSkeletonImage,
   .homeSkeletonBody span { animation: none; }
 }
