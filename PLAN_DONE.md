@@ -575,3 +575,92 @@ ORDER BY account.user_id;
   계정당 1,000,000P 상한 때문에 마지막 유효 입찰 후 nullable 다음 최소가와 disabled
   상태는 실행하지 않았고, 직접 DB 조작도 하지 않았다. 이 한 건은 `BACKLOG.md`의
   로컬 전용 고액 QA fixture 후속 항목으로 유지한다.
+
+# 프런트 접근성 P1 개선 완료 기록
+
+## 완료 내용
+
+- 구현 커밋: `503d78a fix(frontend): 헤더 메뉴 키보드 접근성 개선`,
+  `db095f4 fix(frontend): 인증 폼 오류 접근성 보완`,
+  `6b4fb26 fix(frontend): 포커스 표시와 동작 감소 설정 보완`
+- 문서 커밋: `0c301cd chore: 프론트 접근성 백로그 완료 처리`
+- 헤더 모바일 메뉴와 데스크톱 드롭다운에 펼침 상태, 제어 대상, Escape 종료와
+  호출 요소 포커스 복귀를 적용하고 모바일 메뉴가 열린 동안 배경을 차단했다.
+- 로그인과 일반·작가 회원가입 입력에 지속적으로 보이는 label과 오류 연결을 추가하고,
+  제출 성공·실패 안내와 오류 포커스 정책을 보완했다.
+- 전역 `focus-visible` 표시를 제공하고 reduced-motion 처리는 전역 motion 제거 없이
+  홈 자동 슬라이드, smooth scroll과 확인된 비필수 transition으로 제한했다.
+
+## 자동 검증 결과
+
+- ESLint, 단위 테스트 15개, 컴포넌트 테스트 61개와 production build가 통과했고
+  `git diff --check` 오류가 없었다.
+- Header와 인증 폼 테스트는 변경 원인에 맞춰 각각 첫 번째와 두 번째 기능 커밋에
+  포함했다.
+
+## 브라우저 QA 결과
+
+- 390px 모바일 메뉴의 최초 포커스, 배경 스크롤 차단, Escape 종료와 포커스 복귀,
+  가로 overflow 없음 및 데스크톱 trigger의 포커스 복귀를 확인했다.
+- 작가 회원가입 입력 10개의 label 연결과 `aria-describedby` 대상 존재를 확인했다.
+- 브라우저 환경에서 reduced-motion 강제 에뮬레이션과 200% 확대 전체 회귀는 수행하지
+  못했다. 구현은 smooth scroll, 홈 자동 재생과 확인된 비필수 transition으로 제한했다.
+
+# 공통 dialog 키보드·스크린리더 접근성 개선 완료 기록
+
+## 완료 내용
+
+- 구현 커밋: `48c9f32 feat(frontend): 공통 접근성 dialog 기반 추가`,
+  `f42854a fix(frontend): 기존 dialog 접근성 계약 적용`
+- 문서 커밋: `e35560d chore: 공통 dialog 접근성 검증 결과 정리`
+- 작품 원본 이미지와 구매자·작가 리뷰 dialog 3곳을 공통 Portal 기반으로 전환하고
+  최초 포커스, Tab·Shift+Tab 순환, Escape 종료와 opener 포커스 복귀를 적용했다.
+- `dialog`, `aria-modal`, 제목과 선택적 설명 연결 계약을 제공하고 배경 root의 inert,
+  기존 body overflow 보존·복원과 unmount·라우트 이동 cleanup을 공통 처리했다.
+- 제거된 opener는 오류 없이 복귀를 생략하고 overlay 클릭 닫기와 내부 클릭 유지 정책을
+  공통 처리했다.
+- Portal 전환으로 작품 이미지 크기가 0이 되던 기존 CSS 회귀를 보완했으며 배송지
+  재확정 modal 등 새로운 기능은 구현하지 않았다.
+
+## 자동 검증 결과
+
+- ESLint, 단위 테스트 15개, 컴포넌트 테스트 68개와 production build가 통과했고
+  `git diff --check` 오류가 없었다.
+- 기존 overflow 값 복원, 제거된 opener, focus trap, overlay·내부 클릭과 cleanup을
+  컴포넌트 테스트로 검증했다.
+
+## 브라우저 QA 결과
+
+- 데스크톱의 세 dialog와 390px 작품·작가 리뷰 dialog에서 최초 포커스, Tab·Shift+Tab
+  순환, Escape·버튼 종료, opener 복귀와 모바일 경계 내 레이아웃을 확인했다.
+- 배경 inert, body scroll 잠금·복원, 열린 상태의 라우트 이동 cleanup, Portal 렌더링과
+  콘솔 오류 없음도 확인했다. 구매자 리뷰 동작은 컴포넌트 회귀 테스트로 보완했다.
+- Flyway는 기존 4개 migration과 schema version 4를 검증했으며 추가 migration이나
+  QA 목적의 DB 데이터 변경 없이 백엔드를 기동했다.
+
+# 로그인 후 원래 작업 위치 복귀 완료 기록
+
+## 완료 내용
+
+- 구현 커밋: `30c21d6 fix(auth): 로그인 후 안전한 원래 위치 복귀`
+- 문서 커밋: `df0314e chore: 로그인 복귀 검증 결과 정리`
+- React Router location state의 pathname, search와 hash를 안전한 내부 복귀 경로로
+  변환하고 로그인 성공 후 한 번만 소비하도록 했다.
+- 보호 라우트, 작품 상세의 입찰·찜 로그인 유도와 구매자·판매자 주문 화면의 API 401
+  이동이 같은 복귀 계약을 사용하도록 연결했다.
+- 절대 URL, protocol-relative URL, 백슬래시 URL, 인증 화면 순환과 손상된 state는
+  홈으로 대체하고 직접 로그인은 기존 홈 이동을 유지했다.
+- 로그인 전 실패한 변경 요청의 자동 재실행과 작가 역할 guard는 범위에서 제외했다.
+
+## 자동 검증 결과
+
+- ESLint, 단위 테스트 15개, 컴포넌트 테스트 78개와 production build가 통과했고
+  `git diff --check` 오류가 없었다.
+- 보호 라우트, 작품 상세 로그인 유도, 구매자·판매자 주문 401, 기본 홈 이동과 안전하지
+  않은 복귀 값 차단을 컴포넌트 테스트로 검증했다.
+
+## 브라우저 QA 결과
+
+- 보호된 주문 URL의 query·hash 복귀, 작품 상세 로그인 복귀, 직접 로그인 시 홈 이동과
+  다른 탭에서 인증이 해제된 뒤 현재 주문 화면 복귀를 확인했다.
+- 브라우저 콘솔 오류가 없었고 실패한 변경 요청을 자동 재실행하는 동작은 추가하지 않았다.
