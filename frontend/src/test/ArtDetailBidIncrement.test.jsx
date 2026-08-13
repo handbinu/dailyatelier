@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createBid, getArt } from '../api/artApi'
 import { getArtLikeStatus } from '../api/userApi'
@@ -15,9 +15,18 @@ const art = {
   artStatus: 0, isOwner: false,
 }
 
+function LoginStateView() {
+  const location = useLocation()
+  const from = location.state?.from
+  return <output data-testid="login-from">{from?.pathname}{from?.search}{from?.hash}</output>
+}
+
 const renderPage = () => render(
-  <MemoryRouter initialEntries={['/auction/1']}>
-    <Routes><Route path="/auction/:id" element={<ArtDetail />} /></Routes>
+  <MemoryRouter initialEntries={['/auction/1?source=search#bid']}>
+    <Routes>
+      <Route path="/auction/:id" element={<ArtDetail />} />
+      <Route path="/login" element={<LoginStateView />} />
+    </Routes>
   </MemoryRouter>,
 )
 
@@ -49,6 +58,14 @@ describe('작품 상세 최소 입찰 증분', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '닫기' })).toHaveFocus())
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('비로그인 입찰 유도는 현재 작품 위치를 로그인 state로 전달한다', async () => {
+    localStorage.removeItem('token')
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: '로그인' }))
+    expect(await screen.findByTestId('login-from')).toHaveTextContent('/auction/1?source=search#bid')
   })
 
   it('최소가보다 1원 낮으면 차단하고 100원 배수가 아닌 유효 입찰은 전송한다', async () => {

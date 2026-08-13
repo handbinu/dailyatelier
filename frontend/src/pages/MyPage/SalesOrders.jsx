@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   approveSellerOrderRefund,
   getSellerOrder,
@@ -17,6 +17,7 @@ import {
   ORDER_FILTERS,
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
+import { createLoginState } from '../../utils/loginReturn'
 import {
   buildSellerStatusRequest,
   SELLER_ACTION,
@@ -34,6 +35,7 @@ const EMPTY_SHIPPING = { shippingCarrier: '', trackingNumber: '' }
 
 export default function SalesOrders() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(0)
   const [result, setResult] = useState(null)
@@ -51,12 +53,12 @@ export default function SalesOrders() {
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
     if (orderError.shouldLogin) {
-      navigate('/login', { replace: true })
+      navigate('/login', { replace: true, state: createLoginState(location) })
       return orderError
     }
     setError(orderError.message)
     return orderError
-  }, [navigate])
+  }, [location, navigate])
 
   const loadOrders = useCallback(async ({ signal } = {}) => {
     setLoading(true)

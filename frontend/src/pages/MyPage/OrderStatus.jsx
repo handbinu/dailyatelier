@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   cancelBuyerOrder,
   confirmBuyerOrder,
@@ -22,6 +22,7 @@ import {
   ORDER_FILTERS,
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
+import { createLoginState } from '../../utils/loginReturn'
 import { PageBanner, PageWrap } from './components/atoms'
 import {
   OrderFeedback,
@@ -61,6 +62,7 @@ const getInitialAddress = (order, profile) => {
 
 export default function OrderStatus() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const targetArtId = searchParams.get('artId')
   const [filter, setFilter] = useState('')
@@ -80,12 +82,12 @@ export default function OrderStatus() {
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
     if (orderError.shouldLogin) {
-      navigate('/login', { replace: true })
+      navigate('/login', { replace: true, state: createLoginState(location) })
       return orderError
     }
     setError(orderError.message)
     return orderError
-  }, [navigate])
+  }, [location, navigate])
 
   const loadOrders = useCallback(async ({ signal } = {}) => {
     setLoading(true)

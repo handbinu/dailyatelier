@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { login } from '../../api/authApi'
+import { getLoginReturnPath } from '../../utils/loginReturn'
 import styles from './Login.module.css'
 
 function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [form, setForm] = useState({ userId: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +26,7 @@ function Login() {
       localStorage.setItem('userId',     res.data.userId)
       localStorage.setItem('nickname',   res.data.nickname)
       localStorage.setItem('userStatus', res.data.userStatus)
-      navigate('/')
+      navigate(getLoginReturnPath(location.state), { replace: true })
     } catch (err) {
       setError(
         err.response?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.'

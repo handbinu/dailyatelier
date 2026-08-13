@@ -9,6 +9,7 @@ import {
   getArtImageSrc,
 } from '../../utils/artImage'
 import { MAX_BID_PRICE, parseIntegerPrice } from '../../utils/bidPricePolicy'
+import { createLoginState } from '../../utils/loginReturn'
 import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import styles from './ArtDetail.module.css'
 
@@ -105,7 +106,7 @@ export default function ArtDetail() {
   const handleLike = async () => {
     if (!localStorage.getItem('token')) {
       alert('로그인 후 찜할 수 있습니다.')
-      navigate('/login', { state: { from: location } })
+      navigate('/login', { state: createLoginState(location) })
       return
     }
     if (art.isOwner || likeLoading) return
@@ -374,7 +375,7 @@ export default function ArtDetail() {
                 <button
                   type="button"
                   className={styles.bidButton}
-                  onClick={() => navigate('/login', { state: { from: location } })}
+                  onClick={() => navigate('/login', { state: createLoginState(location) })}
                 >
                   로그인
                 </button>
