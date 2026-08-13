@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import Layout      from './layouts/Layout'
 import PrivateRoute from './pages/auth/PrivateRoute'
+import ArtistRoute from './pages/auth/ArtistRoute'
 import styles from './App.module.css'
 
 // ── 인증
@@ -114,10 +115,12 @@ function App() {
             <Route path="/write-review/:artId"   element={<WriteReview />} />
 
             {/* 작가 전용 */}
-            <Route path="/upload"                element={<UploadSell />} />
-            <Route path="/mypage/manage-arts"    element={<ManageArts />} />
-            <Route path="/mypage/artist-review"  element={<ArtistReview />} />
-            <Route path="/mypage/sales-orders"   element={<SalesOrders />} />
+            <Route element={<ArtistRoute />}>
+              <Route path="/upload"                element={<UploadSell />} />
+              <Route path="/mypage/manage-arts"    element={<ManageArts />} />
+              <Route path="/mypage/artist-review"  element={<ArtistReview />} />
+              <Route path="/mypage/sales-orders"   element={<SalesOrders />} />
+            </Route>
 
           </Route>
 

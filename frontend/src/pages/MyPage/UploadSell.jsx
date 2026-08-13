@@ -58,23 +58,10 @@ export default function UploadSell() {
   const [previewUrl, setPreviewUrl] = useState('')
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
-
-    if (!token) {
-      alert('로그인이 필요합니다.')
-      navigate('/login', { replace: true })
-      return
-    }
-    if (userStatus !== 1) {
-      alert('작가 회원만 업로드할 수 있습니다.')
-      navigate('/', { replace: true })
-    }
-
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
-  }, [navigate, previewUrl])
+  }, [previewUrl])
 
   const setValue = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }))

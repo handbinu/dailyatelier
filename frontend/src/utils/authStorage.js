@@ -4,6 +4,8 @@ const AUTH_STORAGE_KEYS = ['token', 'userId', 'nickname', 'userStatus']
 
 export const getStoredToken = () => localStorage.getItem('token')
 
+export const getStoredUserStatus = () => localStorage.getItem('userStatus')
+
 export const subscribeToAuthChanges = (listener) => {
   window.addEventListener(AUTH_STATE_CHANGED_EVENT, listener)
   window.addEventListener('storage', listener)

@@ -1,6 +1,5 @@
 // src/pages/MyPage/ArtistReview.jsx  —  내 작품 리뷰 보기 (작가 전용)
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { PageBanner, StarDisplay, Empty, PageWrap } from './components/atoms'
 import { MOCK_ARTIST_REVIEWS, MOCK_MY_ARTS, fmt } from './mockData'
 import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
@@ -21,10 +20,6 @@ function sortItems(arr, sort) {
 }
 
 export default function ArtistReview() {
-  const navigate = useNavigate()
-  const token      = localStorage.getItem('token')
-  const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
-
   const artNames  = ['전체', ...new Set(MOCK_MY_ARTS.map(a => a.name))]
 
   const [artFilter, setArtFilter] = useState('전체')
@@ -38,9 +33,6 @@ export default function ArtistReview() {
       : MOCK_ARTIST_REVIEWS.filter(r => r.artName === artFilter)
     return sortItems(base, sort)
   }, [artFilter, sort])
-
-  if (!token) { alert('로그인이 필요합니다.'); navigate('/login', { replace: true }); return null }
-  if (userStatus !== 1) { alert('작가 회원 전용 페이지입니다.'); navigate('/', { replace: true }); return null }
 
   const totalPg = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const paged   = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
