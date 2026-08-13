@@ -544,7 +544,10 @@
 }
 
 @media (max-width: 560px) {
-  .hero { aspect-ratio: 16 / 9; }
+  .hero {
+    aspect-ratio: 5 / 2;
+    min-height: 0;
+  }
   .bestGrid { grid-template-columns: repeat(2, 1fr); }
   .artGrid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .introduceImages { grid-template-columns: 1fr; }
