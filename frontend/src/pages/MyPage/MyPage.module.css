@@ -352,54 +352,63 @@
   min-width: 0;
 }
 
-/* 탭 바 */
-.tabBar {
+/* 마이페이지 메뉴 */
+.menuGroups {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.menuGroup {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.menuGroupTitle {
+  margin: 0 0 var(--space-2);
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.menuLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
-  border-bottom: 2px solid var(--color-border);
-  margin-bottom: var(--space-6);
-  background: var(--color-surface);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  padding: var(--space-2) var(--space-2) 0;
-}
-
-.tabBtn {
-  position: relative;
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color var(--transition-fast), background var(--transition-fast);
-  display: flex;
-  align-items: center;
   gap: var(--space-1);
 }
-.tabBtn:hover { color: var(--color-text); background: var(--color-surface-alt); }
 
-.tabBtnActive {
+.menuLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 42px;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.menuLink:hover { color: var(--color-text); background: var(--color-surface-alt); }
+
+.menuLinkActive {
   color: var(--color-primary);
   font-weight: 700;
-  background: var(--color-bg);
-}
-.tabBtnActive::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--color-primary);
+  background: var(--color-surface-alt);
+  box-shadow: inset 0 -2px var(--color-primary);
 }
 
-/* 작가 전용 탭 */
-.tabBtnArtist { color: var(--color-accent); }
-.tabBtnArtist.tabBtnActive { color: var(--color-accent); }
-.tabBtnArtist.tabBtnActive::after { background: var(--color-accent); }
+/* 작가 전용 메뉴 */
+.menuLinkArtist { color: var(--color-accent); }
+.menuLinkArtist.menuLinkActive {
+  color: var(--color-accent);
+  box-shadow: inset 0 -2px var(--color-accent);
+}
 
 /* 탭 뱃지 */
 .tabBadge {
@@ -416,8 +425,8 @@
   font-weight: 700;
 }
 
-/* 탭 패널 */
-.tabPanel {
+/* 활동 개요 패널 */
+.overviewPanel {
   animation: fadeSlideIn 0.2s ease;
 }
 
@@ -1134,8 +1143,7 @@
     overflow: visible;
     padding-right: 0;
   }
-  .tabBar { overflow-x: auto; flex-wrap: nowrap; }
-  .tabBtn { flex-shrink: 0; }
+  .menuLink { flex: 1 1 130px; justify-content: center; white-space: normal; text-align: center; }
   .artCardGrid { grid-template-columns: repeat(2, 1fr); }
   .orderHeader { display: none; }
   .orderRow { grid-template-columns: 1fr; gap: var(--space-3); }

@@ -69,7 +69,7 @@ const USER_TABS = [
 ]
 
 const ARTIST_TABS = [
-  ...USER_TABS,
+  { name: T.artUpload, path: '/upload' },
   { name: T.tabs.manage, path: '/mypage/manage-arts' },
   { name: T.tabs.artistReview, path: '/mypage/artist-review' },
   { name: T.tabs.salesOrder, path: '/mypage/sales-orders' },
@@ -147,7 +147,6 @@ export default function MyPage() {
   if (!token) return null
   if (loading) return <div style={{ textAlign: 'center', padding: '5rem 0' }}>{T.loading}</div>
 
-  const tabs = isArtist ? ARTIST_TABS : USER_TABS
   const retryOverview = () => {
     setBidsLoading(true)
     setBidsError('')
@@ -186,32 +185,25 @@ export default function MyPage() {
         </aside>
 
         <main className={styles.content}>
-          <div className={styles.tabBar} role="tablist">
-            {tabs.map((tab, idx) => {
-              const isActive = location.pathname === tab.path
-              return (
-                <button
-                  key={tab.path}
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`${styles.tabBtn} ${isActive ? styles.tabBtnActive : ''} ${idx >= 7 ? styles.tabBtnArtist : ''}`}
-                  onClick={() => navigate(tab.path)}
-                >
-                  {tab.name}
-                  {tab.name === T.tabs.bid && (
-                    <span className={styles.tabBadge}>
-                      {bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
-                    </span>
-                  )}
-                  {tab.name === T.tabs.inquiry && (
-                    <span className={styles.tabBadge}>{MOCK_INQUIRIES.filter((q) => !q.answered).length}</span>
-                  )}
-                </button>
-              )
-            })}
+          <div className={styles.menuGroups}>
+            <MyPageMenu
+              title="회원 메뉴"
+              items={USER_TABS}
+              pathname={location.pathname}
+              bidsCount={bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
+              inquiryCount={MOCK_INQUIRIES.filter((q) => !q.answered).length}
+            />
+            {isArtist && (
+              <MyPageMenu
+                title="작가 관리"
+                items={ARTIST_TABS}
+                pathname={location.pathname}
+                artist
+              />
+            )}
           </div>
 
-          <div className={styles.tabPanel}>
+          <div className={styles.overviewPanel}>
             <OverviewTab
               bids={bids}
               bidsLoading={bidsLoading}
@@ -229,6 +221,31 @@ export default function MyPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+function MyPageMenu({ title, items, pathname, bidsCount, inquiryCount, artist = false }) {
+  return (
+    <nav className={styles.menuGroup} aria-label={title}>
+      <h2 className={styles.menuGroupTitle}>{title}</h2>
+      <div className={styles.menuLinks}>
+        {items.map((item) => {
+          const isActive = pathname === item.path
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              aria-current={isActive ? 'page' : undefined}
+              className={`${styles.menuLink} ${isActive ? styles.menuLinkActive : ''} ${artist ? styles.menuLinkArtist : ''}`}
+            >
+              {item.name}
+              {item.name === T.tabs.bid && <span className={styles.tabBadge}>{bidsCount}</span>}
+              {item.name === T.tabs.inquiry && <span className={styles.tabBadge}>{inquiryCount}</span>}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
   )
 }
 

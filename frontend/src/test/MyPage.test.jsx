@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from '../pages/MyPage/MyPage'
 import { getAllMyBids, getAllMyWins, getUserProfile } from '../api/userApi'
+import { getMyArts } from '../api/artApi'
 
 vi.mock('../api/userApi', () => ({
   getAllMyBids: vi.fn(),
@@ -35,9 +36,9 @@ const wins = [
   { artId: 22, artName: '두 번째 낙찰작', imgPath: '', winningPrice: 30000 },
 ]
 
-function renderMyPage() {
+function renderMyPage(initialEntry = '/mypage') {
   return render(
-    <MemoryRouter initialEntries={['/mypage']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <MyPage />
     </MemoryRouter>,
   )
@@ -89,5 +90,27 @@ describe('마이페이지 낙찰 작품 요약', () => {
 
     await screen.findByText('낙찰 작품을 불러오는 중입니다.')
     expect(screen.queryByRole('link', { name: '주문 확인' })).not.toBeInTheDocument()
+  })
+
+  it('일반 회원에게 회원 메뉴만 링크로 제공하고 현재 위치를 표시한다', async () => {
+    renderMyPage()
+    await screen.findByText('테스트 사용자')
+
+    const userMenu = screen.getByRole('navigation', { name: '회원 메뉴' })
+    expect(within(userMenu).getByRole('link', { name: '홈' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('navigation', { name: '작가 관리' })).not.toBeInTheDocument()
+  })
+
+  it('작가 회원에게 분리된 작가 관리 메뉴와 네 목적지를 제공한다', async () => {
+    localStorage.setItem('userStatus', '1')
+    getMyArts.mockResolvedValue({ data: { totalElements: 2 } })
+    renderMyPage('/mypage')
+    await screen.findByText('테스트 사용자')
+
+    const artistMenu = screen.getByRole('navigation', { name: '작가 관리' })
+    expect(within(artistMenu).getByRole('link', { name: '작품 등록' })).toHaveAttribute('href', '/upload')
+    expect(within(artistMenu).getByRole('link', { name: '작품 관리' })).toHaveAttribute('href', '/mypage/manage-arts')
+    expect(within(artistMenu).getByRole('link', { name: '작품 리뷰' })).toHaveAttribute('href', '/mypage/artist-review')
+    expect(within(artistMenu).getByRole('link', { name: '판매 주문' })).toHaveAttribute('href', '/mypage/sales-orders')
   })
 })
