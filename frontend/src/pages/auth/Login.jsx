@@ -42,7 +42,9 @@ function Login() {
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
+            <label htmlFor="login-user-id">아이디</label>
             <input
+              id="login-user-id"
               type="text"
               name="userId"
               placeholder="아이디"
@@ -54,7 +56,9 @@ function Login() {
           </div>
 
           <div className={styles.field}>
+            <label htmlFor="login-password">비밀번호</label>
             <input
+              id="login-password"
               type="password"
               name="password"
               placeholder="비밀번호"
@@ -66,7 +70,7 @@ function Login() {
           </div>
 
           <div className={styles.errorWrap}>
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className={styles.error} role="alert">{error}</p>}
           </div>
 
           <button

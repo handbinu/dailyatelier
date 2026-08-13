@@ -23,12 +23,14 @@ const cases = [
     label: '일반 회원가입',
     Component: RegisterUser,
     submitName: '가입하기',
+    nicknameLabel: '닉네임',
     register: registerUser,
   },
   {
     label: '작가 회원가입',
     Component: RegisterArtist,
     submitName: '작가로 가입하기',
+    nicknameLabel: '활동명',
     register: registerArtist,
   },
 ]
@@ -55,10 +57,9 @@ function duplicateButtons() {
   return screen.getAllByRole('button', { name: '중복확인' })
 }
 
-describe.each(cases)('$label 중복확인', ({ Component, submitName, register }) => {
+describe.each(cases)('$label 중복확인', ({ Component, submitName, nicknameLabel, register }) => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('alert', vi.fn())
   })
 
   it('이전 입력값의 늦은 응답을 현재 입력값에 적용하지 않는다', async () => {
@@ -66,7 +67,7 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, register }
     checkUserId.mockReturnValue(firstRequest.promise)
     renderRegister(Component)
 
-    const userIdInput = screen.getByPlaceholderText('* 아이디')
+    const userIdInput = screen.getByLabelText(/^아이디/)
     fireEvent.change(userIdInput, { target: { value: 'first-id' } })
     fireEvent.click(duplicateButtons()[0])
 
@@ -91,7 +92,7 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, register }
       .mockReturnValueOnce(secondRequest.promise)
     renderRegister(Component)
 
-    const userIdInput = screen.getByPlaceholderText('* 아이디')
+    const userIdInput = screen.getByLabelText(/^아이디/)
     fireEvent.change(userIdInput, { target: { value: 'first-id' } })
     fireEvent.click(duplicateButtons()[0])
     fireEvent.change(userIdInput, { target: { value: 'second-id' } })
@@ -118,7 +119,7 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, register }
     checkNickname.mockResolvedValue({ data: { duplicate: true } })
     renderRegister(Component)
 
-    fireEvent.change(screen.getByPlaceholderText('* 아이디'), {
+    fireEvent.change(screen.getByLabelText(/^아이디/), {
       target: { value: 'user-id' },
     })
     fireEvent.click(duplicateButtons()[0])
@@ -127,7 +128,7 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, register }
     fireEvent.click(duplicateButtons()[0])
     expect(await screen.findByText('사용 가능합니다. ✓')).toBeInTheDocument()
 
-    const nicknameInput = screen.getByPlaceholderText(/닉네임/)
+    const nicknameInput = screen.getByRole('textbox', { name: new RegExp(nicknameLabel) })
     fireEvent.change(nicknameInput, { target: { value: 'duplicate-name' } })
     fireEvent.click(duplicateButtons()[1])
     expect(await screen.findByText('이미 사용 중입니다')).toBeInTheDocument()
@@ -140,22 +141,22 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, register }
     register.mockResolvedValue({ data: {} })
     renderRegister(Component)
 
-    fireEvent.change(screen.getByPlaceholderText('* 아이디'), {
+    fireEvent.change(screen.getByLabelText(/^아이디/), {
       target: { value: 'verified-user' },
     })
     fireEvent.click(duplicateButtons()[0])
     await screen.findByText('사용 가능합니다. ✓')
 
-    fireEvent.change(screen.getByPlaceholderText(/닉네임/), {
+    fireEvent.change(screen.getByRole('textbox', { name: new RegExp(nicknameLabel) }), {
       target: { value: 'verified-name' },
     })
     fireEvent.click(duplicateButtons()[1])
     await waitFor(() => expect(screen.getAllByText('사용 가능합니다. ✓')).toHaveLength(2))
 
-    fireEvent.change(screen.getByPlaceholderText(/\* 비밀번호 \(/), {
+    fireEvent.change(screen.getByLabelText(/^비밀번호 \*/), {
       target: { name: 'password', value: 'Password1!' },
     })
-    fireEvent.change(screen.getByPlaceholderText('* 비밀번호 재입력'), {
+    fireEvent.change(screen.getByLabelText(/비밀번호 재입력/), {
       target: { value: 'Password1!' },
     })
 
