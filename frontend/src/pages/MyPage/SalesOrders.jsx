@@ -319,11 +319,13 @@ function SellerOrderItem({
   onRejectRefund,
 }) {
   const actions = detail?.availableActions ?? order.availableActions ?? []
+  const detailId = `seller-order-detail-${order.orderId}`
+  const toggleLabel = `${order.artName} 주문 상세 ${isOpen ? '접기' : '보기'}`
 
   return (
     <article className={s.order}>
       <div className={s.orderRow}>
-        <button type="button" className={s.orderMain} onClick={onToggle}>
+        <div className={s.orderMain}>
           <img
             src={getArtImageSrc(order.artImage)}
             alt={order.artName}
@@ -336,8 +338,12 @@ function SellerOrderItem({
           </span>
           <span className={s.price}>{formatOrderPrice(order.winningPrice)}</span>
           <OrderStatusBadge status={order.status} />
-        </button>
-        <div className={s.actions}>
+        </div>
+        <div
+          className={s.actions}
+          role="group"
+          aria-label={`${order.artName} 주문 작업`}
+        >
           {actions.includes(SELLER_ACTION.START_PREPARING) && (
             <button type="button" onClick={onPrepare} disabled={isProcessing}>
               배송 준비
@@ -358,14 +364,25 @@ function SellerOrderItem({
               환불 거절
             </button>
           )}
-          <button type="button" onClick={onToggle} aria-expanded={isOpen}>
-            {isOpen ? '접기' : '상세'}
+          <button
+            type="button"
+            className={s.detailToggle}
+            onClick={onToggle}
+            aria-expanded={isOpen}
+            aria-controls={detailId}
+            aria-label={toggleLabel}
+          >
+            {isOpen ? '상세 접기' : '상세 보기'}
           </button>
         </div>
       </div>
 
       {isOpen && (
-        <div className={s.detail}>
+        <div
+          id={detailId}
+          className={s.detail}
+          aria-busy={isLoading && !detail}
+        >
           {isLoading && !detail ? (
             <p>주문 상세를 불러오는 중입니다.</p>
           ) : detail ? (

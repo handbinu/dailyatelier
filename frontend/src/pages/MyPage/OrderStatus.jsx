@@ -420,11 +420,13 @@ function OrderItem({
   onAction,
 }) {
   const actions = detail?.availableActions ?? order.availableActions ?? []
+  const detailId = `buyer-order-detail-${order.orderId}`
+  const toggleLabel = `${order.artName} 주문 상세 ${isOpen ? '접기' : '보기'}`
 
   return (
     <article className={s.orderGroup}>
       <div className={s.orderRow}>
-        <button type="button" className={s.orderMain} onClick={onToggle}>
+        <div className={s.orderMain}>
           <span className={s.colInfo}>
             <img
               src={getArtImageSrc(order.artImage)}
@@ -447,8 +449,12 @@ function OrderItem({
           <span className={s.colStatus}>
             <OrderStatusBadge status={order.status} />
           </span>
-        </button>
-        <div className={`${s.colAction} ${s.actions}`}>
+        </div>
+        <div
+          className={`${s.colAction} ${s.actions}`}
+          role="group"
+          aria-label={`${order.artName} 주문 작업`}
+        >
           {actions.includes('UPDATE_SHIPPING_ADDRESS') && (
             <button
               type="button"
@@ -513,16 +519,21 @@ function OrderItem({
             type="button"
             className={s.detailToggle}
             aria-expanded={isOpen}
+            aria-controls={detailId}
             onClick={onToggle}
-            aria-label="상세 보기"
+            aria-label={toggleLabel}
           >
-            {isOpen ? '▲' : '▼'}
+            {isOpen ? '상세 접기' : '상세 보기'}
           </button>
         </div>
       </div>
 
       {isOpen && (
-        <div className={s.detailPanel}>
+        <div
+          id={detailId}
+          className={s.detailPanel}
+          aria-busy={isDetailLoading && !detail}
+        >
           {isDetailLoading && !detail ? (
             <p className={s.detailLoading}>주문 상세를 불러오는 중입니다.</p>
           ) : detail ? (
@@ -572,7 +583,11 @@ function OrderProgress({ status }) {
   }
 
   return (
-    <div className={s.progressWrap}>
+    <div
+      className={s.progressWrap}
+      role="group"
+      aria-label={`주문 진행 단계: 현재 ${STEPS[current]}`}
+    >
       <div className={s.progressTrack}>
         {STEPS.map((step, index) => {
           const done = index < current
