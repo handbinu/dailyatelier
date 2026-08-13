@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import Layout      from './layouts/Layout'
 import PrivateRoute from './pages/auth/PrivateRoute'
+import styles from './App.module.css'
 
 // ── 인증
 import Login          from './pages/auth/Login'
@@ -39,10 +40,20 @@ import ArtSearch from './pages/Search/ArtSearch'
 
 function PreparingPage({ title }) {
   return (
-    <div style={{ maxWidth: '960px', margin: '6rem auto', padding: '0 1.5rem' }}>
-      <h1 style={{ marginBottom: '0.75rem' }}>{title}</h1>
-      <p style={{ color: '#666' }}>해당 페이지는 현재 정리 중입니다.</p>
-    </div>
+    <main className={styles.preparingPage}>
+      <div className={styles.preparingCard}>
+        <p className={styles.preparingEyebrow}>COMING SOON</p>
+        <h1>{title}</h1>
+        <p className={styles.preparingMessage}>
+          더 나은 서비스로 준비하고 있습니다.<br />
+          현재 이용 가능한 작품과 작가를 먼저 둘러보세요.
+        </p>
+        <div className={styles.preparingActions}>
+          <Link to="/auction/total" className={styles.primaryLink}>전체 작품 보기</Link>
+          <Link to="/" className={styles.secondaryLink}>홈으로 돌아가기</Link>
+        </div>
+      </div>
+    </main>
   )
 }
 

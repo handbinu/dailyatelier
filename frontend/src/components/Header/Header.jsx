@@ -5,34 +5,17 @@ import styles from './Header.module.css'
 
 const NAV_ITEMS = [
   {
-    label: '공지사항',
-    children: [
-      { label: '공지 사항', to: '/notice' },
-      { label: '이벤트 안내', to: '/event' },
-    ],
-  },
-  {
     label: '경매',
     children: [
       { label: '전체', to: '/auction/total' },
       { label: '디지털', to: '/auction/digital' },
       { label: '실물', to: '/auction/analog' },
-      { label: '작가별 작품', to: '/auction/artist' },
     ],
   },
   {
-    label: '작가 소개',
+    label: '작가',
     children: [
-      { label: '작가 소개', to: '/artist-introduce' },
-      { label: '개발자 소개', to: '/developer' },
-    ],
-  },
-  {
-    label: '고객센터',
-    children: [
-      { label: '경매 진행방법', to: '/info' },
-      { label: '고객센터', to: '/qna' },
-      { label: 'Q&A', to: '/q-list' },
+      { label: '작가 목록', to: '/artists' },
     ],
   },
 ]
