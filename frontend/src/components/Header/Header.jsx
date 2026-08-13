@@ -24,6 +24,8 @@ export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const headerRef = useRef(null)
+  const hamburgerRef = useRef(null)
+  const mobileMenuRef = useRef(null)
   const [openIdx, setOpenIdx] = useState(null)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -40,6 +42,52 @@ export default function Header() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+
+      if (mobileOpen) {
+        setMobileOpen(false)
+        requestAnimationFrame(() => hamburgerRef.current?.focus())
+        return
+      }
+
+      if (openIdx !== null) {
+        const trigger = headerRef.current?.querySelector(`#desktop-nav-trigger-${openIdx}`)
+        setOpenIdx(null)
+        requestAnimationFrame(() => trigger?.focus())
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen, openIdx])
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined
+
+    const background = [document.querySelector('main'), document.querySelector('footer')]
+      .filter(Boolean)
+    const previousOverflow = document.body.style.overflow
+    background.forEach((element) => { element.inert = true })
+    document.body.style.overflow = 'hidden'
+    requestAnimationFrame(() => {
+      mobileMenuRef.current?.querySelector('select, input, button, a')?.focus()
+    })
+
+    const mediaQuery = window.matchMedia('(min-width: 901px)')
+    const closeAtDesktop = (event) => {
+      if (event.matches) setMobileOpen(false)
+    }
+    mediaQuery.addEventListener('change', closeAtDesktop)
+
+    return () => {
+      background.forEach((element) => { element.inert = false })
+      document.body.style.overflow = previousOverflow
+      mediaQuery.removeEventListener('change', closeAtDesktop)
+    }
+  }, [mobileOpen])
 
   useEffect(() => {
     const handleAuthChange = () => setAuthVersion((version) => version + 1)
@@ -102,7 +150,13 @@ export default function Header() {
   )
 
   return (
-    <header ref={headerRef} className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
+    <header
+      ref={headerRef}
+      className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpenIdx(null)
+      }}
+    >
       <div className={styles.inner}>
         <Link to="/" className={styles.logo}>
           <img src="/img/Logo_2.png" alt="Daily Atelier" />
@@ -117,9 +171,11 @@ export default function Header() {
               onMouseLeave={() => setOpenIdx(null)}
             >
               <button
+                id={`desktop-nav-trigger-${idx}`}
                 className={styles.gnbTrigger}
                 onClick={() => setOpenIdx((prev) => (prev === idx ? null : idx))}
                 aria-expanded={openIdx === idx}
+                aria-controls={`desktop-nav-menu-${idx}`}
               >
                 {item.label}
                 <span className={styles.chevron} aria-hidden="true">
@@ -127,7 +183,12 @@ export default function Header() {
                 </span>
               </button>
 
-              <div className={styles.dropdown} aria-hidden={openIdx !== idx}>
+              <div
+                id={`desktop-nav-menu-${idx}`}
+                className={styles.dropdown}
+                aria-hidden={openIdx !== idx}
+                inert={openIdx !== idx}
+              >
                 <ul className={styles.dropdownList}>
                   {item.children.map((child) => (
                     <li key={child.to}>
@@ -180,9 +241,12 @@ export default function Header() {
         </div>
 
         <button
+          ref={hamburgerRef}
           className={`${styles.hamburger} ${mobileOpen ? styles.hamburgerOpen : ''}`}
           onClick={() => setMobileOpen((v) => !v)}
-          aria-label="모바일 메뉴"
+          aria-label={mobileOpen ? '모바일 메뉴 닫기' : '모바일 메뉴 열기'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation"
         >
           <span />
           <span />
@@ -193,7 +257,12 @@ export default function Header() {
       <div className={`${styles.hdBg} ${openIdx !== null ? styles.hdBgVisible : ''}`} aria-hidden="true" />
 
       {mobileOpen && (
-        <div className={styles.mobileMenu}>
+        <nav
+          id="mobile-navigation"
+          ref={mobileMenuRef}
+          className={styles.mobileMenu}
+          aria-label="모바일 주 메뉴"
+        >
           {renderSearchForm(styles.mobileSearch)}
           {NAV_ITEMS.map((item) => (
             <div key={item.label} className={styles.mobileSection}>
@@ -233,7 +302,7 @@ export default function Header() {
               </Link>
             </>
           )}
-        </div>
+        </nav>
       )}
     </header>
   )

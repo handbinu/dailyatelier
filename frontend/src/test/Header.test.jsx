@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import Header from '../components/Header/Header'
 
 function LocationDisplay() {
@@ -9,6 +9,11 @@ function LocationDisplay() {
 }
 
 function renderHeader() {
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
   return render(
     <MemoryRouter initialEntries={['/']}>
       <Header />
@@ -66,7 +71,10 @@ describe('Header 검색', () => {
   it('모바일 메뉴 검색은 같은 상태를 사용하고 제출 후 메뉴를 닫는다', () => {
     renderHeader()
 
-    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴' }))
+    const toggle = screen.getByRole('button', { name: '모바일 메뉴 열기' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(toggle)
+    expect(screen.getByRole('button', { name: '모바일 메뉴 닫기' })).toHaveAttribute('aria-expanded', 'true')
     const searchTypes = screen.getAllByRole('combobox', { name: '검색 유형' })
     const searchInputs = screen.getAllByRole('textbox', { name: '검색어' })
     const searchButtons = screen.getAllByRole('button', { name: '검색' })
@@ -77,5 +85,19 @@ describe('Header 검색', () => {
 
     expect(screen.getByTestId('location')).toHaveTextContent(`/artists?keyword=${encodeURIComponent('모바일 작가')}`)
     expect(screen.getAllByRole('combobox', { name: '검색 유형' })).toHaveLength(1)
+  })
+
+  it('데스크톱 드롭다운은 제어 대상을 연결하고 Escape 후 trigger로 복귀한다', () => {
+    vi.stubGlobal('requestAnimationFrame', (callback) => callback())
+    renderHeader()
+
+    const trigger = screen.getByRole('button', { name: '경매' })
+    fireEvent.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(trigger).toHaveAttribute('aria-controls', 'desktop-nav-menu-0')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveFocus()
   })
 })

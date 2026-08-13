@@ -182,6 +182,14 @@
   box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.15);
 }
 
+.gnbTrigger:focus-visible,
+.dropdownLink:focus-visible,
+.hamburger:focus-visible,
+.mobileLink:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: -3px;
+}
+
 .searchType {
   align-self: stretch;
   border: none;
