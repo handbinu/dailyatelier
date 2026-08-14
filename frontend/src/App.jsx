@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import Layout      from './layouts/Layout'
 import PrivateRoute from './pages/auth/PrivateRoute'
 import ArtistRoute from './pages/auth/ArtistRoute'
+import AdminRoute from './pages/auth/AdminRoute'
 import styles from './App.module.css'
 
 // ── 인증
@@ -27,6 +28,7 @@ import Charge         from './pages/MyPage/Charge'
 import OrderStatus    from './pages/MyPage/OrderStatus'
 import InquiryList    from './pages/MyPage/InquiryList'
 import InquiryWrite   from './pages/MyPage/InquiryWrite'
+import AdminInquiry   from './pages/MyPage/AdminInquiry'
 
 // ── 마이페이지 세부 — 작가 전용
 import UploadSell   from './pages/MyPage/UploadSell'
@@ -110,6 +112,10 @@ function App() {
             <Route path="/mypage/inquiry"        element={<InquiryList />} />
             <Route path="/mypage/inquiry/write"  element={<InquiryWrite />} />
             <Route path="/charge"                element={<Charge />} />
+
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/inquiries" element={<AdminInquiry />} />
+            </Route>
 
             {/* 리뷰 작성/수정 — artId 파라미터 */}
             <Route path="/write-review/:artId"   element={<WriteReview />} />

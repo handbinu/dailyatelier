@@ -1,55 +1,82 @@
 // src/pages/MyPage/InquiryList.jsx  —  내 문의 목록 + 상세 (아코디언)
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageBanner, Badge, FilterBar, Empty, PageWrap } from './components/atoms'
-import { MOCK_INQUIRIES } from './mockData'
+import { getInquiryDetail, getMyInquiries } from '../../api/inquiryApi'
 import s from './InquiryList.module.css'
 
 const FILTERS  = ['전체', '대기 중', '답변 완료']
 const STATUS_COLOR = { true: 'green', false: 'orange' }
-const TYPE_COLORS  = { '배송': 'blue', '포인트': 'orange', '작품': 'green', '경매': 'blue', '회원정보': 'gray', '기타': 'gray' }
+const TYPE_LABELS = { MEMBER: '회원정보', POINT: '포인트', ART: '작품', DELIVERY: '배송', AUCTION: '경매', OTHER: '기타' }
+const TYPE_COLORS  = { 배송: 'blue', 포인트: 'orange', 작품: 'green', 경매: 'blue', 회원정보: 'gray', 기타: 'gray' }
+
+const formatDate = (value) => value ? new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(value)) : ''
 
 export default function InquiryList() {
-  const navigate = useNavigate()
   const [filter, setFilter] = useState('전체')
   const [open,   setOpen]   = useState(null)
+  const [inquiries, setInquiries] = useState([])
+  const [details, setDetails] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [loadingDetailId, setLoadingDetailId] = useState(null)
+  const [error, setError] = useState('')
+  const [detailError, setDetailError] = useState('')
 
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    const controller = new AbortController()
+    const loadInquiries = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const { data } = await getMyInquiries({ size: 50, signal: controller.signal })
+        setInquiries(data.content ?? [])
+      } catch (requestError) {
+        if (requestError.code !== 'ERR_CANCELED') {
+          setError(requestError.response?.data?.message || '문의 내역을 불러오지 못했습니다.')
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+    loadInquiries()
+    return () => controller.abort()
+  }, [])
 
   const items = filter === '전체'
-    ? MOCK_INQUIRIES
+    ? inquiries
     : filter === '대기 중'
-      ? MOCK_INQUIRIES.filter(q => !q.answered)
-      : MOCK_INQUIRIES.filter(q => q.answered)
+      ? inquiries.filter(q => !q.answered)
+      : inquiries.filter(q => q.answered)
 
-  const answered   = MOCK_INQUIRIES.filter(q => q.answered).length
-  const unanswered = MOCK_INQUIRIES.filter(q => !q.answered).length
+  const answered = inquiries.filter(q => q.answered).length
+  const unanswered = inquiries.filter(q => !q.answered).length
+
+  const handleToggle = async (inquiryId) => {
+    if (open === inquiryId) {
+      setOpen(null)
+      return
+    }
+    setOpen(inquiryId)
+    setDetailError('')
+    if (details[inquiryId]) return
+    setLoadingDetailId(inquiryId)
+    try {
+      const { data } = await getInquiryDetail(inquiryId)
+      setDetails(current => ({ ...current, [inquiryId]: data }))
+    } catch (requestError) {
+      setDetailError(requestError.response?.data?.message || '문의 상세 내용을 불러오지 못했습니다.')
+    } finally {
+      setLoadingDetailId(null)
+    }
+  }
 
   return (
     <PageWrap>
       <PageBanner title="문의 현황" crumb="문의 현황" />
 
       <div className={s.body}>
-        <div style={{
-          backgroundColor: '#fff9db',
-          border: '1px solid #ffe066',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          color: '#f08c00',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          lineHeight: '1.5'
-        }}>
-          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
-        </div>
-        {/* 상단 통계 + 작성 버튼 */}
         <div className={s.topRow}>
           <div className={s.stats}>
             <div className={s.statChip} style={{ '--c': '#c0622a' }}>
@@ -68,15 +95,22 @@ export default function InquiryList() {
 
         <FilterBar options={FILTERS} value={filter} onChange={setFilter} />
 
-        {items.length === 0
+        {loading
+          ? <div className={s.feedback} role="status">문의 내역을 불러오는 중입니다.</div>
+          : error
+            ? <div className={s.feedback} role="alert">{error}</div>
+          : items.length === 0
           ? <Empty msg="문의 내역이 없습니다." />
           : <div className={s.list}>
               {items.map(q => (
                 <InquiryItem
-                  key={q.id}
+                  key={q.inquiryId}
                   inquiry={q}
-                  isOpen={open === q.id}
-                  onToggle={() => setOpen(prev => prev === q.id ? null : q.id)}
+                  detail={details[q.inquiryId]}
+                  isOpen={open === q.inquiryId}
+                  isLoading={loadingDetailId === q.inquiryId}
+                  error={open === q.inquiryId ? detailError : ''}
+                  onToggle={() => handleToggle(q.inquiryId)}
                 />
               ))}
             </div>
@@ -100,7 +134,8 @@ export default function InquiryList() {
 }
 
 /* ── 개별 문의 아코디언 아이템 ─────────────────────────── */
-function InquiryItem({ inquiry: q, isOpen, onToggle }) {
+function InquiryItem({ inquiry: q, detail, isOpen, isLoading, error, onToggle }) {
+  const typeLabel = TYPE_LABELS[q.inquiryType] ?? '기타'
   return (
     <div className={`${s.item} ${isOpen ? s.itemOpen : ''}`}>
       {/* 헤더 버튼 */}
@@ -111,8 +146,8 @@ function InquiryItem({ inquiry: q, isOpen, onToggle }) {
       >
         <div className={s.triggerLeft}>
           <Badge
-            label={q.type}
-            color={TYPE_COLORS[q.type] ?? 'gray'}
+            label={typeLabel}
+            color={TYPE_COLORS[typeLabel] ?? 'gray'}
           />
           <span className={s.triggerTitle}>{q.title}</span>
         </div>
@@ -121,7 +156,7 @@ function InquiryItem({ inquiry: q, isOpen, onToggle }) {
             label={q.answered ? '답변 완료' : '대기 중'}
             color={STATUS_COLOR[q.answered]}
           />
-          <span className={s.triggerDate}>{q.createdAt}</span>
+          <span className={s.triggerDate}>{formatDate(q.createdAt)}</span>
           <span className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}>›</span>
         </div>
       </button>
@@ -129,32 +164,31 @@ function InquiryItem({ inquiry: q, isOpen, onToggle }) {
       {/* 펼쳐진 내용 */}
       {isOpen && (
         <div className={s.body_}>
-          {/* 질문 블록 */}
+          {isLoading && <div className={s.feedback} role="status">문의 상세 내용을 불러오는 중입니다.</div>}
+          {error && <div className={s.feedback} role="alert">{error}</div>}
+          {detail && <>
           <div className={s.qBlock}>
             <div className={s.blockLabel}>
               <span className={s.qMark}>Q</span>
               <span>질문</span>
             </div>
             <div className={s.blockContent}>
-              <p className={s.blockTitle}>{q.title}</p>
-              <p className={s.blockText}>
-                {/* 실제 연동 시 q.content 사용 */}
-                {q.title}에 대한 자세한 문의 내용이 여기에 표시됩니다.
-              </p>
-              <p className={s.blockMeta}>{q.createdAt} 작성</p>
+              <p className={s.blockTitle}>{detail.title}</p>
+              <p className={s.blockText}>{detail.content}</p>
+              {detail.attachmentUrl && <a className={s.attachmentLink} href={detail.attachmentUrl} target="_blank" rel="noreferrer">첨부 파일: {detail.attachmentName || '파일 열기'}</a>}
+              <p className={s.blockMeta}>{formatDate(detail.createdAt)} 작성</p>
             </div>
           </div>
 
-          {/* 답변 블록 */}
-          {q.answered
+          {detail.answered
             ? <div className={s.aBlock}>
                 <div className={s.blockLabel}>
                   <span className={s.aMark}>A</span>
                   <span>답변</span>
                 </div>
                 <div className={s.blockContent}>
-                  <p className={s.blockText}>{q.answer}</p>
-                  <p className={s.blockMeta}>데일리 아틀리에 고객센터 · 답변 완료</p>
+                  <p className={s.blockText}>{detail.answer}</p>
+                  <p className={s.blockMeta}>데일리 아틀리에 고객센터 · {formatDate(detail.answeredAt)} 답변 완료</p>
                 </div>
               </div>
             : <div className={s.pendingBlock}>
@@ -166,6 +200,7 @@ function InquiryItem({ inquiry: q, isOpen, onToggle }) {
                 </p>
               </div>
           }
+          </>}
         </div>
       )}
     </div>

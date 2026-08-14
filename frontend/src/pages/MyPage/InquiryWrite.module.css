@@ -78,6 +78,7 @@
 .textarea { resize: vertical; min-height: 180px; line-height: 1.7; }
 
 .errMsg { font-size: var(--font-size-xs); color: var(--color-error); padding-left: 2px; }
+.submitError { margin: 0; font-size: var(--font-size-sm); color: var(--color-error); text-align: center; }
 
 /* 파일 업로드 */
 .fileLabel {

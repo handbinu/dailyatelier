@@ -1,10 +1,20 @@
 // src/pages/MyPage/InquiryWrite.jsx  —  1:1 문의 작성
 import { useState, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { PageBanner, PageWrap } from './components/atoms'
+import { createInquiry } from '../../api/inquiryApi'
 import s from './InquiryWrite.module.css'
 
 const INQUIRY_TYPES = ['회원정보', '포인트', '작품', '배송', '경매', '기타']
+const INQUIRY_TYPE_VALUES = {
+  회원정보: 'MEMBER',
+  포인트: 'POINT',
+  작품: 'ART',
+  배송: 'DELIVERY',
+  경매: 'AUCTION',
+  기타: 'OTHER',
+}
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 
 export default function InquiryWrite() {
   const navigate = useNavigate()
@@ -18,14 +28,7 @@ export default function InquiryWrite() {
   const [filePreview, setFilePreview] = useState(null)
   const [errors,     setErrors]     = useState({})
   const [submitting, setSub]        = useState(false)
-  const [done,       setDone]       = useState(false)
   const fileRef = useRef()
-
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
-  }
 
   const set = (key) => (e) => {
     setForm(f => ({ ...f, [key]: e.target.value }))
@@ -35,7 +38,15 @@ export default function InquiryWrite() {
   const onFileChange = (e) => {
     const f = e.target.files[0]
     if (!f) return
-    if (f.size > 10 * 1024 * 1024) { alert('파일 크기는 10MB 이하여야 합니다.'); return }
+    if (f.size > 10 * 1024 * 1024) {
+      setErrors(er => ({ ...er, file: '파일 크기는 10MB 이하여야 합니다.' }))
+      return
+    }
+    if (!ALLOWED_FILE_TYPES.includes(f.type)) {
+      setErrors(er => ({ ...er, file: 'JPG, PNG, PDF 파일만 첨부할 수 있습니다.' }))
+      return
+    }
+    setErrors(er => ({ ...er, file: '', submit: '' }))
     setFile(f)
     if (f.type.startsWith('image/')) {
       const reader = new FileReader()
@@ -46,7 +57,12 @@ export default function InquiryWrite() {
     }
   }
 
-  const removeFile = () => { setFile(null); setFilePreview(null); if (fileRef.current) fileRef.current.value = '' }
+  const removeFile = () => {
+    setFile(null)
+    setFilePreview(null)
+    setErrors(er => ({ ...er, file: '' }))
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   const validate = () => {
     const er = {}
@@ -62,27 +78,21 @@ export default function InquiryWrite() {
     e.preventDefault()
     if (!validate()) return
     setSub(true)
-    // TODO: POST /api/inquiries  (multipart/form-data)
-    await new Promise(r => setTimeout(r, 800))
-    setSub(false)
-    setDone(true)
-  }
-
-  if (done) {
-    return (
-      <PageWrap>
-        <PageBanner title="문의 등록 완료" crumb="1:1 문의" />
-        <div className={s.doneWrap}>
-          <span className={s.doneIcon}>✉️</span>
-          <h2 className={s.doneTitle}>문의가 등록되었습니다!</h2>
-          <p className={s.doneSub}>영업일 기준 1~3일 내 답변 드리겠습니다.</p>
-          <div className={s.doneActions}>
-            <Link to="/mypage/inquiry" className={s.doneBtn}>내 문의 보기</Link>
-            <Link to="/"              className={`${s.doneBtn} ${s.doneBtnOutline}`}>홈으로</Link>
-          </div>
-        </div>
-      </PageWrap>
-    )
+    setErrors(er => ({ ...er, submit: '' }))
+    try {
+      await createInquiry({
+        inquiryType: INQUIRY_TYPE_VALUES[form.type],
+        title: form.title.trim(),
+        content: form.content.trim(),
+        emailAlert: form.emailAlert,
+        attachment: file,
+      })
+      navigate('/mypage/inquiry', { replace: true })
+    } catch (error) {
+      setErrors(er => ({ ...er, submit: error.response?.data?.message || '문의 등록에 실패했습니다. 다시 시도해 주세요.' }))
+    } finally {
+      setSub(false)
+    }
   }
 
   return (
@@ -167,6 +177,7 @@ export default function InquiryWrite() {
                   </label>
               }
               <p className={s.fileGuide}>JPG, PNG, PDF 업로드 가능</p>
+              {errors.file && <p className={s.errMsg}>{errors.file}</p>}
             </div>
 
             {/* 이메일 알림 */}
@@ -199,6 +210,7 @@ export default function InquiryWrite() {
               취소
             </button>
           </div>
+          {errors.submit && <p className={s.submitError} role="alert">{errors.submit}</p>}
         </form>
       </div>
     </PageWrap>
