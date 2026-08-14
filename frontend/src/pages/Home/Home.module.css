@@ -271,6 +271,14 @@
 
 .sectionMore:hover { color: var(--color-accent); }
 
+.sectionActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
 /* ── 베스트 아트 그리드 ──────────────────────────────── */
 .bestGrid {
   display: grid;
@@ -391,6 +399,9 @@
 }
 
 .homeStatusClosed { background: rgba(35, 31, 34, 0.72); }
+
+.endedResultSold { background: #7a3f24; }
+.endedResultUnsold { background: #686664; }
 
 .artCard:hover .artImgWrap img {
   transform: scale(1.05);

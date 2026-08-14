@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getArts } from '../../api/artApi'
+import { getArts, searchArts } from '../../api/artApi'
 import { formatClosingTime, formatPrice, getDeadlineMeta } from '../../utils/artDisplay'
 import {
   applyArtImageFallback,
@@ -19,8 +19,8 @@ const SLIDES = [
 /* ── 탭 필터 옵션 ──────────────────────────────────────── */
 const ART_FILTERS = [
   { label: '전체', value: 'all' },
-  { label: '디지털', value: '디지털' },
-  { label: '실물', value: '실물' },
+  { label: '디지털', value: 'DIGITAL' },
+  { label: '실물', value: 'PHYSICAL' },
 ]
 
 /* ────────────────────────────────────────────────────────── */
@@ -32,6 +32,10 @@ export default function Home() {
   const [newArtsLoading, setNewArtsLoading] = useState(true)
   const [newArtsError, setNewArtsError] = useState('')
   const [newArtsRetryKey, setNewArtsRetryKey] = useState(0)
+  const [endedArts, setEndedArts] = useState([])
+  const [endedArtsLoading, setEndedArtsLoading] = useState(true)
+  const [endedArtsError, setEndedArtsError] = useState('')
+  const [endedArtsRetryKey, setEndedArtsRetryKey] = useState(0)
   const timerRef = useRef(null)
   const reduceMotionRef = useRef(false)
 
@@ -88,6 +92,37 @@ export default function Home() {
     return () => controller.abort()
   }, [newArtsRetryKey])
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const loadEndedArts = async () => {
+      setEndedArtsLoading(true)
+      setEndedArtsError('')
+
+      try {
+        const { data } = await searchArts({
+          status: 'ENDED',
+          sort: 'RECENTLY_ENDED',
+          format: endFilter === 'all' ? undefined : endFilter,
+          page: 0,
+          size: 6,
+          signal: controller.signal,
+        })
+        if (controller.signal.aborted) return
+        setEndedArts(data.content ?? [])
+      } catch (requestError) {
+        if (controller.signal.aborted || requestError.code === 'ERR_CANCELED') return
+        setEndedArts([])
+        setEndedArtsError(requestError.response?.data?.message || '종료 작품을 불러오지 못했습니다.')
+      } finally {
+        if (!controller.signal.aborted) setEndedArtsLoading(false)
+      }
+    }
+
+    loadEndedArts()
+    return () => controller.abort()
+  }, [endFilter, endedArtsRetryKey])
+
   const goSlide = (idx) => {
     clearInterval(timerRef.current)
     timerRef.current = null
@@ -98,6 +133,13 @@ export default function Home() {
       4000
     )
   }
+
+  const endedArtsParams = new URLSearchParams({
+    status: 'ENDED',
+    sort: 'RECENTLY_ENDED',
+  })
+  if (endFilter !== 'all') endedArtsParams.set('format', endFilter)
+  const endedArtsPath = `/search?${endedArtsParams.toString()}`
 
   return (
     <div className={styles.page}>
@@ -205,13 +247,22 @@ export default function Home() {
       <section className={`${styles.section} ${styles.sectionAlt}`} aria-label="종료 작품">
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>종료 작품</h2>
-          <FilterTabs
-            options={ART_FILTERS}
-            value={endFilter}
-            onChange={setEndFilter}
-          />
+          <div className={styles.sectionActions}>
+            <FilterTabs
+              options={ART_FILTERS}
+              value={endFilter}
+              onChange={setEndFilter}
+            />
+            <Link to={endedArtsPath} className={styles.sectionMore}>종료 작품 전체 보기 →</Link>
+          </div>
         </div>
-        <ArtGrid filter={endFilter} type="end" />
+        <EndedArtGrid
+          arts={endedArts}
+          loading={endedArtsLoading}
+          error={endedArtsError}
+          from={endedArtsPath}
+          onRetry={() => setEndedArtsRetryKey((key) => key + 1)}
+        />
       </section>
     </div>
   )
@@ -259,18 +310,6 @@ function FilterTabs({ options, value, onChange }) {
       ))}
     </div>
   )
-}
-
-/* ── 작품 그리드 (정적 목업 데이터) ─────────────────── */
-const MOCK_ARTS = {
-  end: [
-    { id: 'e1', img: '/img/auction/done_digi_1.jpg', title: '연예인 병', price: '530,000', type: '디지털' },
-    { id: 'e2', img: '/img/auction/done_digi_2.jpg', title: '세사람', price: '430,000', type: '디지털' },
-    { id: 'e3', img: '/img/auction/done_real_1.jpg', title: '숲속에서', price: '720,000', type: '실물' },
-    { id: 'e4', img: '/img/auction/done_real_2.jpg', title: '어린시절', price: '610,000', type: '실물' },
-    { id: 'e5', img: '/img/auction/done_digi_3.jpg', title: '우주비행사', price: '380,000', type: '디지털' },
-    { id: 'e6', img: '/img/auction/done_real_3.jpg', title: '내 속마음', price: '850,000', type: '실물' },
-  ],
 }
 
 function NewArtGrid({ arts, loading, error, onRetry }) {
@@ -340,46 +379,67 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
   )
 }
 
-function ArtGrid({ filter, type }) {
-  const all = MOCK_ARTS[type] ?? []
-  const items =
-    filter === 'all' ? all : all.filter((a) => a.type === filter)
-
-  if (items.length === 0) {
+function EndedArtGrid({ arts, loading, error, from, onRetry }) {
+  if (loading) {
     return (
-      <p className={styles.empty}>선택한 유형의 작품이 없습니다.</p>
+      <div className={styles.artGrid} aria-label="종료 작품을 불러오는 중" aria-busy="true">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className={styles.homeSkeletonCard}>
+            <div className={styles.homeSkeletonImage} />
+            <div className={styles.homeSkeletonBody}><span /><span /></div>
+          </div>
+        ))}
+      </div>
     )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.homeFeedback} role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      </div>
+    )
+  }
+
+  if (arts.length === 0) {
+    return <p className={styles.empty}>선택한 유형의 종료 작품이 없습니다.</p>
   }
 
   return (
     <div className={styles.artGrid}>
-      {items.map((art) => (
-        <Link
-          key={art.id}
-          to={`/auction/${art.id}`}
-          className={`${styles.artCard} ${type === 'end' ? styles.artCardEnd : ''}`}
-        >
-          <div className={styles.artImgWrap}>
-            <img src={art.img} alt={art.title} />
-            {type === 'new' && (
-              <div className={styles.artOverlay}>
-                <span className={styles.artBidBtn}>입찰하기</span>
-              </div>
-            )}
-          </div>
-          <div className={styles.artInfo}>
-            <p className={styles.artTitle}>{art.title}</p>
-            {type === 'new' ? (
-              <>
-                <p className={styles.artPrice}>현재가: {art.price}원</p>
-                <p className={styles.artTime}>⏱ {art.time}</p>
-              </>
-            ) : (
-              <p className={styles.artPrice}>낙찰가: {art.price}원</p>
-            )}
-          </div>
-        </Link>
-      ))}
+      {arts.map((art) => {
+        const sold = art.result === 'SOLD'
+        const resultLabel = sold ? '낙찰' : art.result === 'UNSOLD' ? '유찰' : '종료'
+        return (
+          <Link
+            key={art.artId}
+            to={`/auction/${art.artId}`}
+            state={{ from }}
+            className={`${styles.artCard} ${styles.artCardEnd}`}
+            aria-label={`${art.name} 종료 작품 상세 보기`}
+          >
+            <div className={styles.artImgWrap}>
+              <img
+                src={getArtImageSrc(art.imgPath)}
+                alt={art.name}
+                loading="lazy"
+                onError={applyArtImageFallback}
+                onLoad={applyArtImageFallbackIfBlank}
+              />
+              <span className={`${styles.homeStatusBadge} ${sold ? styles.endedResultSold : styles.endedResultUnsold}`}>
+                {resultLabel}
+              </span>
+            </div>
+            <div className={styles.artInfo}>
+              <p className={styles.artTitle}>{art.name}</p>
+              <p className={styles.artPrice}>
+                {sold ? '낙찰가' : '최종가'}: {formatPrice(art.currentPrice)}원
+              </p>
+            </div>
+          </Link>
+        )
+      })}
     </div>
   )
 }

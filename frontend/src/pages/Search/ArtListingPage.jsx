@@ -74,7 +74,7 @@ export default function ArtListingPage({ preset = {}, title, subtitle, eyebrow, 
           {!auction && <FilterSelect label="형태" value={urlState.format} onChange={(value) => updateConditions({ format: value })} options={[['DIGITAL', '디지털'], ['PHYSICAL', '실물']]} />}
           <FilterSelect label="카테고리" value={urlState.category} onChange={(value) => updateConditions({ category: value })} options={allowedCategories.map((value) => [value, CATEGORY_LABELS[value]])} />
           {!auction && <FilterSelect label="상태" value={urlState.status} onChange={(value) => updateConditions({ status: value })} options={[['UPCOMING', '예정'], ['ONGOING', '진행 중'], ['ENDED', '종료']]} />}
-          <FilterSelect label="정렬" value={urlState.sort} allLabel={null} onChange={(value) => updateConditions({ sort: value })} options={[['ENDING_SOON', '마감 임박순'], ['NEWEST', '최신 등록순'], ['PRICE_ASC', '가격 낮은순'], ['PRICE_DESC', '가격 높은순']]} />
+          <FilterSelect label="정렬" value={urlState.sort} allLabel={null} onChange={(value) => updateConditions({ sort: value })} options={[['ENDING_SOON', '마감 임박순'], ['RECENTLY_ENDED', '최근 종료순'], ['NEWEST', '최신 등록순'], ['PRICE_ASC', '가격 낮은순'], ['PRICE_DESC', '가격 높은순']]} />
           <button type="button" className={styles.resetButton} onClick={reset}>{auction ? '필터 초기화' : '전체 초기화'}</button>
         </div>
       </div>
