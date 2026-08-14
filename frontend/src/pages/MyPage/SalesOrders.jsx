@@ -16,6 +16,7 @@ import {
   ORDER_FILTERS,
 } from '../../utils/orderView'
 import { createOrderRequestGuard } from '../../utils/orderRequestGuard'
+import { createLatestRequest } from '../../utils/latestRequest'
 import { createLoginState } from '../../utils/loginReturn'
 import {
   buildSellerStatusRequest,
@@ -54,6 +55,9 @@ export default function SalesOrders() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const requestGuard = useRef(createOrderRequestGuard())
+  const listRequest = useRef(null)
+  const listParams = useRef({ filter, page })
+  listParams.current = { filter, page }
 
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
@@ -65,26 +69,30 @@ export default function SalesOrders() {
     return orderError
   }, [location, navigate])
 
-  const loadOrders = useCallback(async ({ signal } = {}) => {
-    setLoading(true)
-    setError('')
-    try {
+  const loadOrders = useCallback(() => listRequest.current?.run(
+    async ({ signal }) => {
+      const { filter: currentFilter, page: currentPage } = listParams.current
       const { data } = await getSellerOrders({
-        status: filter || undefined,
-        page,
+        status: currentFilter || undefined,
+        page: currentPage,
         size: PAGE_SIZE,
         signal,
       })
-      setResult(data)
-    } catch (requestError) {
-      if (requestError.code !== 'ERR_CANCELED') {
+      return data
+    },
+    {
+      onStart: () => {
+        setLoading(true)
+        setError('')
+      },
+      onSuccess: setResult,
+      onError: (requestError) => {
         setResult(null)
         handleRequestError(requestError, '판매 주문을 불러오지 못했습니다.')
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false)
-    }
-  }, [filter, handleRequestError, page])
+      },
+      onFinally: () => setLoading(false),
+    },
+  ), [handleRequestError])
 
   const loadDetail = useCallback(async (orderId, { force = false } = {}) => {
     if (!force && details[orderId]) return details[orderId]
@@ -103,10 +111,17 @@ export default function SalesOrders() {
   }, [details, handleRequestError])
 
   useEffect(() => {
-    const controller = new AbortController()
-    loadOrders({ signal: controller.signal })
-    return () => controller.abort()
-  }, [loadOrders])
+    const request = createLatestRequest()
+    listRequest.current = request
+    return () => {
+      request.dispose()
+      if (listRequest.current === request) listRequest.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    loadOrders()
+  }, [filter, loadOrders, page])
 
   const summaryItems = useMemo(() => {
     const counts = result?.statusCounts ?? {}
