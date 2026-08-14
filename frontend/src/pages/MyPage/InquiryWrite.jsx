@@ -106,7 +106,7 @@ export default function InquiryWrite() {
 
             {/* 유형 */}
             <div className={s.field}>
-              <label className={s.label} htmlFor="inq-type">문의 유형 *</label>
+              <span className={s.label}>문의 유형 *</span>
               <div className={s.typeRow}>
                 {INQUIRY_TYPES.map(t => (
                   <button
@@ -156,7 +156,7 @@ export default function InquiryWrite() {
 
             {/* 첨부 파일 */}
             <div className={s.field}>
-              <label className={s.label}>첨부 파일 <span className={s.optional}>(선택, 최대 10MB)</span></label>
+              <span className={s.label}>첨부 파일 <span className={s.optional}>(선택, 최대 10MB)</span></span>
               {file
                 ? <div className={s.filePreviewBox}>
                     {filePreview

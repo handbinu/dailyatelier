@@ -6,7 +6,9 @@ export const createInquiry = ({ inquiryType, title, content, emailAlert, attachm
     type: 'application/json',
   }))
   if (attachment) formData.append('attachment', attachment)
-  return api.post('/api/inquiries', formData)
+  return api.post('/api/inquiries', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 }
 
 export const getMyInquiries = ({ page = 0, size = 50, signal } = {}) =>
