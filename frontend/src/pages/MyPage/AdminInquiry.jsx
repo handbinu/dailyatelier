@@ -106,7 +106,18 @@ export default function AdminInquiry() {
                     <h2>{selected.title}</h2>
                     <p className={s.adminMeta}>{selected.userId} · {formatDate(selected.createdAt)}</p>
                     <p className={s.adminContent}>{selected.content}</p>
-                    {selected.attachmentUrl && <a className={s.attachmentLink} href={selected.attachmentUrl} target="_blank" rel="noreferrer">첨부 파일: {selected.attachmentName || '파일 열기'}</a>}
+                    {selected.attachmentUrl && (
+                      <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                        {selected.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i) || selected.attachmentUrl.includes('image/upload') ? (
+                          <img src={selected.attachmentUrl} alt="첨부 이미지" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
+                        ) : null}
+                        <div style={{ marginTop: '8px' }}>
+                          <a className={s.attachmentLink} href={selected.attachmentUrl} target="_blank" rel="noreferrer">
+                            첨부 파일 다운로드: {selected.attachmentName || '파일 열기'}
+                          </a>
+                        </div>
+                      </div>
+                    )}
                     {selected.answered
                       ? <div className={s.aBlock}><div className={s.blockContent}><p className={s.blockText}>{selected.answer}</p><p className={s.blockMeta}>{formatDate(selected.answeredAt)} 답변 완료</p></div></div>
                       : <form className={s.answerForm} onSubmit={submitAnswer}>

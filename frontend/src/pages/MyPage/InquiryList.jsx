@@ -175,7 +175,18 @@ function InquiryItem({ inquiry: q, detail, isOpen, isLoading, error, onToggle })
             <div className={s.blockContent}>
               <p className={s.blockTitle}>{detail.title}</p>
               <p className={s.blockText}>{detail.content}</p>
-              {detail.attachmentUrl && <a className={s.attachmentLink} href={detail.attachmentUrl} target="_blank" rel="noreferrer">첨부 파일: {detail.attachmentName || '파일 열기'}</a>}
+              {detail.attachmentUrl && (
+                <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+                  {detail.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i) || detail.attachmentUrl.includes('image/upload') ? (
+                    <img src={detail.attachmentUrl} alt="첨부 이미지" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--color-border)' }} />
+                  ) : null}
+                  <div style={{ marginTop: '8px' }}>
+                    <a className={s.attachmentLink} href={detail.attachmentUrl} target="_blank" rel="noreferrer">
+                      첨부 파일 다운로드: {detail.attachmentName || '파일 열기'}
+                    </a>
+                  </div>
+                </div>
+              )}
               <p className={s.blockMeta}>{formatDate(detail.createdAt)} 작성</p>
             </div>
           </div>
