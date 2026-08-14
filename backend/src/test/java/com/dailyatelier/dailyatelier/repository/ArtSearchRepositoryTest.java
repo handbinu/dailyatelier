@@ -78,6 +78,9 @@ class ArtSearchRepositoryTest {
         Art sold = saveArt(kim, "판매", ArtFormat.PHYSICAL,
                 ArtCategory.OTHER, Art.STATUS_SOLD,
                 NOW.minusDays(2), NOW.minusDays(1), 100, NOW);
+        Art unsold = saveArt(kim, "유찰", ArtFormat.PHYSICAL,
+                ArtCategory.OTHER, Art.STATUS_UNSOLD,
+                NOW.minusDays(3), NOW.minusDays(2), 100, NOW);
         saveArt(kim, "취소", ArtFormat.PHYSICAL,
                 ArtCategory.OTHER, Art.STATUS_CANCELED,
                 NOW.minusHours(1), NOW.plusHours(1), 100, NOW);
@@ -85,8 +88,8 @@ class ArtSearchRepositoryTest {
         assertStatus(ArtSearchStatus.UPCOMING, upcoming);
         assertStatus(ArtSearchStatus.ONGOING, ongoing);
         assertThat(search(ArtSearchStatus.ENDED).getContent())
-                .containsExactlyInAnyOrder(expiredActive, sold);
-        assertThat(search(null).getContent()).hasSize(4);
+                .containsExactlyInAnyOrder(expiredActive, sold, unsold);
+        assertThat(search(null).getContent()).hasSize(5);
     }
 
     @Test
@@ -102,9 +105,32 @@ class ArtSearchRepositoryTest {
                 NOW.minusDays(2), NOW.minusDays(1), 50, NOW.plusDays(1));
 
         assertIds(ArtSearchSort.ENDING_SOON, second, first, ended);
+        assertIds(ArtSearchSort.RECENTLY_ENDED, second, first, ended);
         assertIds(ArtSearchSort.NEWEST, ended, second, first);
         assertIds(ArtSearchSort.PRICE_ASC, ended, second, first);
         assertIds(ArtSearchSort.PRICE_DESC, second, first, ended);
+    }
+
+    @Test
+    void sortsEndedArtsByClosingTimeDescendingAndIdDescending() {
+        Art older = saveArt(kim, "먼저 종료", ArtFormat.PHYSICAL,
+                ArtCategory.OTHER, Art.STATUS_UNSOLD,
+                NOW.minusDays(3), NOW.minusDays(2), 100, NOW);
+        Art recentFirst = saveArt(kim, "최근 종료 1", ArtFormat.DIGITAL,
+                ArtCategory.DIGITAL_ART, Art.STATUS_SOLD,
+                NOW.minusDays(2), NOW.minusDays(1), 200, NOW);
+        Art recentSecond = saveArt(kim, "최근 종료 2", ArtFormat.PHYSICAL,
+                ArtCategory.OTHER, Art.STATUS_UNSOLD,
+                NOW.minusDays(2), NOW.minusDays(1), 150, NOW);
+
+        Page<Art> result = artRepository.search(new ArtSearchCriteria(
+                null, null, null, null, ArtSearchStatus.ENDED,
+                ArtSearchSort.RECENTLY_ENDED
+        ), NOW, PageRequest.of(0, 20));
+
+        assertThat(result.getContent()).extracting(Art::getArtId)
+                .containsExactly(recentSecond.getArtId(), recentFirst.getArtId(),
+                        older.getArtId());
     }
 
     private void assertStatus(ArtSearchStatus status, Art expected) {

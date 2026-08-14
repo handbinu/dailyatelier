@@ -144,6 +144,8 @@ public class ArtSearchRepositoryImpl implements ArtSearchRepository {
                 orders.add(builder.asc(ended));
                 orders.add(builder.asc(art.get("closingTime")));
             }
+            case RECENTLY_ENDED ->
+                    orders.add(builder.desc(art.get("closingTime")));
             case NEWEST -> orders.add(builder.desc(art.get("createdAt")));
             case PRICE_ASC -> orders.add(builder.asc(art.get("currentPrice")));
             case PRICE_DESC -> orders.add(builder.desc(art.get("currentPrice")));

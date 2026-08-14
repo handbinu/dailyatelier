@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
 import com.dailyatelier.dailyatelier.dto.ArtSearchCriteria;
+import com.dailyatelier.dailyatelier.dto.ArtSearchResult;
 import com.dailyatelier.dailyatelier.dto.ArtSearchResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtSearchSort;
 import com.dailyatelier.dailyatelier.dto.ArtSearchStatus;
@@ -65,7 +66,8 @@ class ArtSearchApiTest {
                 .andExpect(jsonPath("$.content[0].bidStartTime").exists())
                 .andExpect(jsonPath("$.content[0].closingTime").exists())
                 .andExpect(jsonPath("$.content[0].imgPath").value("art.jpg"))
-                .andExpect(jsonPath("$.content[0].status").value("ONGOING"))
+                .andExpect(jsonPath("$.content[0].status").value("ENDED"))
+                .andExpect(jsonPath("$.content[0].result").value("SOLD"))
                 .andExpect(jsonPath("$.content[0].createdAt").exists())
                 .andExpect(jsonPath("$.number").value(0))
                 .andExpect(jsonPath("$.size").value(12))
@@ -92,6 +94,27 @@ class ArtSearchApiTest {
                         .param("page", "2")
                         .param("size", "25"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void bindsRecentlyEndedSort() throws Exception {
+        when(artSearchService.search(
+                new ArtSearchCriteria(null, null, null, null,
+                        ArtSearchStatus.ENDED, ArtSearchSort.RECENTLY_ENDED),
+                0, 6
+        )).thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 6), 0));
+
+        mockMvc.perform(get("/api/arts/search")
+                        .param("status", "ENDED")
+                        .param("sort", "RECENTLY_ENDED")
+                        .param("size", "6"))
+                .andExpect(status().isOk());
+
+        verify(artSearchService).search(
+                new ArtSearchCriteria(null, null, null, null,
+                        ArtSearchStatus.ENDED, ArtSearchSort.RECENTLY_ENDED),
+                0, 6
+        );
     }
 
     @Test
@@ -149,7 +172,7 @@ class ArtSearchApiTest {
                 ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 120_000,
                 LocalDateTime.of(2026, 8, 11, 10, 0),
                 LocalDateTime.of(2026, 8, 12, 10, 0),
-                "art.jpg", ArtSearchStatus.ONGOING,
+                "art.jpg", ArtSearchStatus.ENDED, ArtSearchResult.SOLD,
                 LocalDateTime.of(2026, 8, 1, 10, 0)
         );
     }

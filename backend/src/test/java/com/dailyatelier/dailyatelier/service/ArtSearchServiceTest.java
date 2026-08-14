@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtSearchCriteria;
+import com.dailyatelier.dailyatelier.dto.ArtSearchResult;
 import com.dailyatelier.dailyatelier.dto.ArtSearchResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtSearchSort;
 import com.dailyatelier.dailyatelier.dto.ArtSearchStatus;
@@ -73,6 +74,33 @@ class ArtSearchServiceTest {
         assertThat(pageable.getValue().getPageSize()).isEqualTo(50);
         assertThat(result.getContent().get(0).status())
                 .isEqualTo(ArtSearchStatus.ONGOING);
+        assertThat(result.getContent().get(0).result()).isNull();
+    }
+
+    @Test
+    void mapsSoldAndUnsoldResults() {
+        Clock clock = Clock.fixed(
+                Instant.parse("2026-08-11T03:00:00Z"),
+                ZoneId.of("Asia/Seoul")
+        );
+        Art sold = art();
+        sold.setArtStatus(Art.STATUS_SOLD);
+        Art unsold = art();
+        unsold.setArtId(2L);
+        unsold.setArtStatus(Art.STATUS_UNSOLD);
+        ArtSearchService service = new ArtSearchService(artRepository, clock);
+        when(artRepository.search(any(), any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(sold, unsold)));
+
+        Page<ArtSearchResponseDto> result = service.search(
+                new ArtSearchCriteria(null, null, null, null,
+                        ArtSearchStatus.ENDED, ArtSearchSort.RECENTLY_ENDED),
+                0, 12
+        );
+
+        assertThat(result.getContent())
+                .extracting(ArtSearchResponseDto::result)
+                .containsExactly(ArtSearchResult.SOLD, ArtSearchResult.UNSOLD);
     }
 
     private Art art() {

@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtSearchCriteria;
+import com.dailyatelier.dailyatelier.dto.ArtSearchResult;
 import com.dailyatelier.dailyatelier.dto.ArtSearchResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtSearchStatus;
 import com.dailyatelier.dailyatelier.entity.Art;
@@ -50,8 +51,16 @@ public class ArtSearchService {
                 art.getName(), art.getFormat(), art.getCategory(),
                 art.getCurrentPrice(), art.getBidStartTime(),
                 art.getClosingTime(), art.getImgPath(), status(art, now),
-                art.getCreatedAt()
+                result(art), art.getCreatedAt()
         );
+    }
+
+    private ArtSearchResult result(Art art) {
+        return switch (art.getArtStatus()) {
+            case Art.STATUS_SOLD -> ArtSearchResult.SOLD;
+            case Art.STATUS_UNSOLD -> ArtSearchResult.UNSOLD;
+            default -> null;
+        };
     }
 
     private ArtSearchStatus status(Art art, LocalDateTime now) {

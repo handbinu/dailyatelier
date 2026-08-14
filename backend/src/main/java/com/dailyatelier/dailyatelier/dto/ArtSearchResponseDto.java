@@ -17,6 +17,7 @@ public record ArtSearchResponseDto(
         LocalDateTime closingTime,
         String imgPath,
         ArtSearchStatus status,
+        ArtSearchResult result,
         LocalDateTime createdAt
 ) {
 }
