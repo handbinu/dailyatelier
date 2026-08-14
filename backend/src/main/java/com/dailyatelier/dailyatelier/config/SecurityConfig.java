@@ -83,6 +83,7 @@ public class SecurityConfig {
                                 "/api/artists",
                                 "/api/artists/{artistId}",
                                 "/api/artists/{artistId}/arts").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/artists/**").hasRole("ARTIST")
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()

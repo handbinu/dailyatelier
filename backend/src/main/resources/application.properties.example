@@ -20,5 +20,8 @@ cloudinary.cloud-name=${CLOUDINARY_CLOUD_NAME}
 cloudinary.api-key=${CLOUDINARY_API_KEY}
 cloudinary.api-secret=${CLOUDINARY_API_SECRET}
 
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=11MB
+
 auction.close.interval-ms=10000
 auction.close.batch-size=100
