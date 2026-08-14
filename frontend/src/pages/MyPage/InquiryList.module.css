@@ -164,7 +164,7 @@
 
 .blockContent { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); }
 .blockTitle   { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text); }
-.blockText    { font-size: var(--font-size-sm); color: var(--color-text-sub); line-height: 1.7; }
+.blockText    { font-size: var(--font-size-sm); color: var(--color-text-sub); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
 .blockMeta    { font-size: 11px; color: var(--color-text-muted); }
 
 /* 대기 블록 */
