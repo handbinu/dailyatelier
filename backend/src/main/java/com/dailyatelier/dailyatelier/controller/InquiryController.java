@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.controller;
 import com.dailyatelier.dailyatelier.dto.InquiryCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.InquiryDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.InquiryListResponseDto;
+import com.dailyatelier.dailyatelier.dto.InquiryStatus;
 import com.dailyatelier.dailyatelier.service.InquiryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,8 +42,9 @@ public class InquiryController {
     @GetMapping("/me")
     public ResponseEntity<Page<InquiryListResponseDto>> getMyInquiries(
             @AuthenticationPrincipal String userId,
+            @RequestParam(defaultValue = "ALL") InquiryStatus status,
             Pageable pageable) {
-        return ResponseEntity.ok(inquiryService.getMyInquiries(userId, normalizePageable(pageable)));
+        return ResponseEntity.ok(inquiryService.getMyInquiries(userId, status, normalizePageable(pageable)));
     }
 
     @GetMapping("/{inquiryId}")

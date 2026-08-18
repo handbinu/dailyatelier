@@ -52,9 +52,13 @@ public class InquiryService {
     }
 
     @Transactional(readOnly = true)
-    public Page<InquiryListResponseDto> getMyInquiries(String userId, Pageable pageable) {
-        return inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(InquiryListResponseDto::from);
+    public Page<InquiryListResponseDto> getMyInquiries(String userId, InquiryStatus status, Pageable pageable) {
+        Page<Inquiry> inquiries = switch (status) {
+            case PENDING -> inquiryRepository.findByUser_UserIdAndAnsweredAtIsNullOrderByCreatedAtDesc(userId, pageable);
+            case ANSWERED -> inquiryRepository.findByUser_UserIdAndAnsweredAtIsNotNullOrderByCreatedAtDesc(userId, pageable);
+            case ALL -> inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
+        };
+        return inquiries.map(InquiryListResponseDto::from);
     }
 
     @Transactional(readOnly = true)

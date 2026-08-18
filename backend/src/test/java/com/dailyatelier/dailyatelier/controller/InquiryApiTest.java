@@ -4,6 +4,7 @@ import com.dailyatelier.dailyatelier.config.SecurityConfig;
 import com.dailyatelier.dailyatelier.dto.InquiryAdminListResponseDto;
 import com.dailyatelier.dailyatelier.dto.InquiryDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.InquiryListResponseDto;
+import com.dailyatelier.dailyatelier.dto.InquiryStatus;
 import com.dailyatelier.dailyatelier.entity.InquiryType;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.service.InquiryService;
@@ -24,6 +25,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -90,6 +92,39 @@ class InquiryApiTest {
         mockMvc.perform(get("/api/inquiries/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void myInquiriesDefaultsStatusToAll() throws Exception {
+        InquiryListResponseDto inquiry = new InquiryListResponseDto(
+                9L, InquiryType.DELIVERY, "배송 문의", false,
+                LocalDateTime.of(2026, 8, 14, 9, 0), null
+        );
+        when(inquiryService.getMyInquiries(eq("member"), eq(InquiryStatus.ALL), any()))
+                .thenReturn(new PageImpl<>(List.of(inquiry), PageRequest.of(0, 20), 1));
+
+        mockMvc.perform(get("/api/inquiries/me")
+                        .with(authentication(userAuthentication("member"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].inquiryId").value(9))
+                .andExpect(jsonPath("$.content[0].answered").value(false));
+
+        verify(inquiryService).getMyInquiries(eq("member"), eq(InquiryStatus.ALL), any());
+    }
+
+    @Test
+    void myInquiriesAcceptsPendingStatusFilter() throws Exception {
+        when(inquiryService.getMyInquiries(eq("member"), eq(InquiryStatus.PENDING), any()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 1), 3));
+
+        mockMvc.perform(get("/api/inquiries/me")
+                        .param("status", "PENDING")
+                        .param("size", "1")
+                        .with(authentication(userAuthentication("member"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3));
+
+        verify(inquiryService).getMyInquiries(eq("member"), eq(InquiryStatus.PENDING), any());
     }
 
     private InquiryDetailResponseDto detail(Long inquiryId, String userId, boolean answered, String answer) {

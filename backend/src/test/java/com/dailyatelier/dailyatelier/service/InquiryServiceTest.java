@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,6 +123,46 @@ class InquiryServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).isAnswered()).isFalse();
+    }
+
+    @Test
+    void returnsAllMyInquiriesWhenStatusIsAll() {
+        Inquiry pending = inquiry(6L, owner, null);
+        when(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc("owner", PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(pending)));
+
+        var response = inquiryService.getMyInquiries("owner", InquiryStatus.ALL, PageRequest.of(0, 10));
+
+        assertThat(response.getContent()).hasSize(1);
+        verify(inquiryRepository).findByUser_UserIdOrderByCreatedAtDesc("owner", PageRequest.of(0, 10));
+        verify(inquiryRepository, never()).findByUser_UserIdAndAnsweredAtIsNullOrderByCreatedAtDesc(eq("owner"), any());
+        verify(inquiryRepository, never()).findByUser_UserIdAndAnsweredAtIsNotNullOrderByCreatedAtDesc(eq("owner"), any());
+    }
+
+    @Test
+    void filtersMyInquiriesByPendingStatus() {
+        Inquiry pending = inquiry(7L, owner, null);
+        when(inquiryRepository.findByUser_UserIdAndAnsweredAtIsNullOrderByCreatedAtDesc("owner", PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(pending)));
+
+        var response = inquiryService.getMyInquiries("owner", InquiryStatus.PENDING, PageRequest.of(0, 10));
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).isAnswered()).isFalse();
+        verify(inquiryRepository).findByUser_UserIdAndAnsweredAtIsNullOrderByCreatedAtDesc("owner", PageRequest.of(0, 10));
+    }
+
+    @Test
+    void filtersMyInquiriesByAnsweredStatus() {
+        Inquiry answered = inquiry(8L, owner, LocalDateTime.of(2026, 8, 14, 11, 0));
+        when(inquiryRepository.findByUser_UserIdAndAnsweredAtIsNotNullOrderByCreatedAtDesc("owner", PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(answered)));
+
+        var response = inquiryService.getMyInquiries("owner", InquiryStatus.ANSWERED, PageRequest.of(0, 10));
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).isAnswered()).isTrue();
+        verify(inquiryRepository).findByUser_UserIdAndAnsweredAtIsNotNullOrderByCreatedAtDesc("owner", PageRequest.of(0, 10));
     }
 
     private Inquiry inquiry(Long inquiryId, User user, LocalDateTime answeredAt) {
