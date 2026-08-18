@@ -97,6 +97,7 @@ export default function MyPage() {
   const token = localStorage.getItem('token')
   const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
   const isArtist = userStatus === 1
+  const isAdmin = userStatus === 2
 
   useEffect(() => {
     if (!token) {
@@ -189,7 +190,7 @@ export default function MyPage() {
             />
           )}
           {user && <PointCard user={user} />}
-          <QuickActions isArtist={isArtist} navigate={navigate} />
+          <QuickActions isArtist={isArtist} isAdmin={isAdmin} navigate={navigate} />
         </aside>
 
         <main className={styles.content}>
@@ -364,7 +365,7 @@ function PointCard({ user }) {
   )
 }
 
-function QuickActions({ isArtist, navigate }) {
+function QuickActions({ isArtist, isAdmin, navigate }) {
   const logout = () => {
     if (!window.confirm(T.logoutConfirm)) return
     ;['token', 'userId', 'nickname', 'userStatus'].forEach((k) => localStorage.removeItem(k))
@@ -375,6 +376,9 @@ function QuickActions({ isArtist, navigate }) {
     <div className={styles.quickActions}>
       {isArtist && (
         <Link to="/upload" className={styles.quickBtn}>{T.artUpload}</Link>
+      )}
+      {isAdmin && (
+        <Link to="/admin/inquiries" className={styles.quickBtn}>관리자 문의 관리</Link>
       )}
       <button className={styles.quickBtnLogout} onClick={logout}>{T.logout}</button>
     </div>

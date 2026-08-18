@@ -120,6 +120,15 @@ describe('마이페이지 낙찰 작품 요약', () => {
     expect(within(artistMenu).getByRole('link', { name: '판매 주문' })).toHaveAttribute('href', '/mypage/sales-orders')
   })
 
+  it('관리자 회원에게 문의 관리 바로가기를 제공한다', async () => {
+    localStorage.setItem('userStatus', '2')
+
+    renderMyPage()
+    await screen.findByText('테스트 사용자')
+
+    expect(screen.getByRole('link', { name: '관리자 문의 관리' })).toHaveAttribute('href', '/admin/inquiries')
+  })
+
   it('문의 배지는 미답변 totalElements를 사용한다', async () => {
     getMyInquiries.mockResolvedValue({ data: { content: [{ inquiryId: 1 }], totalElements: 12 } })
 
