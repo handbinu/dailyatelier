@@ -12,15 +12,27 @@
 - 프론트엔드: `InquiryWrite`, `InquiryList` 화면을 실제 API에 연결하고 가짜 성공 화면과 mock 데이터를 제거. `AdminRoute` 라우트 가드와 관리자 문의 관리 페이지(`/admin/inquiries`) 추가.
 - 권한 제어: 일반/작가 사용자는 본인 문의만 조회 가능. 관리자는 전체 문의 조회, 필터링, 답변 등록 가능.
 
+### 후속 정리 완료 범위
+
+- 문의 작성 화면 레이아웃을 다른 마이페이지 입력 화면과 맞춰 데스크톱 기준 `max-width: 920px`과 카드 내부 여백을 정리했다.
+- `GET /api/inquiries/me`에 선택적 `status=ALL|PENDING|ANSWERED` 필터를 추가하고 기본값 `ALL`로 기존 동작을 보존했다.
+- 마이페이지 문의 배지는 `status=PENDING`, `size=1` 요청의 `totalElements`를 사용하도록 수정해 첫 페이지 50건 기준이 아닌 실제 미답변 총개수를 표시하게 했다.
+- 관리자 계정(`userStatus === 2`)에는 마이페이지에서 `/admin/inquiries` 바로가기를 제공한다.
+
 ### 구현 커밋
 
 - `f6f5a83 feat(backend): 1:1 문의 API와 관리자 답변 구현`
 - `0e13772 feat(frontend): 1:1 문의 실제 연동`
+- `d8d9b2a fix(frontend): 문의 작성 폼 너비와 여백 수정`
+- `ea18bcf feat(backend): 사용자 문의 상태 필터 추가`
+- `41dd38a feat(frontend): 미답변 문의 배지 실제 연동`
+- `f2881ff feat(frontend): 관리자 문의 관리 바로가기 추가`
 
 ### 자동 검증 결과
 
 - 백엔드: 문의 등록, 권한 접근 거부, 관리자 답변 처리 등 단위/통합 테스트 모두 통과 확인.
 - 프론트엔드: 컴포넌트 단위 테스트(`Inquiry.test.jsx`, `AdminRoute.test.jsx`), 전체 ESLint, 프로덕션 빌드 모두 통과 확인.
+- 후속 수정: `InquiryServiceTest`, `InquiryApiTest`, `MyPage.test.jsx`, `Inquiry.test.jsx`, 프론트 ESLint와 `git diff --check` 통과 확인.
 
 ### 브라우저 QA 시나리오 (수동 검증 예정)
 
