@@ -11,8 +11,8 @@ export const createInquiry = ({ inquiryType, title, content, emailAlert, attachm
   })
 }
 
-export const getMyInquiries = ({ page = 0, size = 50, signal } = {}) =>
-  api.get('/api/inquiries/me', { params: { page, size }, signal })
+export const getMyInquiries = ({ status = 'ALL', page = 0, size = 50, signal } = {}) =>
+  api.get('/api/inquiries/me', { params: { status, page, size }, signal })
 
 export const getInquiryDetail = (inquiryId, { signal } = {}) =>
   api.get(`/api/inquiries/${inquiryId}`, { signal })

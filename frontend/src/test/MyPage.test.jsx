@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from '../pages/MyPage/MyPage'
 import { getAllMyBids, getAllMyWins, getUserProfile } from '../api/userApi'
 import { getMyArts } from '../api/artApi'
+import { getMyInquiries } from '../api/inquiryApi'
 
 vi.mock('../api/userApi', () => ({
   getAllMyBids: vi.fn(),
@@ -14,6 +15,10 @@ vi.mock('../api/userApi', () => ({
 
 vi.mock('../api/artApi', () => ({
   getMyArts: vi.fn(),
+}))
+
+vi.mock('../api/inquiryApi', () => ({
+  getMyInquiries: vi.fn(),
 }))
 
 const profile = {
@@ -52,6 +57,7 @@ describe('마이페이지 낙찰 작품 요약', () => {
     getUserProfile.mockResolvedValue({ data: profile })
     getAllMyBids.mockResolvedValue(bids)
     getAllMyWins.mockResolvedValue(wins)
+    getMyInquiries.mockResolvedValue({ data: { content: [], totalElements: 0 } })
   })
 
   it('각 낙찰 작품에 자신의 artId를 사용하는 주문 확인 링크를 표시한다', async () => {
@@ -112,5 +118,15 @@ describe('마이페이지 낙찰 작품 요약', () => {
     expect(within(artistMenu).getByRole('link', { name: '작품 관리' })).toHaveAttribute('href', '/mypage/manage-arts')
     expect(within(artistMenu).getByRole('link', { name: '작품 리뷰' })).toHaveAttribute('href', '/mypage/artist-review')
     expect(within(artistMenu).getByRole('link', { name: '판매 주문' })).toHaveAttribute('href', '/mypage/sales-orders')
+  })
+
+  it('문의 배지는 미답변 totalElements를 사용한다', async () => {
+    getMyInquiries.mockResolvedValue({ data: { content: [{ inquiryId: 1 }], totalElements: 12 } })
+
+    renderMyPage()
+    await screen.findByText('테스트 사용자')
+
+    expect(getMyInquiries).toHaveBeenCalledWith({ status: 'PENDING', size: 1 })
+    expect(screen.getByText('12')).toBeVisible()
   })
 })

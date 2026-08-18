@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getAllMyBids, getAllMyWins, getUserProfile, updateUserProfile } from '../../api/userApi'
 import { getMyArts } from '../../api/artApi'
+import { getMyInquiries } from '../../api/inquiryApi'
 import { formatPrice } from '../../utils/artDisplay'
 import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
-import { MOCK_INQUIRIES, fmt } from './mockData'
+import { fmt } from './mockData'
 import { Badge } from './components/atoms'
 import styles from './MyPage.module.css'
 
@@ -90,6 +91,7 @@ export default function MyPage() {
   const [myArtsCount, setMyArtsCount] = useState(0)
   const [myArtsLoading, setMyArtsLoading] = useState(true)
   const [myArtsError, setMyArtsError] = useState('')
+  const [inquiryCount, setInquiryCount] = useState(0)
   const [retryKey, setRetryKey] = useState(0)
 
   const token = localStorage.getItem('token')
@@ -142,6 +144,12 @@ export default function MyPage() {
         })
         .finally(() => setMyArtsLoading(false))
     }
+
+    getMyInquiries({ status: 'PENDING', size: 1 })
+      .then(({ data }) => {
+        setInquiryCount(Number(data?.totalElements ?? 0))
+      })
+      .catch(() => setInquiryCount(0))
   }, [isArtist, navigate, retryKey, token])
 
   if (!token) return null
@@ -191,7 +199,7 @@ export default function MyPage() {
               items={USER_TABS}
               pathname={location.pathname}
               bidsCount={bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
-              inquiryCount={MOCK_INQUIRIES.filter((q) => !q.answered).length}
+              inquiryCount={inquiryCount}
             />
             {isArtist && (
               <MyPageMenu
