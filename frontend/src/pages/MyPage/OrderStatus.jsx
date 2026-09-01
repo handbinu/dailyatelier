@@ -515,7 +515,11 @@ function OrderItem({
     <article className={s.orderGroup}>
       <div className={s.orderRow}>
         <div className={s.orderMain}>
-          <span className={s.colInfo}>
+          <Link
+            to={`/auction/${order.artId}`}
+            className={`${s.colInfo} ${s.artLink}`}
+            aria-label={`${order.artName} 작품 상세 보기`}
+          >
             <img
               src={getArtImageSrc(order.artImage)}
               alt={order.artName}
@@ -530,7 +534,7 @@ function OrderItem({
                 {formatOrderDate(order.createdAt)}
               </span>
             </span>
-          </span>
+          </Link>
           <span className={`${s.colPrice} ${s.price}`}>
             {formatOrderPrice(order.winningPrice)}
           </span>
@@ -603,6 +607,14 @@ function OrderItem({
               환불 요청
             </button>
           )}
+          {order.status === 'CONFIRMED' && (
+            <Link
+              to={`/write-review/${order.orderId}`}
+              className={s.reviewBtn}
+            >
+              리뷰 쓰기·수정
+            </Link>
+          )}
           <button
             type="button"
             className={s.detailToggle}
@@ -646,10 +658,10 @@ function OrderItem({
                 </Link>
                 {detail.status === 'CONFIRMED' && (
                   <Link
-                    to={`/write-review/${detail.artId}`}
+                    to={`/write-review/${detail.orderId}`}
                     className={`${s.linkBtn} ${s.linkBtnAccent}`}
                   >
-                    리뷰 쓰기
+                    {detail.reviewId == null ? '리뷰 쓰기' : '리뷰 수정'}
                   </Link>
                 )}
               </div>

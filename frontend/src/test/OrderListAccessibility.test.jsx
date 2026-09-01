@@ -113,4 +113,37 @@ describe('주문 목록 상세 토글 접근성', () => {
       '주문 상세를 불러오지 못했습니다.',
     )
   })
+
+  it.each([
+    [null, '리뷰 쓰기'],
+    [42, '리뷰 수정'],
+  ])('구매확정 상세의 reviewId %s에 맞는 리뷰 동선을 제공한다', async (
+    reviewId,
+    label,
+  ) => {
+    const confirmed = { ...order, status: 'CONFIRMED' }
+    getBuyerOrders.mockResolvedValue({
+      data: {
+        ...page,
+        content: [confirmed],
+        statusCounts: { CONFIRMED: 1 },
+      },
+    })
+    getBuyerOrder.mockResolvedValue({
+      data: { ...detail, status: 'CONFIRMED', reviewId },
+    })
+    renderPage(<OrderStatus />)
+
+    expect(await screen.findByRole('link', { name: '리뷰 쓰기·수정' }))
+      .toHaveAttribute('href', '/write-review/17')
+    expect(screen.getByRole('link', { name: `${order.artName} 작품 상세 보기` }))
+      .toHaveAttribute('href', '/auction/3')
+
+    fireEvent.click(await screen.findByRole('button', {
+      name: `${order.artName} 주문 상세 보기`,
+    }))
+
+    expect(await screen.findByRole('link', { name: label }))
+      .toHaveAttribute('href', '/write-review/17')
+  })
 })

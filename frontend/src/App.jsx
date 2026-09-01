@@ -117,8 +117,8 @@ function App() {
               <Route path="/admin/inquiries" element={<AdminInquiry />} />
             </Route>
 
-            {/* 리뷰 작성/수정 — artId 파라미터 */}
-            <Route path="/write-review/:artId"   element={<WriteReview />} />
+            {/* 리뷰 작성/수정 — orderId 파라미터 */}
+            <Route path="/write-review/:orderId" element={<WriteReview />} />
 
             {/* 작가 전용 */}
             <Route element={<ArtistRoute />}>
