@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderDetailResponseDto {
     private Long orderId;
+    private Long reviewId;
     private String orderNumber;
     private Long artId;
     private String artName;
@@ -47,18 +48,24 @@ public class OrderDetailResponseDto {
     private List<OrderAction> availableActions;
 
     public static OrderDetailResponseDto forBuyer(Order order) {
-        return from(order, OrderViewPolicy.buyerActions(order));
+        return forBuyer(order, null);
+    }
+
+    public static OrderDetailResponseDto forBuyer(Order order, Long reviewId) {
+        return from(order, reviewId, OrderViewPolicy.buyerActions(order));
     }
 
     public static OrderDetailResponseDto forSeller(Order order) {
-        return from(order, OrderViewPolicy.sellerActions(order));
+        return from(order, null, OrderViewPolicy.sellerActions(order));
     }
 
     private static OrderDetailResponseDto from(
             Order order,
+            Long reviewId,
             List<OrderAction> availableActions) {
         return new OrderDetailResponseDto(
                 order.getOrderId(),
+                reviewId,
                 OrderViewPolicy.orderNumber(order.getOrderId()),
                 order.getArtIdSnapshot(),
                 order.getArtNameSnapshot(),

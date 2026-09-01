@@ -23,6 +23,32 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
 
     Page<Art> findByArtist(Artist artist, Pageable pageable);
 
+    List<Art> findByArtistUserUserIdOrderByNameAscArtIdAsc(String userId);
+
+    long countByArtistUserUserIdAndArtStatusIn(
+            String userId,
+            List<Integer> artStatuses);
+
+    long countByArtistUserUserIdAndArtStatus(
+            String userId,
+            Integer artStatus);
+
+    @Query("""
+            select art
+            from Art art
+            where art.artist.user.userId = :userId
+              and art.artStatus = :soldStatus
+              and not exists (
+                  select review.reviewId
+                  from Review review
+                  where review.art = art
+              )
+            order by art.name asc, art.artId asc
+            """)
+    List<Art> findUnreviewedSoldArts(
+            @Param("userId") String userId,
+            @Param("soldStatus") Integer soldStatus);
+
     @Query(
             value = """
                     select new com.dailyatelier.dailyatelier.dto.ArtResponseDto(

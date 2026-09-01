@@ -39,9 +39,9 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("bid", 5),
             Map.entry("orders", 44),
             Map.entry("address", 4),
-            Map.entry("inquiry", 7),
+            Map.entry("inquiry", 12),
             Map.entry("likes", 3),
-            Map.entry("review", 5),
+            Map.entry("review", 8),
             Map.entry("point_account", 6),
             Map.entry("point_transaction", 15),
             Map.entry("point_hold", 12),
@@ -57,6 +57,10 @@ class FlywayEmptyDatabaseMySqlTest {
             "idx_orders_buyer_status_created",
             "idx_orders_seller_status_created",
             "idx_orders_payment_expiration",
+            "idx_review_user_created",
+            "idx_review_art_created",
+            "idx_inquiry_user_created",
+            "idx_inquiry_answered_created",
             "idx_point_transaction_user_created",
             "idx_point_transaction_reference",
             "idx_point_hold_art_created",
@@ -72,6 +76,10 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("idx_orders_buyer_status_created", "buyer_id,status,created_at"),
             Map.entry("idx_orders_seller_status_created", "seller_id,status,created_at"),
             Map.entry("idx_orders_payment_expiration", "status,payment_due_at,order_id"),
+            Map.entry("idx_review_user_created", "user_id,created_at,review_id"),
+            Map.entry("idx_review_art_created", "art_id,created_at,review_id"),
+            Map.entry("idx_inquiry_user_created", "user_id,created_at,inquiry_id"),
+            Map.entry("idx_inquiry_answered_created", "answered_at,created_at,inquiry_id"),
             Map.entry("idx_point_transaction_user_created", "user_id,created_at,transaction_id"),
             Map.entry("idx_point_transaction_reference", "reference_type,reference_id,type"),
             Map.entry("idx_point_hold_art_created", "art_id,created_at"),
@@ -82,6 +90,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Set<String> EXPECTED_UNIQUE_CONSTRAINTS = Set.of(
             "uq_artist_user",
             "uq_orders_art",
+            "uq_review_order",
             "uq_art_active_point_hold",
             "uq_point_transaction_idempotency",
             "uq_point_transaction_reversal_type",
@@ -91,16 +100,17 @@ class FlywayEmptyDatabaseMySqlTest {
             "uq_callback_provider_event"
     );
 
-    private static final Map<String, String> EXPECTED_UNIQUE_COLUMNS = Map.of(
-            "uq_artist_user", "user_id",
-            "uq_orders_art", "art_id",
-            "uq_art_active_point_hold", "active_point_hold_id",
-            "uq_point_transaction_idempotency", "idempotency_key",
-            "uq_point_transaction_reversal_type", "reversal_of_transaction_id,type",
-            "uq_point_charge_merchant_order", "merchant_order_id",
-            "uq_point_charge_provider_pg_order", "provider,pg_order_id",
-            "uq_point_charge_user_idempotency", "user_id,idempotency_key",
-            "uq_callback_provider_event", "provider,provider_event_id"
+    private static final Map<String, String> EXPECTED_UNIQUE_COLUMNS = Map.ofEntries(
+            Map.entry("uq_artist_user", "user_id"),
+            Map.entry("uq_orders_art", "art_id"),
+            Map.entry("uq_review_order", "order_id"),
+            Map.entry("uq_art_active_point_hold", "active_point_hold_id"),
+            Map.entry("uq_point_transaction_idempotency", "idempotency_key"),
+            Map.entry("uq_point_transaction_reversal_type", "reversal_of_transaction_id,type"),
+            Map.entry("uq_point_charge_merchant_order", "merchant_order_id"),
+            Map.entry("uq_point_charge_provider_pg_order", "provider,pg_order_id"),
+            Map.entry("uq_point_charge_user_idempotency", "user_id,idempotency_key"),
+            Map.entry("uq_callback_provider_event", "provider,provider_event_id")
     );
 
     private static final Set<String> EXPECTED_FOREIGN_KEYS = Set.of(
@@ -108,7 +118,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "fk_art_winning_bid", "fk_orders_art", "fk_orders_winning_bid",
             "fk_orders_buyer", "fk_orders_seller", "fk_address_user",
             "fk_inquiry_user", "fk_likes_user", "fk_likes_art",
-            "fk_review_user", "fk_review_art", "fk_point_account_user",
+            "fk_review_user", "fk_review_art", "fk_review_order",
+            "fk_point_account_user",
             "fk_point_transaction_user", "fk_point_transaction_reversal",
             "fk_point_hold_art", "fk_point_hold_user",
             "fk_point_hold_latest_bid", "fk_point_hold_commit_order",
@@ -133,6 +144,7 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("fk_likes_art", "likes.art_id->art.art_id"),
             Map.entry("fk_review_user", "review.user_id->users.user_id"),
             Map.entry("fk_review_art", "review.art_id->art.art_id"),
+            Map.entry("fk_review_order", "review.order_id->orders.order_id"),
             Map.entry("fk_point_account_user", "point_account.user_id->users.user_id"),
             Map.entry("fk_point_transaction_user", "point_transaction.user_id->users.user_id"),
             Map.entry("fk_point_transaction_reversal", "point_transaction.reversal_of_transaction_id->point_transaction.transaction_id"),
@@ -156,7 +168,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "chk_point_charge_requested_amount",
             "chk_point_charge_paid_amount",
             "chk_callback_attempt_count",
-            "chk_art_minimum_bid_increment"
+            "chk_art_minimum_bid_increment",
+            "chk_review_star"
     );
 
     private static final Map<String, String> EXPECTED_CHECK_CLAUSES = Map.ofEntries(
@@ -169,6 +182,7 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("chk_point_charge_requested_amount", "requested_amount>0"),
             Map.entry("chk_point_charge_paid_amount", "paid_amount>=0"),
             Map.entry("chk_callback_attempt_count", "attempt_count>=0"),
+            Map.entry("chk_review_star", "starbetween1and10"),
             Map.entry(
                     "chk_art_minimum_bid_increment",
                     "minimum_bid_incrementbetween100and10000000andminimum_bid_increment%100=0"
@@ -183,7 +197,7 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(14);
@@ -208,6 +222,10 @@ class FlywayEmptyDatabaseMySqlTest {
         assertImportantColumn("art", "minimum_bid_increment", "int", false, "1000");
         assertImportantColumn("orders", "payment_method", "varchar", false, null);
         assertImportantColumn("orders", "refund_request_status", "varchar", true, null);
+        assertImportantColumn("review", "user_id", "varchar", false, null);
+        assertImportantColumn("review", "art_id", "bigint", false, null);
+        assertImportantColumn("review", "order_id", "bigint", false, null);
+        assertImportantColumn("review", "star", "int", false, null);
     }
 
     @Test

@@ -60,6 +60,18 @@ public class GlobalApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponseDto> handleUnexpectedException(
+            Exception exception,
+            HttpServletRequest request) {
+        return errorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_SERVER_ERROR",
+                "서버 오류가 발생했습니다.",
+                request
+        );
+    }
+
     private ResponseEntity<ApiErrorResponseDto> errorResponse(
             HttpStatus status,
             String code,

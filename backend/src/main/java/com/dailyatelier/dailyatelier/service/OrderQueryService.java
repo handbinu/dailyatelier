@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +31,7 @@ public class OrderQueryService {
     );
 
     private final OrderRepository orderRepository;
+    private final ReviewRepository reviewRepository;
 
     public OrderPageResponseDto getBuyerOrders(
             String userId,
@@ -64,7 +66,9 @@ public class OrderQueryService {
         if (!order.getBuyerIdSnapshot().equals(userId)) {
             throw accessDenied("본인의 주문만 조회할 수 있습니다.");
         }
-        return OrderDetailResponseDto.forBuyer(order);
+        Long reviewId = reviewRepository.findReviewIdByOrderId(orderId)
+                .orElse(null);
+        return OrderDetailResponseDto.forBuyer(order, reviewId);
     }
 
     public OrderPageResponseDto getSellerOrders(

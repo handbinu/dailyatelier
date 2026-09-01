@@ -10,12 +10,14 @@ import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderShippingAddress;
 import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
+import com.dailyatelier.dailyatelier.entity.Review;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,9 @@ class OrderQueryServiceTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 
     private User buyer;
     private User otherBuyer;
@@ -240,6 +245,33 @@ class OrderQueryServiceTest {
         assertThat(sellerDetail.getRefundRequestStatus())
                 .isEqualTo(OrderRefundRequestStatus.APPROVED);
         assertThat(sellerDetail.getAvailableActions()).isEmpty();
+    }
+
+    @Test
+    void buyerDetailExposesNullableReviewIdMatchingStoredReview() {
+        OrderDetailResponseDto before = orderQueryService.getBuyerOrder(
+                buyer.getUserId(), newerPaidOrder.getOrderId());
+        assertThat(before.getReviewId()).isNull();
+
+        newerPaidOrder.transitionTo(
+                OrderStatus.PREPARING, BASE_TIME.plusMinutes(3), null);
+        newerPaidOrder.transitionTo(
+                OrderStatus.SHIPPED, BASE_TIME.plusMinutes(4), null);
+        newerPaidOrder.transitionTo(
+                OrderStatus.DELIVERED, BASE_TIME.plusMinutes(5), null);
+        newerPaidOrder.transitionTo(
+                OrderStatus.CONFIRMED, BASE_TIME.plusMinutes(6), null);
+        orderRepository.saveAndFlush(newerPaidOrder);
+        Review review = reviewRepository.saveAndFlush(Review.create(
+                newerPaidOrder,
+                9,
+                "주문 상세 연결을 확인하는 충분히 긴 리뷰",
+                BASE_TIME.plusMinutes(7)
+        ));
+
+        OrderDetailResponseDto after = orderQueryService.getBuyerOrder(
+                buyer.getUserId(), newerPaidOrder.getOrderId());
+        assertThat(after.getReviewId()).isEqualTo(review.getReviewId());
     }
 
     @Test

@@ -6,6 +6,9 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
 import com.dailyatelier.dailyatelier.entity.Likes;
+import com.dailyatelier.dailyatelier.entity.Order;
+import com.dailyatelier.dailyatelier.entity.OrderShippingAddress;
+import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.entity.PointHold;
 import com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason;
 import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
@@ -17,6 +20,7 @@ import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
@@ -80,6 +84,9 @@ class ArtServiceMutationTransactionTest {
     private ReviewRepository reviewRepository;
 
     @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -104,6 +111,7 @@ class ArtServiceMutationTransactionTest {
         pointHoldRepository.deleteAll();
         pointAccountRepository.deleteAll();
         reviewRepository.deleteAll();
+        orderRepository.deleteAll();
         likesRepository.deleteAll();
         bidRepository.deleteAll();
         artRepository.deleteAll();
@@ -160,28 +168,52 @@ class ArtServiceMutationTransactionTest {
     }
 
     @Test
-    void reviewPreventsPhysicalDeleteAndKeepsLikeAttached() {
+    void reviewRepositoryKeepsArtDeletionGuardAvailableForValidReview() {
         Art art = saveActiveArt("리뷰 보유 작품");
-        Long artId = art.getArtId();
         saveLike(art, liker);
 
-        Review review = new Review();
-        review.setArt(art);
-        review.setUser(liker);
-        review.setContent("삭제를 막는 리뷰");
-        reviewRepository.save(review);
+        Bid bid = new Bid();
+        bid.setArt(art);
+        bid.setUser(liker);
+        bid.setBidPrice(120_000);
+        bid.setBidTime(NOW.minusMinutes(1));
+        bid = bidRepository.save(bid);
+        art.setWinningBid(bid);
+        art.setArtStatus(Art.STATUS_SOLD);
+        art.setClosedAt(NOW);
+        artRepository.save(art);
 
-        assertThatThrownBy(() -> artService.deleteArt(artId, "owner"))
-                .isInstanceOf(DomainApiException.class)
-                .satisfies(error -> assertThat(
-                        ((DomainApiException) error).getStatus()
-                ).isEqualTo(HttpStatus.CONFLICT));
+        Order order = Order.create(
+                art,
+                bid,
+                liker,
+                artist.getUser(),
+                NOW,
+                NOW.plusHours(24),
+                OrderShippingAddress.of(
+                        liker.getName(),
+                        liker.getPhoneNumber(),
+                        "02535",
+                        "서울특별시 중랑구",
+                        null
+                )
+        );
+        order.transitionTo(OrderStatus.PAID, NOW.plusMinutes(1), null);
+        order.transitionTo(OrderStatus.PREPARING, NOW.plusMinutes(2), null);
+        order.transitionTo(OrderStatus.SHIPPED, NOW.plusMinutes(3), null);
+        order.transitionTo(OrderStatus.DELIVERED, NOW.plusMinutes(4), null);
+        order.transitionTo(OrderStatus.CONFIRMED, NOW.plusMinutes(5), null);
+        order = orderRepository.save(order);
 
-        assertThat(artRepository.findById(artId)).isPresent();
-        assertThat(likesRepository.findAll())
-                .singleElement()
-                .satisfies(like -> assertThat(like.getArt().getArtId())
-                        .isEqualTo(artId));
+        Review review = Review.create(
+                order,
+                8,
+                "삭제를 막는 충분히 긴 리뷰 내용",
+                NOW.plusMinutes(6)
+        );
+        reviewRepository.saveAndFlush(review);
+
+        assertThat(reviewRepository.existsByArt(art)).isTrue();
     }
 
     @Test

@@ -158,6 +158,22 @@ class OrderManagementApiTest {
     }
 
     @Test
+    void buyerDetailSerializesNullableReviewId() throws Exception {
+        Order order = mockOrder(7L, OrderStatus.CONFIRMED);
+        com.dailyatelier.dailyatelier.dto.OrderDetailResponseDto response =
+                com.dailyatelier.dailyatelier.dto.OrderDetailResponseDto
+                        .forBuyer(order, 42L);
+        when(orderQueryService.getBuyerOrder("buyer", 7L))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/users/me/orders/7")
+                        .with(authentication(userAuthentication("buyer"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").value(7))
+                .andExpect(jsonPath("$.reviewId").value(42));
+    }
+
+    @Test
     void buyerConfirmReturnsLatestOrderAndStatusConflictIsStructured() throws Exception {
         Order confirmedOrder = mockOrder(7L, OrderStatus.CONFIRMED);
         when(orderStateService.confirm(7L, "buyer"))
