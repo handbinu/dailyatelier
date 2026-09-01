@@ -1,65 +1,70 @@
 // src/pages/MyPage/MyReview.jsx  —  내가 쓴 리뷰
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageBanner, StarDisplay, Empty, PageWrap, ActionBtn } from './components/atoms'
-import { MOCK_REVIEWS, fmt } from './mockData'
+import { fmt } from './mockData'
+import { getMyReviews } from '../../api/reviewApi'
+import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
 import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import s from './MyReview.module.css'
 
 const PER_PAGE = 6
 
 const SORT_OPTIONS = [
-  { value: 'recent', label: '최근 리뷰순' },
-  { value: 'star',   label: '별점순'     },
-  { value: 'price',  label: '가격순'     },
+  { value: 'RECENT', label: '최근 리뷰순' },
+  { value: 'STAR',   label: '별점순'     },
+  { value: 'PRICE',  label: '가격순'     },
 ]
 
-function sortItems(arr, sort) {
-  const copy = [...arr]
-  if (sort === 'star')  return copy.sort((a, b) => b.star - a.star)
-  if (sort === 'price') return copy.sort((a, b) => b.finalPrice - a.finalPrice)
-  return copy.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-}
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('ko-KR') : ''
 
 export default function MyReview() {
   const navigate = useNavigate()
-  const [sort, setSort]       = useState('recent')
-  const [page, setPage]       = useState(1)
+  const [sort, setSort]       = useState('RECENT')
+  const [page, setPage]       = useState(0)
   const [modal, setModal]     = useState(null)   // 선택된 리뷰 객체
+  const [result, setResult]   = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState('')
+  const [retryKey, setRetryKey] = useState(0)
 
-  if (!localStorage.getItem('token')) {
-    alert('로그인이 필요합니다.')
-    navigate('/login', { replace: true })
-    return null
+  useEffect(() => {
+    const controller = new AbortController()
+    getMyReviews({ sort, page, size: PER_PAGE, signal: controller.signal })
+      .then(({ data }) => setResult(data))
+      .catch((requestError) => {
+        if (requestError.name === 'CanceledError') return
+        if (requestError.response?.status === 401) {
+          navigate('/login', { replace: true })
+          return
+        }
+        setError('리뷰 목록을 불러오지 못했습니다.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [navigate, page, retryKey, sort])
+
+  const reviews = result?.content ?? []
+  const total = result?.totalElements ?? 0
+  const totalPg = result?.totalPages ?? 0
+  const beginRequest = () => { setLoading(true); setError(''); setModal(null) }
+  const handleSort = (value) => {
+    if (value === sort && page === 0) return
+    beginRequest(); setSort(value); setPage(0)
   }
-
-  const sorted  = sortItems(MOCK_REVIEWS, sort)
-  const total   = sorted.length
-  const totalPg = Math.max(1, Math.ceil(total / PER_PAGE))
-  const paged   = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-
-  const handleSort = (v) => { setSort(v); setPage(1) }
+  const handlePage = (value) => {
+    if (value === page) return
+    beginRequest(); setPage(value)
+  }
+  const retry = () => { beginRequest(); setRetryKey(key => key + 1) }
 
   return (
     <PageWrap>
       <PageBanner title="내가 쓴 리뷰" crumb="나의 리뷰" />
 
       <div className={s.body}>
-        <div style={{
-          backgroundColor: '#fff9db',
-          border: '1px solid #ffe066',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          color: '#f08c00',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          lineHeight: '1.5'
-        }}>
-          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
-        </div>
         {/* 상단 컨트롤 */}
         <div className={s.controls}>
           <span className={s.total}>총 {total}개</span>
@@ -77,18 +82,22 @@ export default function MyReview() {
         </div>
 
         {/* 리뷰 카드 그리드 */}
-        {paged.length === 0
+        {loading
+          ? <p className={s.state} role="status">리뷰를 불러오는 중입니다.</p>
+          : error
+            ? <div className={s.state} role="alert"><p>{error}</p><button className={s.retryBtn} onClick={retry}>다시 시도</button></div>
+          : reviews.length === 0
           ? <Empty msg="작성한 리뷰가 없습니다." />
           : <div className={s.grid}>
-              {paged.map(r => (
+              {reviews.map(r => (
                 <button
-                  key={r.id}
+                  key={r.reviewId}
                   className={s.card}
                   onClick={() => setModal(r)}
                   aria-label={`${r.artName} 리뷰 상세 보기`}
                 >
                   <div className={s.cardImg}>
-                    <img src={r.artImg} alt={r.artName} loading="lazy" />
+                    <img src={getArtImageSrc(r.artImage)} alt={r.artName} loading="lazy" onError={applyArtImageFallback} />
                     <div className={s.cardOverlay}>
                       <span className={s.cardOverlayText}>상세 보기</span>
                     </div>
@@ -99,8 +108,8 @@ export default function MyReview() {
                     <p className={s.cardContent}>
                       {r.content.length > 40 ? r.content.slice(0, 40) + '…' : r.content}
                     </p>
-                    <p className={s.cardPrice}>낙찰가 {fmt(r.finalPrice)}원</p>
-                    <p className={s.cardDate}>{r.createdAt}</p>
+                    <p className={s.cardPrice}>낙찰가 {fmt(r.winningPrice)}원</p>
+                    <p className={s.cardDate}>{formatDate(r.createdAt)}</p>
                   </div>
                 </button>
               ))}
@@ -108,8 +117,8 @@ export default function MyReview() {
         }
 
         {/* 페이지네이션 */}
-        {totalPg > 1 && (
-          <Pagination current={page} total={totalPg} onChange={setPage} />
+        {!loading && !error && totalPg > 1 && (
+          <Pagination current={page} total={totalPg} onChange={handlePage} />
         )}
 
         {/* 리뷰 수정 링크 */}
@@ -132,19 +141,19 @@ function Pagination({ current, total, onChange }) {
     <div className={s.pagination}>
       <button
         className={s.pgBtn}
-        disabled={current === 1}
+        disabled={current === 0}
         onClick={() => onChange(current - 1)}
         aria-label="이전 페이지"
       >‹</button>
 
-      {Array.from({ length: total }, (_, i) => i + 1).map(n => (
+      {Array.from({ length: total }, (_, i) => i).map(n => (
         <button
           key={n}
           className={`${s.pgBtn} ${n === current ? s.pgBtnActive : ''}`}
           onClick={() => onChange(n)}
           aria-current={n === current ? 'page' : undefined}
         >
-          {n}
+          {n + 1}
         </button>
       ))}
 
@@ -172,7 +181,7 @@ function ReviewModal({ review, onClose }) {
         <div className={s.modalInner}>
           {/* 이미지 */}
           <div className={s.modalImg}>
-            <img src={review.artImg} alt={review.artName} />
+            <img src={getArtImageSrc(review.artImage)} alt={review.artName} onError={applyArtImageFallback} />
           </div>
 
           {/* 내용 */}
@@ -180,7 +189,7 @@ function ReviewModal({ review, onClose }) {
             <h2 id="my-review-dialog-title" className={s.modalArtName}>{review.artName}</h2>
             <div className={s.modalMeta}>
               <StarDisplay star={review.star} />
-              <span className={s.modalDate}>{review.createdAt}</span>
+              <span className={s.modalDate}>{formatDate(review.createdAt)}</span>
             </div>
             <hr className={s.modalHr} />
 
@@ -189,10 +198,10 @@ function ReviewModal({ review, onClose }) {
             </div>
 
             <hr className={s.modalHr} />
-            <p className={s.modalPrice}>낙찰가 <strong>{fmt(review.finalPrice)}원</strong></p>
+            <p className={s.modalPrice}>낙찰가 <strong>{fmt(review.winningPrice)}원</strong></p>
 
             <div className={s.modalActions}>
-              <ActionBtn to={`/write-review/${review.artId}`} variant="fill">리뷰 수정하기</ActionBtn>
+              <ActionBtn to={`/write-review/${review.orderId}`} variant="fill">리뷰 수정하기</ActionBtn>
               <ActionBtn onClick={onClose} variant="outline">닫기</ActionBtn>
             </div>
           </div>

@@ -1,126 +1,153 @@
 // src/pages/MyPage/ArtistReview.jsx  —  내 작품 리뷰 보기 (작가 전용)
-import { useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { PageBanner, StarDisplay, Empty, PageWrap } from './components/atoms'
-import { MOCK_ARTIST_REVIEWS, MOCK_MY_ARTS, fmt } from './mockData'
+import { fmt } from './mockData'
+import { getArtistReviews } from '../../api/reviewApi'
+import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
 import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import s from './ArtistReview.module.css'
 
 const PER_PAGE   = 6
 const SORT_OPTIONS = [
-  { value: 'recent', label: '최근순'  },
-  { value: 'star',   label: '별점순'  },
-  { value: 'price',  label: '가격순'  },
+  { value: 'RECENT', label: '최근순'  },
+  { value: 'STAR',   label: '별점순'  },
+  { value: 'PRICE',  label: '가격순'  },
 ]
 
-function sortItems(arr, sort) {
-  const cp = [...arr]
-  if (sort === 'star')  return cp.sort((a, b) => b.star - a.star)
-  if (sort === 'price') return cp.sort((a, b) => b.finalPrice - a.finalPrice)
-  return cp.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-}
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('ko-KR') : ''
 
 export default function ArtistReview() {
-  const artNames  = ['전체', ...new Set(MOCK_MY_ARTS.map(a => a.name))]
-
-  const [artFilter, setArtFilter] = useState('전체')
-  const [sort,      setSort]      = useState('recent')
-  const [page,      setPage]      = useState(1)
+  const navigate = useNavigate()
+  const [sort,      setSort]      = useState('RECENT')
+  const [page,      setPage]      = useState(0)
   const [modal,     setModal]     = useState(null)
+  const [view, setView] = useState('reviews')
+  const [result, setResult]       = useState(null)
+  const [summaryStats, setSummaryStats] = useState({
+    totalReviewCount: 0,
+    soldArtCount: 0,
+    reviewedArtCount: 0,
+    unreviewedArtCount: 0,
+    unreviewedSoldArts: [],
+  })
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState('')
+  const [retryKey, setRetryKey]   = useState(0)
 
-  const filtered = useMemo(() => {
-    const base = artFilter === '전체'
-      ? MOCK_ARTIST_REVIEWS
-      : MOCK_ARTIST_REVIEWS.filter(r => r.artName === artFilter)
-    return sortItems(base, sort)
-  }, [artFilter, sort])
+  useEffect(() => {
+    const controller = new AbortController()
+    getArtistReviews({ sort, page, size: PER_PAGE, signal: controller.signal })
+      .then(({ data }) => {
+        setResult(data)
+        setSummaryStats({
+          totalReviewCount: data.totalReviewCount ?? 0,
+          soldArtCount: data.soldArtCount ?? 0,
+          reviewedArtCount: data.reviewedArtCount ?? 0,
+          unreviewedArtCount: data.unreviewedArtCount ?? 0,
+          unreviewedSoldArts: data.unreviewedSoldArts ?? [],
+        })
+      })
+      .catch((requestError) => {
+        if (requestError.name === 'CanceledError') return
+        const status = requestError.response?.status
+        if (status === 401) {
+          navigate('/login', { replace: true })
+          return
+        }
+        setError(status === 403 ? '작가만 작품 리뷰를 조회할 수 있습니다.' : '작품 리뷰를 불러오지 못했습니다.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [navigate, page, retryKey, sort])
 
-  const totalPg = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
-  const paged   = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-
-  const avgStar = filtered.length
-    ? (filtered.reduce((s, r) => s + r.star, 0) / filtered.length).toFixed(1)
-    : '-'
-
-  const handleFilter = (v) => { setArtFilter(v); setPage(1) }
-  const handleSort   = (v) => { setSort(v);      setPage(1) }
+  const reviews = result?.content ?? []
+  const totalPg = result?.totalPages ?? 0
+  const avgStar = result?.averageStar == null ? '-' : Number(result.averageStar).toFixed(1)
+  const beginRequest = () => { setLoading(true); setError(''); setModal(null); setResult(null) }
+  const handleSort = (value) => {
+    if (value === sort && page === 0) return
+    beginRequest(); setSort(value); setPage(0)
+  }
+  const handlePage = (value) => {
+    if (value === page) return
+    beginRequest(); setPage(value)
+  }
+  const retry = () => { beginRequest(); setRetryKey(key => key + 1) }
 
   return (
     <PageWrap>
       <PageBanner title="내 작품 리뷰 보기" crumb="작품 리뷰" />
 
       <div className={s.body}>
-        <div style={{
-          backgroundColor: '#fff9db',
-          border: '1px solid #ffe066',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          fontSize: '14px',
-          color: '#f08c00',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          lineHeight: '1.5'
-        }}>
-          ⚠️ 해당 기능은 현재 준비 중이며, 화면의 데이터는 임시 목업 데이터입니다.
-        </div>
-        {/* 통계 카드 */}
-        <div className={s.statRow}>
-          <div className={s.statCard}>
-            <span className={s.statValue}>{MOCK_ARTIST_REVIEWS.length}</span>
-            <span className={s.statLabel}>전체 리뷰</span>
-          </div>
-          <div className={s.statCard}>
-            <span className={s.statValue}>{avgStar}</span>
-            <span className={s.statLabel}>평균 별점</span>
-          </div>
-          <div className={s.statCard}>
-            <span className={s.statValue}>{MOCK_MY_ARTS.filter(a => a.status === 'ended').length}</span>
-            <span className={s.statLabel}>종료된 작품</span>
-          </div>
-        </div>
+        <section className={s.summary} aria-labelledby="review-summary-title">
+          <h2 id="review-summary-title" className={s.summaryTitle}>판매 작품 리뷰 현황</h2>
+          <dl className={s.summaryItems}>
+            <div><dt>판매 완료</dt><dd>{summaryStats.soldArtCount}</dd></div>
+            <div><dt>리뷰 작성</dt><dd>{summaryStats.reviewedArtCount}</dd></div>
+            <div><dt>리뷰 미작성</dt><dd>{summaryStats.unreviewedArtCount}</dd></div>
+          </dl>
+        </section>
 
-        {/* 필터 & 정렬 */}
+        {/* 리뷰 현황 & 정렬 */}
         <div className={s.controlRow}>
-          <div className={s.artFilter}>
-            {artNames.map(name => (
-              <button
-                key={name}
-                className={`${s.artFilterBtn} ${artFilter === name ? s.artFilterBtnActive : ''}`}
-                onClick={() => handleFilter(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          <div className={s.sortTabs}>
-            {SORT_OPTIONS.map(o => (
-              <button
-                key={o.value}
-                className={`${s.sortTab} ${sort === o.value ? s.sortTabActive : ''}`}
-                onClick={() => handleSort(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
+          <p className={s.resultCount} aria-live="polite">
+            {view === 'unreviewed'
+              ? '리뷰 미작성 작품'
+              : loading
+                ? '리뷰 결과 조회 중'
+                : <><span>총 {result?.totalElements ?? 0}개 리뷰</span><span className={s.average}>전체 리뷰 평균 별점 <strong>{avgStar}</strong></span></>}
+          </p>
+          <div className={s.controls}>
+            {view === 'reviews' && (
+              <div className={s.sortTabs}>
+                {SORT_OPTIONS.map(o => (
+                  <button key={o.value} className={`${s.sortTab} ${sort === o.value ? s.sortTabActive : ''}`} onClick={() => handleSort(o.value)}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button type="button" className={s.viewSwitch} onClick={() => setView(current => current === 'reviews' ? 'unreviewed' : 'reviews')}>
+              {view === 'reviews' ? '리뷰 미작성 작품 보기' : '작성된 리뷰 보기'}
+            </button>
           </div>
         </div>
 
-        <p className={s.resultCount}>총 {filtered.length}개 리뷰</p>
-
-        {/* 리뷰 카드 그리드 */}
-        {paged.length === 0
-          ? <Empty msg="이 작품에 달린 리뷰가 없습니다." />
+        {view === 'unreviewed'
+          ? summaryStats.unreviewedSoldArts.length === 0
+            ? <Empty msg="리뷰 미작성 판매 작품이 없습니다." />
+            : <div className={s.grid}>
+                {summaryStats.unreviewedSoldArts.map(art => (
+                  <Link key={art.artId} to={`/auction/${art.artId}`} className={`${s.card} ${s.cardLink}`} aria-label={`${art.artName} 작품 상세 보기`}>
+                    <div className={s.cardImg}>
+                      <img src={getArtImageSrc(art.artImage)} alt={art.artName} onError={applyArtImageFallback} />
+                    </div>
+                    <div className={s.cardBody}>
+                      <p className={s.cardArtName}>{art.artName}</p>
+                      <span className={s.cardBuyer}>판매 완료 · 리뷰 미작성</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+          : loading
+          ? <p className={s.state} role="status">작품 리뷰를 불러오는 중입니다.</p>
+          : error
+            ? <div className={s.state} role="alert"><p>{error}</p><button className={s.retryBtn} onClick={retry}>다시 시도</button></div>
+          : reviews.length === 0
+          ? <Empty msg="작성된 작품 리뷰가 없습니다." />
           : <div className={s.grid}>
-              {paged.map(r => (
-                <ReviewCard key={r.id} review={r} onClick={() => setModal(r)} />
+              {reviews.map(r => (
+                <ReviewCard key={r.reviewId} review={r} onClick={() => setModal(r)} />
               ))}
             </div>
         }
 
         {/* 페이지네이션 */}
-        {totalPg > 1 && (
-          <Pagination current={page} total={totalPg} onChange={setPage} />
+        {view === 'reviews' && !loading && !error && totalPg > 1 && (
+          <Pagination current={page} total={totalPg} onChange={handlePage} />
         )}
       </div>
 
@@ -135,7 +162,7 @@ function ReviewCard({ review, onClick }) {
   return (
     <button className={s.card} onClick={onClick} aria-label={`${review.artName} 리뷰 상세 보기`}>
       <div className={s.cardImg}>
-        <img src={review.artImg} alt={review.artName} loading="lazy" />
+        <img src={getArtImageSrc(review.artImage)} alt={review.artName} loading="lazy" onError={applyArtImageFallback} />
         <div className={s.cardOverlay}>
           <span className={s.cardOverlayText}>상세 보기</span>
         </div>
@@ -145,13 +172,13 @@ function ReviewCard({ review, onClick }) {
           <p className={s.cardArtName}>{review.artName}</p>
           <StarDisplay star={review.star} />
         </div>
-        <p className={s.cardBuyer}>구매자: {review.buyer}</p>
+        <p className={s.cardBuyer}>구매자: {review.buyerNickname}</p>
         <p className={s.cardContent}>
           {review.content.length > 50 ? review.content.slice(0, 50) + '…' : review.content}
         </p>
         <div className={s.cardFooter}>
-          <span className={s.cardPrice}>낙찰가 {fmt(review.finalPrice)}원</span>
-          <span className={s.cardDate}>{review.createdAt}</span>
+          <span className={s.cardPrice}>낙찰가 {fmt(review.winningPrice)}원</span>
+          <span className={s.cardDate}>{formatDate(review.createdAt)}</span>
         </div>
       </div>
     </button>
@@ -162,15 +189,15 @@ function ReviewCard({ review, onClick }) {
 function Pagination({ current, total, onChange }) {
   return (
     <div className={s.pagination}>
-      <button className={s.pgBtn} disabled={current === 1} onClick={() => onChange(current - 1)} aria-label="이전">‹</button>
-      {Array.from({ length: total }, (_, i) => i + 1).map(n => (
+      <button className={s.pgBtn} disabled={current === 0} onClick={() => onChange(current - 1)} aria-label="이전">‹</button>
+      {Array.from({ length: total }, (_, i) => i).map(n => (
         <button
           key={n}
           className={`${s.pgBtn} ${n === current ? s.pgBtnActive : ''}`}
           onClick={() => onChange(n)}
           aria-current={n === current ? 'page' : undefined}
         >
-          {n}
+          {n + 1}
         </button>
       ))}
       <button className={s.pgBtn} disabled={current === total} onClick={() => onChange(current + 1)} aria-label="다음">›</button>
@@ -193,7 +220,7 @@ function ReviewModal({ review, onClose }) {
         <div className={s.modalInner}>
           {/* 작품 이미지 */}
           <div className={s.modalImg}>
-            <img src={review.artImg} alt={review.artName} />
+            <img src={getArtImageSrc(review.artImage)} alt={review.artName} onError={applyArtImageFallback} />
             <div className={s.modalImgLabel}>{review.artName}</div>
           </div>
 
@@ -201,10 +228,10 @@ function ReviewModal({ review, onClose }) {
           <div className={s.modalDetail}>
             {/* 구매자 정보 */}
             <div className={s.buyerRow}>
-              <div className={s.buyerAvatar}>{review.buyer[0]}</div>
+              <div className={s.buyerAvatar}>{review.buyerNickname?.[0] ?? '?'}</div>
               <div>
-                <p className={s.buyerName}>{review.buyer}</p>
-                <p className={s.reviewDate}>{review.createdAt} 작성</p>
+                <p className={s.buyerName}>{review.buyerNickname}</p>
+                <p className={s.reviewDate}>{formatDate(review.createdAt)} 작성</p>
               </div>
             </div>
 
@@ -233,7 +260,11 @@ function ReviewModal({ review, onClose }) {
               </div>
               <div className={s.metaItem}>
                 <span className={s.metaKey}>낙찰가</span>
-                <span className={`${s.metaVal} ${s.metaPrice}`}>{fmt(review.finalPrice)}원</span>
+                <span className={`${s.metaVal} ${s.metaPrice}`}>{fmt(review.winningPrice)}원</span>
+              </div>
+              <div className={s.metaItem}>
+                <span className={s.metaKey}>작성일</span>
+                <span className={s.metaVal}>{formatDate(review.createdAt)}</span>
               </div>
             </div>
 
