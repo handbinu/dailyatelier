@@ -855,3 +855,82 @@ ORDER BY account.user_id;
 
 - 작품명 검색, 리뷰 상세 dialog 레이아웃·정보 위계 재설계와 화면 전환·조회 로딩 UX 공통 개선은 `BACKLOG.md`에서 관리한다.
 - 모바일 햄버거 메뉴 viewport와 작가 주문의 구매자 관리·검색·카테고리 고도화는 리뷰 기능 완료 범위와 분리해 유지한다.
+
+# 프로젝트 실행·테스트·데모 문서와 배포 환경 설정 완료 기록
+
+## 범위 판단과 계획
+
+- 범위 판단은 `GO`로 확정했다. 처음 보는 사람이 루트 README만으로 프로젝트 구조와
+  실행·테스트 방법을 이해하고, 로컬·배포 환경별 API 주소와 CORS origin을 소스 수정 없이
+  바꿀 수 있도록 하는 문서·환경설정 작업으로 한정했다.
+- Docker, CI/CD, AWS 등 특정 배포 인프라, 실제 PG 연동, 운영 DB migration, 데모 seed,
+  거래 기능 리팩터링은 계획에 포함하지 않았다.
+- 1단계는 비밀값 없는 백엔드 공통 설정 추적, 백엔드·프론트 예제 env 추가,
+  `VITE_API_BASE_URL`과 `CORS_ALLOWED_ORIGINS` 환경변수화를 계획했다.
+- 2단계는 루트·프론트 README에 요구 버전, DB·환경변수 준비, 실행·테스트 명령,
+  배포 체크리스트, 역할과 상태 전이 주체가 표시된 통합 happy path를 작성하는 것으로
+  계획했다. 환불은 구매확정·리뷰 흐름과 분리한 선택 데모로 정리했다.
+- 3단계는 새 클론과 같은 조건의 예제 파일 재현, 빈 MySQL의 Flyway V1~V6 적용과
+  Hibernate 검증, API·CORS·프론트 주소 전환, README 명령과 제한된 브라우저 smoke test를
+  검증하는 것으로 계획했다. 경매부터 리뷰까지 전체 거래 회귀 QA는 수행하지 않기로 했다.
+
+## 완료한 변경과 정책 결정
+
+- `backend/src/main/resources/application.properties`를 비밀값 없는 공통 설정으로 추적하고
+  기존 DB/JWT/Cloudinary 환경변수 계약과 선택적 로컬 env import를 유지했다.
+- Hibernate `ddl-auto`를 `update`에서 `validate`로 변경했다. 이는 단순 문서 정리가 아니라
+  Hibernate의 실행 중 스키마 자동 변경을 중단하고 Flyway를 스키마 변경 기준으로 확정한
+  실행 정책 변경이다.
+- 실제 프로젝트에서 사용 중인 `backend/daliyatelier.env` 철자를 재확인했다. 호환성을 위해
+  이번 작업에서는 rename하지 않고 같은 이름의 `daliyatelier.env.example`을 추가했다.
+- 백엔드 CORS 허용 origin은 `CORS_ALLOWED_ORIGINS`의 쉼표 구분 목록으로 설정하며,
+  미설정 기본값은 `http://localhost:5173`으로 유지했다. credentials와 함께 사용할 수 없는
+  빈 목록과 wildcard는 거부한다.
+- 프론트 공통 Axios 인스턴스는 `VITE_API_BASE_URL`을 사용하며, 미설정 시 기존
+  `http://localhost:8080`을 사용한다. `frontend/.env.example`에 기본값을 제공했다.
+- 루트 README에 전체 준비·실행·테스트·배포 환경 체크리스트와 현재 기능 계약 기반의
+  통합 데모 흐름을 작성하고, `frontend/README.md`의 Vite 템플릿 문구를 프로젝트 안내로
+  교체했다.
+- 포인트 충전과 결제가 `INTERNAL` 기반 데모이고 실제 PG가 아니며, 배송 추적 API는 없고
+  Cloudinary 이미지 업로드는 실제 외부 연동이라는 한계를 명시했다.
+- `npm ci`가 보고한 프론트 의존성 취약점 13건은 완료 조건과 분리했다. 의존성 변경이나
+  `npm audit fix`는 수행하지 않았고 production/dev 영향과 안전한 업데이트 검토를
+  `BACKLOG.md`의 별도 후보로 보존했다.
+
+## 변경 파일
+
+- `.gitignore`
+- `backend/src/main/resources/application.properties`
+- `backend/daliyatelier.env.example`
+- `backend/src/main/java/com/dailyatelier/dailyatelier/config/SecurityConfig.java`
+- `frontend/.env.example`
+- `frontend/src/api/authApi.js`
+- `README.md`
+- `frontend/README.md`
+- `BACKLOG.md`
+- `PLAN.md` (작업 중 진행 상태와 검증 결과 기록)
+
+## 실제 검증 결과
+
+- 별도 빈 MySQL 스키마에서 Flyway V1~V6 적용과 Hibernate `ddl-auto=validate` 상태의
+  실제 백엔드 기동을 확인했고, `GET /api/arts`가 200으로 응답했다.
+- 조건부 MySQL 스키마 테스트 2종을 각각 격리 스키마에서 통과시켰고 검증 스키마는 대상
+  확인 후 삭제했다.
+- 기본 `http://localhost:5173`과 별도 설정한 origin의 CORS preflight는 성공했고,
+  허용하지 않은 origin은 403으로 거부됐다.
+- `VITE_API_BASE_URL` 미설정 기본값과 별도 주소를 사용한 production build 산출물을 각각
+  확인했다. `npm ci` 후 개발 서버의 공개 작품 화면에서도 로컬 API 데이터가 렌더링됐다.
+- 백엔드 전체 테스트 319개가 통과하고 조건부 테스트 7개가 예정대로 skip됐다.
+- 프론트 유틸리티 테스트 19개, 컴포넌트 테스트 129개, lint와 production build가 모두
+  통과했다.
+- 추적 파일로 만든 별도 임시 checkout에서 공통 설정과 두 예제 env가 존재하고 실제 env와
+  로컬 계정 문서가 포함되지 않으며, 예제 파일 복사 절차가 성공하는 것을 확인했다.
+- 로컬 QA 문서의 기존 계정은 현재 DB에서 사용할 수 없어 회원가입·로그인 smoke test는
+  생략했다. 새 계정·작품·주문 fixture는 만들지 않았고 전체 거래 흐름도 다시 실행하지 않았다.
+- `git diff --check`, 추적·ignore 상태와 변경 후보 파일의 로컬 비밀값·계정 문자열 비노출을
+  확인했다.
+
+## 구현 커밋
+
+- `45c7c22 chore: 실행 환경변수와 배포 주소 설정 정리`
+- `d65e98b chore: 프로젝트 실행과 역할별 데모 문서 작성`
