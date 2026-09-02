@@ -4,7 +4,7 @@ import com.dailyatelier.dailyatelier.dto.ApiErrorResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtAuthenticationFilter;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,11 +27,30 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ObjectMapper objectMapper;
+    private final List<String> allowedOrigins;
+
+    public SecurityConfig(
+            JwtTokenProvider jwtTokenProvider,
+            ObjectMapper objectMapper,
+            @Value("${app.cors.allowed-origins:http://localhost:5173}")
+            List<String> allowedOrigins) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.objectMapper = objectMapper;
+        this.allowedOrigins = allowedOrigins.stream()
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+        if (this.allowedOrigins.isEmpty() || this.allowedOrigins.contains("*")) {
+            throw new IllegalArgumentException(
+                    "app.cors.allowed-origins must contain explicit origins"
+            );
+        }
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -97,11 +116,11 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS 설정 - React(5173)에서 Spring(8080)으로 요청 허용
+    // CORS 설정 - 환경별 프론트 origin에서 Spring API 요청 허용
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));     //React 개발 서버
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

@@ -37,7 +37,6 @@ out/
 .vscode/
 
 ### Security ###
-backend/src/main/resources/application.properties
 backend/.env
 backend/daliyatelier.env
 
