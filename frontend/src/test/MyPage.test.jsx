@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from '../pages/MyPage/MyPage'
@@ -137,5 +137,37 @@ describe('마이페이지 낙찰 작품 요약', () => {
 
     expect(getMyInquiries).toHaveBeenCalledWith({ status: 'PENDING', size: 1 })
     expect(screen.getByText('12')).toBeVisible()
+  })
+
+  it('프로필 이미지를 표시하고 변경 링크를 제공한다', async () => {
+    getUserProfile.mockResolvedValue({
+      data: {
+        ...profile,
+        profileImageUrl: 'https://res.cloudinary.com/test/profile.png',
+      },
+    })
+
+    renderMyPage()
+
+    expect(await screen.findByRole('img', { name: '테스트 사용자 프로필' }))
+      .toHaveAttribute('src', 'https://res.cloudinary.com/test/profile.png')
+    expect(screen.getByRole('link', { name: '프로필 사진 변경' }))
+      .toHaveAttribute('href', '/mypage/profile-edit')
+  })
+
+  it('프로필 이미지 로딩 실패 시 닉네임 이니셜을 표시한다', async () => {
+    getUserProfile.mockResolvedValue({
+      data: {
+        ...profile,
+        profileImageUrl: 'https://res.cloudinary.com/test/broken.png',
+      },
+    })
+    renderMyPage()
+    const image = await screen.findByRole('img', { name: '테스트 사용자 프로필' })
+
+    fireEvent.error(image)
+
+    expect(screen.queryByRole('img', { name: '테스트 사용자 프로필' })).not.toBeInTheDocument()
+    expect(screen.getByText('테')).toBeVisible()
   })
 })

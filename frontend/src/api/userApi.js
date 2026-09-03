@@ -8,6 +8,15 @@ export const getUserProfile = () =>
 export const updateUserProfile = (data) => 
   api.put('/api/users/me', data)
 
+// 프로필 이미지 수정
+export const updateUserProfileImage = (image) => {
+  const formData = new FormData()
+  formData.append('image', image)
+  return api.put('/api/users/me/profile-image', formData, {
+    headers: { 'Content-Type': undefined },
+  })
+}
+
 // 닉네임 중복 확인
 export const checkNickname = (value) => 
   api.get('/api/check/nickname', { params: { value } })

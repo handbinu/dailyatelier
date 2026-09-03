@@ -260,16 +260,21 @@ function MyPageMenu({ title, items, pathname, bidsCount, inquiryCount, artist = 
 
 function ProfileCard({ user, isArtist, editMode, setEditMode, onUpdate }) {
   const initial = user?.nickname?.[0] ?? '?'
+  const [failedImageUrl, setFailedImageUrl] = useState('')
 
   return (
     <div className={styles.profileCard}>
       <div className={styles.avatar}>
-        {user?.profileImg ? (
-          <img src={user.profileImg} alt="프로필" />
+        {user?.profileImageUrl && failedImageUrl !== user.profileImageUrl ? (
+          <img
+            src={user.profileImageUrl}
+            alt={`${user?.nickname || T.user} 프로필`}
+            onError={() => setFailedImageUrl(user.profileImageUrl)}
+          />
         ) : (
           <span className={styles.avatarInitial}>{initial}</span>
         )}
-        <button className={styles.avatarEditBtn} aria-label={T.changePhoto}>+</button>
+        <Link className={styles.avatarEditBtn} aria-label={T.changePhoto} to="/mypage/profile-edit">+</Link>
       </div>
       <p className={styles.profileNickname}>{user?.nickname || T.user}</p>
       <p className={styles.profileEmail}>{user?.email || T.emailNone}</p>

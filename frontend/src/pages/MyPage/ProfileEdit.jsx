@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageBanner, PageWrap } from './components/atoms'
-import { getUserProfile, updateUserProfile, checkNickname } from '../../api/userApi'
+import {
+  getUserProfile,
+  updateUserProfile,
+  updateUserProfileImage,
+  checkNickname,
+} from '../../api/userApi'
 import s from './ProfileEdit.module.css'
 
 const EMAIL_DOMAINS = ['직접 입력', 'naver.com', 'daum.net', 'gmail.com', 'nate.com']
+const ALLOWED_PROFILE_IMAGE_TYPES = ['image/jpeg', 'image/png']
+const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024
 
 function splitEmail(email) {
   if (!email) return { id: '', domain: '', preset: '직접 입력' }
@@ -25,6 +32,17 @@ export default function ProfileEdit() {
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [user,        setUser]        = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [imageLoadFailed, setImageLoadFailed] = useState(false)
+  const [imageSaving, setImageSaving] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const [imageSaved, setImageSaved] = useState(false)
+  const imageInputRef = useRef(null)
+
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
 
   useEffect(() => {
     if (!token) {
@@ -37,6 +55,7 @@ export default function ProfileEdit() {
       .then(res => {
         const u = res.data
         setUser(u)
+        setImageLoadFailed(false)
         const emailSplit = splitEmail(u.email || '')
         setForm({
           name:          u.name || '',
@@ -96,6 +115,59 @@ export default function ProfileEdit() {
     }
   }
 
+  const handleImageChange = (e) => {
+    const image = e.target.files?.[0]
+    setImageError('')
+    setImageSaved(false)
+
+    if (!image) {
+      setSelectedImage(null)
+      setPreviewUrl('')
+      setImageLoadFailed(false)
+      return
+    }
+    if (!ALLOWED_PROFILE_IMAGE_TYPES.includes(image.type)) {
+      setImageError('JPG, PNG 이미지만 업로드할 수 있습니다.')
+      setSelectedImage(null)
+      setPreviewUrl('')
+      setImageLoadFailed(false)
+      e.target.value = ''
+      return
+    }
+    if (image.size > MAX_PROFILE_IMAGE_SIZE) {
+      setImageError('프로필 이미지는 5MB 이하여야 합니다.')
+      setSelectedImage(null)
+      setPreviewUrl('')
+      setImageLoadFailed(false)
+      e.target.value = ''
+      return
+    }
+
+    setSelectedImage(image)
+    setPreviewUrl(URL.createObjectURL(image))
+    setImageLoadFailed(false)
+  }
+
+  const handleImageSave = async () => {
+    if (!selectedImage || imageSaving) return
+    setImageSaving(true)
+    setImageError('')
+    setImageSaved(false)
+    try {
+      const { data } = await updateUserProfileImage(selectedImage)
+      setUser(data)
+      setSelectedImage(null)
+      setPreviewUrl('')
+      setImageLoadFailed(false)
+      setImageSaved(true)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    } catch (err) {
+      setImageError(err.response?.data?.message || '프로필 이미지 저장에 실패했습니다.')
+    } finally {
+      setImageSaving(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!nickChecked) { alert('닉네임 중복확인을 해주세요.'); return }
@@ -133,6 +205,8 @@ export default function ProfileEdit() {
   const fullEmail = form.emailPreset === '직접 입력'
     ? `${form.emailId}@${form.emailDomain}`
     : `${form.emailId}@${form.emailPreset}`
+  const profileImageSrc = previewUrl || user?.profileImageUrl
+  const showProfileImage = profileImageSrc && !imageLoadFailed
 
   return (
     <PageWrap>
@@ -149,14 +223,42 @@ export default function ProfileEdit() {
             <h2 className={s.cardTitle}>프로필 사진</h2>
             <div className={s.avatarRow}>
               <div className={s.avatar}>
-                <span className={s.avatarInitial}>{form.nickname?.[0] ?? '?'}</span>
+                {showProfileImage ? (
+                  <img
+                    src={profileImageSrc}
+                    alt={`${form.nickname || '사용자'} 프로필`}
+                    className={s.avatarImage}
+                    onError={() => setImageLoadFailed(true)}
+                  />
+                ) : (
+                  <span className={s.avatarInitial}>{form.nickname?.[0] ?? '?'}</span>
+                )}
               </div>
               <div className={s.avatarInfo}>
                 <p className={s.avatarGuide}>JPG, PNG 파일 (최대 5MB)</p>
-                <label className={s.fileLabel}>
+                <div className={s.avatarActions}>
+                  <label className={`${s.fileLabel} ${imageSaving ? s.fileLabelDisabled : ''}`}>
                   사진 선택
-                  <input type="file" accept="image/*" className={s.fileInput} />
-                </label>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className={s.fileInput}
+                      onChange={handleImageChange}
+                      disabled={imageSaving}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={s.imageSaveBtn}
+                    onClick={handleImageSave}
+                    disabled={!selectedImage || imageSaving}
+                  >
+                    {imageSaving ? '사진 저장 중…' : '사진 저장'}
+                  </button>
+                </div>
+                {imageError && <p className={`${s.fieldMsg} ${s.fieldErr}`} role="alert">{imageError}</p>}
+                {imageSaved && <p className={`${s.fieldMsg} ${s.fieldOk}`} role="status">프로필 사진이 저장되었습니다.</p>}
               </div>
             </div>
           </section>

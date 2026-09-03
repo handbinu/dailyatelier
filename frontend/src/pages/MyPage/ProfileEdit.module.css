@@ -52,8 +52,10 @@
   flex-shrink: 0;
 }
 .avatarInitial { font-size: 2rem; font-weight: 700; color: #fff; }
+.avatarImage { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
 .avatarInfo { display: flex; flex-direction: column; gap: var(--space-2); }
 .avatarGuide { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.avatarActions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .fileLabel {
   display: inline-flex;
   align-items: center;
@@ -68,7 +70,20 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .fileLabel:hover { background: var(--color-border); }
+.fileLabelDisabled { cursor: not-allowed; opacity: .65; }
 .fileInput { display: none; }
+.imageSaveBtn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.imageSaveBtn:hover:not(:disabled) { background: var(--color-accent); border-color: var(--color-accent); }
+.imageSaveBtn:disabled { background: var(--color-border-dark); border-color: var(--color-border-dark); cursor: not-allowed; }
 
 /* 필드 그리드 */
 .fieldGrid { display: flex; flex-direction: column; gap: var(--space-5); }
