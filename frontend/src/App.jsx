@@ -1,9 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout      from './layouts/Layout'
 import PrivateRoute from './pages/auth/PrivateRoute'
 import ArtistRoute from './pages/auth/ArtistRoute'
 import AdminRoute from './pages/auth/AdminRoute'
-import styles from './App.module.css'
 
 // ── 인증
 import Login          from './pages/auth/Login'
@@ -40,25 +39,7 @@ import AuctionTotal from './pages/Auction/AuctionTotal'
 import ArtistList   from './pages/Artist/ArtistList'
 import ArtistDetail from './pages/Artist/ArtistDetail'
 import ArtSearch from './pages/Search/ArtSearch'
-
-function PreparingPage({ title }) {
-  return (
-    <main className={styles.preparingPage}>
-      <div className={styles.preparingCard}>
-        <p className={styles.preparingEyebrow}>COMING SOON</p>
-        <h1>{title}</h1>
-        <p className={styles.preparingMessage}>
-          더 나은 서비스로 준비하고 있습니다.<br />
-          현재 이용 가능한 작품과 작가를 먼저 둘러보세요.
-        </p>
-        <div className={styles.preparingActions}>
-          <Link to="/auction/total" className={styles.primaryLink}>전체 작품 보기</Link>
-          <Link to="/" className={styles.secondaryLink}>홈으로 돌아가기</Link>
-        </div>
-      </div>
-    </main>
-  )
-}
+import StaticInfoPage from './pages/Info/StaticInfoPage'
 
 function App() {
   return (
@@ -79,20 +60,14 @@ function App() {
 
           {/* ── 공개 페이지 ── */}
           <Route path="/"                element={<Home />} />
-          <Route path="/notice"          element={<PreparingPage title="공지 사항" />} />
-          <Route path="/event"           element={<PreparingPage title="이벤트 안내" />} />
           <Route path="/auction/total"   element={<AuctionTotal />} />
           <Route path="/auction/digital" element={<AuctionTotal type="digital" />} />
           <Route path="/auction/analog"  element={<AuctionTotal type="analog" />} />
-          <Route path="/auction/artist"  element={<PreparingPage title="작가별 작품" />} />
           <Route path="/auction/:id"     element={<ArtDetail />} />
           <Route path="/artists"         element={<ArtistList />} />
           <Route path="/artists/:artistId" element={<ArtistDetail />} />
-          <Route path="/artist-introduce" element={<PreparingPage title="작가소개" />} />
-          <Route path="/developer"       element={<PreparingPage title="개발자 소개" />} />
-          <Route path="/info"            element={<PreparingPage title="경매 진행방법" />} />
-          <Route path="/qna"             element={<PreparingPage title="고객센터" />} />
-          <Route path="/q-list"          element={<PreparingPage title="Q&A" />} />
+          <Route path="/info"            element={<StaticInfoPage type="info" />} />
+          <Route path="/qna"             element={<StaticInfoPage type="qna" />} />
           <Route path="/search"          element={<ArtSearch />} />
 
           {/* ── 보호된 라우트 (로그인 필수) ── */}

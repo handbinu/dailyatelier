@@ -11,6 +11,10 @@ export default function Footer() {
             <Link to="/auction/total" className={styles.linkItem}>전체 작품</Link>
             <span className={styles.divider} aria-hidden="true">|</span>
             <Link to="/artists" className={styles.linkItem}>작가 목록</Link>
+            <span className={styles.divider} aria-hidden="true">|</span>
+            <Link to="/qna" className={styles.linkItem}>고객센터</Link>
+            <span className={styles.divider} aria-hidden="true">|</span>
+            <Link to="/info" className={styles.linkItem}>경매 이용 안내</Link>
           </nav>
         </div>
 
