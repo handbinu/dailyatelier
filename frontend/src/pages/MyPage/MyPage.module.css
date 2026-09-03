@@ -109,6 +109,8 @@
   justify-content: center;
 }
 
+.avatar img { background: var(--color-surface); }
+
 .avatarInitial {
   background: linear-gradient(135deg, var(--color-accent), #4a7a72);
   font-size: 2rem;

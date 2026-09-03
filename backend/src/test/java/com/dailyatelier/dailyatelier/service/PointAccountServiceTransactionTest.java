@@ -38,6 +38,9 @@ import static org.mockito.Mockito.doThrow;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PointAccountServiceTransactionTest {
 
+    @MockitoBean
+    private CloudinaryService cloudinaryService;
+
     @Autowired
     private PointAccountService pointAccountService;
 
