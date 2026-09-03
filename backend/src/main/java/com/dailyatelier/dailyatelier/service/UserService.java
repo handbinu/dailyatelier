@@ -32,6 +32,7 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PointAccountService pointAccountService;
+    private final CloudinaryService cloudinaryService;
 
     //로그인
     public LoginResponseDto login(LoginRequestDto dto){
@@ -109,6 +110,7 @@ public class UserService {
         dto.setAvailablePoint(pointAccount.getAvailableBalance());
         dto.setHeldPoint(pointAccount.getHeldBalance());
         dto.setEmailAgree(user.getEmailAgree());
+        dto.setProfileImageUrl(user.getProfileImageUrl());
 
         // 주소 정보 로드
         addressRepository.findById(userId).ifPresent(addr -> {
@@ -128,6 +130,21 @@ public class UserService {
         }
 
         return dto;
+    }
+
+    @Transactional
+    public UserProfileDto updateProfileImage(
+            String userId,
+            org.springframework.web.multipart.MultipartFile image) {
+        User user = userRepository.findByUserId(userId);
+        if (user == null) {
+            throw userNotFound();
+        }
+
+        String profileImageUrl = cloudinaryService.uploadProfileImage(userId, image);
+        user.setProfileImageUrl(profileImageUrl);
+        userRepository.save(user);
+        return getUserProfile(userId);
     }
 
     // 마이페이지 프로필 수정

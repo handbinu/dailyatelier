@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.controller;
 
 import com.dailyatelier.dailyatelier.config.SecurityConfig;
+import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.service.ArtService;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 
@@ -20,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,6 +92,69 @@ class UserApiContractTest {
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("요청값을 확인해 주세요."))
                 .andExpect(jsonPath("$.path").value("/api/auth/login"));
+    }
+
+    @Test
+    void authenticatedUserCanUpdateOwnProfileImage() throws Exception {
+        UserProfileDto profile = new UserProfileDto();
+        profile.setUserId("member");
+        profile.setProfileImageUrl("https://res.cloudinary.com/test/profile.png");
+        when(userService.updateProfileImage(any(), any())).thenReturn(profile);
+        MockMultipartFile image = new MockMultipartFile(
+                "image", "profile.png", "image/png", new byte[]{1, 2, 3}
+        );
+
+        mockMvc.perform(multipart("/api/users/me/profile-image")
+                        .file(image)
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(authentication(authToken("member"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("member"))
+                .andExpect(jsonPath("$.profileImageUrl")
+                        .value("https://res.cloudinary.com/test/profile.png"));
+    }
+
+    @Test
+    void anonymousUserCannotUpdateProfileImage() throws Exception {
+        MockMultipartFile image = new MockMultipartFile(
+                "image", "profile.png", "image/png", new byte[]{1, 2, 3}
+        );
+
+        mockMvc.perform(multipart("/api/users/me/profile-image")
+                        .file(image)
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        }))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void cloudinaryFailureUsesBadGatewayErrorContract() throws Exception {
+        when(userService.updateProfileImage(any(), any())).thenThrow(new DomainApiException(
+                HttpStatus.BAD_GATEWAY,
+                "PROFILE_IMAGE_UPLOAD_FAILED",
+                "프로필 이미지 업로드에 실패했습니다."
+        ));
+        MockMultipartFile image = new MockMultipartFile(
+                "image", "profile.png", "image/png", new byte[]{1, 2, 3}
+        );
+
+        mockMvc.perform(multipart("/api/users/me/profile-image")
+                        .file(image)
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(authentication(authToken("member"))))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.status").value(502))
+                .andExpect(jsonPath("$.code").value("PROFILE_IMAGE_UPLOAD_FAILED"))
+                .andExpect(jsonPath("$.path").value("/api/users/me/profile-image"));
     }
 
     private UsernamePasswordAuthenticationToken authToken(String userId) {

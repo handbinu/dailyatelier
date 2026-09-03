@@ -33,7 +33,7 @@ class FlywayEmptyDatabaseMySqlTest {
     );
 
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
-            Map.entry("users", 10),
+            Map.entry("users", 11),
             Map.entry("artist", 6),
             Map.entry("art", 19),
             Map.entry("bid", 5),
@@ -197,7 +197,7 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(14);
@@ -215,6 +215,7 @@ class FlywayEmptyDatabaseMySqlTest {
         assertThat(expectedIndexNames()).isEqualTo(EXPECTED_INDEXES);
         assertThat(expectedIndexColumns()).isEqualTo(EXPECTED_INDEX_COLUMNS);
         assertImportantColumn("users", "reserve", "int", false, "0");
+        assertImportantColumn("users", "profile_image_url", "varchar", true, null);
         assertImportantColumn("art", "active_point_hold_id", "bigint", true, null);
         assertImportantColumn("art", "format", "varchar", false, null);
         assertImportantColumn("art", "category", "varchar", false, null);

@@ -15,6 +15,7 @@ public class UserProfileDto {
     private long availablePoint;
     private long heldPoint;
     private Boolean emailAgree;
+    private String profileImageUrl;
 
     // 주소 정보
     private String zipCode;

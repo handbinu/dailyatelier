@@ -13,8 +13,10 @@ import com.dailyatelier.dailyatelier.service.ArtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -85,5 +87,12 @@ public class UserController {
             @RequestBody ProfileUpdateDto dto) {
         userService.updateUserProfile(userId, dto);
         return ResponseEntity.ok(Map.of("message", "회원 정보가 성공적으로 수정되었습니다."));
+    }
+
+    @PutMapping(value = "/users/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileDto> updateProfileImage(
+            @AuthenticationPrincipal String userId,
+            @RequestPart("image") MultipartFile image) {
+        return ResponseEntity.ok(userService.updateProfileImage(userId, image));
     }
 }

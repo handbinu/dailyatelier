@@ -5,7 +5,6 @@ import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,17 +22,29 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class CloudinaryService {
     private static final String ALLOWED_FOLDER = "arts";
     private static final long MAX_INQUIRY_ATTACHMENT_SIZE = 10L * 1024 * 1024;
+    private static final long MAX_PROFILE_IMAGE_SIZE = 5L * 1024 * 1024;
     private static final Set<String> ALLOWED_INQUIRY_CONTENT_TYPES = Set.of(
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE,
             MediaType.APPLICATION_PDF_VALUE
     );
+    private static final Set<String> ALLOWED_PROFILE_IMAGE_CONTENT_TYPES = Set.of(
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.IMAGE_PNG_VALUE
+    );
 
     private final UserRepository userRepository;
+    private final RestClient.Builder restClientBuilder;
+
+    public CloudinaryService(
+            UserRepository userRepository,
+            RestClient.Builder restClientBuilder) {
+        this.userRepository = userRepository;
+        this.restClientBuilder = restClientBuilder;
+    }
 
     @Value("${cloudinary.cloud-name:}")
     private String cloudName;
@@ -79,7 +90,7 @@ public class CloudinaryService {
         body.add("signature", generateSignature(folder, timestamp));
 
         try {
-            Map<?, ?> response = RestClient.create()
+            Map<?, ?> response = restClientBuilder.build()
                     .post()
                     .uri(buildUploadUrl())
                     .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -101,6 +112,44 @@ public class CloudinaryService {
                     HttpStatus.BAD_GATEWAY,
                     "INQUIRY_ATTACHMENT_UPLOAD_FAILED",
                     "문의 첨부 파일 업로드에 실패했습니다.",
+                    exception
+            );
+        }
+    }
+
+    public String uploadProfileImage(String userId, MultipartFile image) {
+        validateProfileImage(image);
+        String folder = "profiles/" + userId;
+        long timestamp = System.currentTimeMillis() / 1000L;
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", image.getResource());
+        body.add("folder", folder);
+        body.add("timestamp", String.valueOf(timestamp));
+        body.add("api_key", apiKey);
+        body.add("signature", generateSignature(folder, timestamp));
+
+        try {
+            Map<?, ?> response = restClientBuilder.build()
+                    .post()
+                    .uri(buildUploadUrl())
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+            String secureUrl = response == null ? null : (String) response.get("secure_url");
+            if (isBlank(secureUrl)) {
+                throw new DomainApiException(
+                        HttpStatus.BAD_GATEWAY,
+                        "PROFILE_IMAGE_UPLOAD_FAILED",
+                        "프로필 이미지 업로드에 실패했습니다."
+                );
+            }
+            return secureUrl;
+        } catch (RestClientException exception) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_GATEWAY,
+                    "PROFILE_IMAGE_UPLOAD_FAILED",
+                    "프로필 이미지 업로드에 실패했습니다.",
                     exception
             );
         }
@@ -133,6 +182,30 @@ public class CloudinaryService {
         }
         if (!ALLOWED_INQUIRY_CONTENT_TYPES.contains(attachment.getContentType())) {
             throw new DomainApiException(HttpStatus.BAD_REQUEST, "INVALID_ATTACHMENT_TYPE", "JPG, PNG, PDF 파일만 첨부할 수 있습니다.");
+        }
+    }
+
+    private void validateProfileImage(MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PROFILE_IMAGE",
+                    "프로필 이미지 파일을 확인해 주세요."
+            );
+        }
+        if (image.getSize() > MAX_PROFILE_IMAGE_SIZE) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "PROFILE_IMAGE_TOO_LARGE",
+                    "프로필 이미지는 5MB 이하여야 합니다."
+            );
+        }
+        if (!ALLOWED_PROFILE_IMAGE_CONTENT_TYPES.contains(image.getContentType())) {
+            throw new DomainApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PROFILE_IMAGE_TYPE",
+                    "JPG, PNG 이미지만 업로드할 수 있습니다."
+            );
         }
     }
 

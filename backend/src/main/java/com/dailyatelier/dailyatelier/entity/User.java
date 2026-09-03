@@ -44,4 +44,7 @@ public class User {
 
     @Column(name = "email_agree")
     private Boolean emailAgree = true;
+
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
 }
