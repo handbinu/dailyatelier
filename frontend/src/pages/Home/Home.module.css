@@ -308,6 +308,8 @@
   overflow: hidden;
 }
 
+.bestGrid .homeSkeletonImage { aspect-ratio: 3 / 4; }
+
 .bestImgWrap img {
   width: 100%;
   height: 100%;

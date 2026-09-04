@@ -32,6 +32,10 @@ export default function Home() {
   const [newArtsLoading, setNewArtsLoading] = useState(true)
   const [newArtsError, setNewArtsError] = useState('')
   const [newArtsRetryKey, setNewArtsRetryKey] = useState(0)
+  const [bestArts, setBestArts] = useState([])
+  const [bestArtsLoading, setBestArtsLoading] = useState(true)
+  const [bestArtsError, setBestArtsError] = useState('')
+  const [bestArtsRetryKey, setBestArtsRetryKey] = useState(0)
   const [endedArts, setEndedArts] = useState([])
   const [endedArtsLoading, setEndedArtsLoading] = useState(true)
   const [endedArtsError, setEndedArtsError] = useState('')
@@ -91,6 +95,36 @@ export default function Home() {
     loadNewArts()
     return () => controller.abort()
   }, [newArtsRetryKey])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const loadBestArts = async () => {
+      setBestArtsLoading(true)
+      setBestArtsError('')
+
+      try {
+        const { data } = await searchArts({
+          status: 'ENDED',
+          sort: 'PRICE_DESC',
+          page: 0,
+          size: 4,
+          signal: controller.signal,
+        })
+        if (controller.signal.aborted) return
+        setBestArts(data.content ?? [])
+      } catch (requestError) {
+        if (controller.signal.aborted || requestError.code === 'ERR_CANCELED') return
+        setBestArts([])
+        setBestArtsError(requestError.response?.data?.message || 'Best Art를 불러오지 못했습니다.')
+      } finally {
+        if (!controller.signal.aborted) setBestArtsLoading(false)
+      }
+    }
+
+    loadBestArts()
+    return () => controller.abort()
+  }, [bestArtsRetryKey])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -223,10 +257,15 @@ export default function Home() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Best Art</h2>
           <p className={styles.sectionDesc}>
-            최근 한 달 경매가가 가장 높은 작품을 선정했습니다
+            종료된 작품 중 현재가가 높은 작품을 소개합니다
           </p>
         </div>
-        <BestArtGrid />
+        <BestArtGrid
+          arts={bestArts}
+          loading={bestArtsLoading}
+          error={bestArtsError}
+          onRetry={() => setBestArtsRetryKey((key) => key + 1)}
+        />
       </section>
 
       {/* ── 신규 작품 ────────────────────────────────── */}
@@ -268,27 +307,62 @@ export default function Home() {
   )
 }
 
-/* ── 베스트 아트 그리드 (정적 목업) ─────────────────── */
-function BestArtGrid() {
-  const BEST = [
-    { id: 1, img: '/img/auction/best1.jpg', title: '자연의 속삭임', price: '1,280,000' },
-    { id: 2, img: '/img/auction/best2.png', title: '도시의 감성', price: '980,000' },
-    { id: 3, img: '/img/auction/best3.jpg', title: '기억의 조각', price: '840,000' },
-    { id: 4, img: '/img/auction/best4.jpg', title: '빛의 여행', price: '720,000' },
-  ]
+function BestArtGrid({ arts, loading, error, onRetry }) {
+  if (loading) {
+    return (
+      <div className={styles.bestGrid} aria-label="Best Art를 불러오는 중" aria-busy="true">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className={styles.homeSkeletonCard}>
+            <div className={styles.homeSkeletonImage} />
+            <div className={styles.homeSkeletonBody}><span /><span /><span /></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.homeFeedback} role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      </div>
+    )
+  }
+
+  if (arts.length === 0) {
+    return <p className={styles.empty}>표시할 Best Art가 없습니다.</p>
+  }
+
   return (
     <div className={styles.bestGrid}>
-      {BEST.map((art) => (
-        <Link key={art.id} to={`/auction/${art.id}`} className={styles.bestCard}>
+      {arts.map((art) => {
+        const sold = art.result === 'SOLD'
+        return (
+        <Link
+          key={art.artId}
+          to={`/auction/${art.artId}`}
+          state={{ from: '/search?status=ENDED&sort=PRICE_DESC' }}
+          className={styles.bestCard}
+          aria-label={`${art.name} Best Art 상세 보기`}
+        >
           <div className={styles.bestImgWrap}>
-            <img src={art.img} alt={art.title} />
+            <img
+              src={getArtImageSrc(art.imgPath)}
+              alt={art.name}
+              loading="lazy"
+              onError={applyArtImageFallback}
+              onLoad={applyArtImageFallbackIfBlank}
+            />
           </div>
           <div className={styles.bestInfo}>
-            <span className={styles.bestTitle}>{art.title}</span>
-            <span className={styles.bestPrice}>낙찰가 {art.price}원</span>
+            <span className={styles.bestTitle}>{art.name}</span>
+            <span className={styles.bestPrice}>{art.artistName || '작가 미상'}</span>
+            <span className={styles.bestPrice}>{sold ? '낙찰가' : '최종가'} {formatPrice(art.currentPrice)}원</span>
           </div>
         </Link>
-      ))}
+        )
+      })}
     </div>
   )
 }
