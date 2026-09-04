@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageBanner, PageWrap } from './components/atoms'
+import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import {
   getUserProfile,
   updateUserProfile,
@@ -12,6 +13,33 @@ import s from './ProfileEdit.module.css'
 const EMAIL_DOMAINS = ['직접 입력', 'naver.com', 'daum.net', 'gmail.com', 'nate.com']
 const ALLOWED_PROFILE_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024
+const KAKAO_POSTCODE_SCRIPT_URL = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+
+function loadKakaoPostcode() {
+  if (window.kakao?.Postcode) return Promise.resolve()
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${KAKAO_POSTCODE_SCRIPT_URL}"]`)
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true })
+      existing.addEventListener('error', () => {
+        existing.remove()
+        reject(new Error('Kakao postcode script failed'))
+      }, { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = KAKAO_POSTCODE_SCRIPT_URL
+    script.async = true
+    script.onload = resolve
+    script.onerror = () => {
+      script.remove()
+      reject(new Error('Kakao postcode script failed'))
+    }
+    document.head.appendChild(script)
+  })
+}
 
 function splitEmail(email) {
   if (!email) return { id: '', domain: '', preset: '직접 입력' }
@@ -30,7 +58,6 @@ export default function ProfileEdit() {
   const [nickMsg,     setNickMsg]     = useState('')
   const [pwMatch,     setPwMatch]     = useState(null)
   const [saving,      setSaving]      = useState(false)
-  const [saved,       setSaved]       = useState(false)
   const [user,        setUser]        = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -38,7 +65,11 @@ export default function ProfileEdit() {
   const [imageSaving, setImageSaving] = useState(false)
   const [imageError, setImageError] = useState('')
   const [imageSaved, setImageSaved] = useState(false)
+  const [postcodeOpen, setPostcodeOpen] = useState(false)
+  const [postcodeError, setPostcodeError] = useState('')
   const imageInputRef = useRef(null)
+  const postcodeHostRef = useRef(null)
+  const addressDetailRef = useRef(null)
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
@@ -168,6 +199,37 @@ export default function ProfileEdit() {
     }
   }
 
+  const closePostcode = () => setPostcodeOpen(false)
+
+  const handlePostcodeComplete = (data) => {
+    setForm(f => ({
+      ...f,
+      zipCode: data.zonecode,
+      address: data.address,
+      addressDetail: '',
+    }))
+    setPostcodeOpen(false)
+    requestAnimationFrame(() => addressDetailRef.current?.focus())
+  }
+
+  useEffect(() => {
+    if (!postcodeOpen || !postcodeHostRef.current) return undefined
+    let active = true
+    setPostcodeError('')
+
+    loadKakaoPostcode()
+      .then(() => {
+        if (!active || !postcodeHostRef.current) return
+        if (!window.kakao?.Postcode) throw new Error('Kakao postcode is unavailable')
+        new window.kakao.Postcode({ oncomplete: handlePostcodeComplete }).embed(postcodeHostRef.current)
+      })
+      .catch(() => {
+        if (active) setPostcodeError('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+      })
+
+    return () => { active = false }
+  }, [postcodeOpen])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!nickChecked) { alert('닉네임 중복확인을 해주세요.'); return }
@@ -190,8 +252,7 @@ export default function ProfileEdit() {
         artistName: form.artistName,
       }
       await updateUserProfile(payload)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      navigate('/mypage')
     } catch (err) {
       alert(err.response?.data?.message || '정보 수정에 실패했습니다.')
     } finally {
@@ -213,13 +274,9 @@ export default function ProfileEdit() {
       <PageBanner title="회원 정보 수정" crumb="프로필 수정" />
 
       <div className={s.body}>
-        {saved && (
-          <div className={s.savedBanner}>✓ 정보가 성공적으로 저장되었습니다.</div>
-        )}
-
         <form onSubmit={handleSubmit} className={s.form}>
           {/* 프로필 이미지 */}
-          <section className={s.card}>
+          <section id="profile-image" className={s.card}>
             <h2 className={s.cardTitle}>프로필 사진</h2>
             <div className={s.avatarRow}>
               <div className={s.avatar}>
@@ -336,12 +393,12 @@ export default function ProfileEdit() {
               <Field label="우편번호">
                 <div className={s.inlineRow}>
                   <input className={s.input} value={form.zipCode} onChange={set('zipCode')} placeholder="우편번호" />
-                  <button type="button" className={s.checkBtn}>우편번호 찾기</button>
+                  <button type="button" className={s.checkBtn} onClick={() => setPostcodeOpen(true)}>우편번호 찾기</button>
                 </div>
               </Field>
               <Field label="주소">
                 <input className={s.input} value={form.address} onChange={set('address')} placeholder="기본 주소" />
-                <input className={s.input} style={{ marginTop: 6 }} value={form.addressDetail} onChange={set('addressDetail')} placeholder="상세 주소" />
+                <input ref={addressDetailRef} className={s.input} style={{ marginTop: 6 }} value={form.addressDetail} onChange={set('addressDetail')} placeholder="상세 주소" />
               </Field>
             </div>
           </section>
@@ -383,6 +440,28 @@ export default function ProfileEdit() {
           </div>
         </form>
       </div>
+      {postcodeOpen && (
+        <AccessibleDialog
+          onClose={closePostcode}
+          labelledBy="postcode-dialog-title"
+          describedBy="postcode-dialog-description"
+          overlayClassName={s.postcodeOverlay}
+          contentClassName={s.postcodeDialog}
+        >
+          <div className={s.postcodeHeader}>
+            <div>
+              <h2 id="postcode-dialog-title">우편번호 찾기</h2>
+              <p id="postcode-dialog-description">도로명, 건물명 또는 지번으로 주소를 검색하세요.</p>
+            </div>
+            <button type="button" className={s.postcodeClose} onClick={closePostcode} data-dialog-initial-focus>닫기</button>
+          </div>
+          {postcodeError ? (
+            <p className={`${s.fieldMsg} ${s.fieldErr}`} role="alert">{postcodeError}</p>
+          ) : (
+            <div ref={postcodeHostRef} className={s.postcodeHost} aria-label="Kakao 우편번호 검색" />
+          )}
+        </AccessibleDialog>
+      )}
     </PageWrap>
   )
 }

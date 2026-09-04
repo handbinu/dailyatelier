@@ -178,60 +178,6 @@
 }
 .editProfileBtn:hover { background: var(--color-surface-alt); border-color: var(--color-accent); }
 
-/* 프로필 수정 폼 */
-.editForm {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
-  text-align: left;
-}
-
-.editLabel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.editInput {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  background: var(--color-surface);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-.editInput:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.18);
-}
-
-.editActions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.saveBtn, .cancelBtn {
-  flex: 1;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-.saveBtn { background: var(--color-primary); color: #fff; border: none; }
-.saveBtn:hover { background: var(--color-accent); }
-.cancelBtn { background: var(--color-surface-alt); color: var(--color-text-sub); border: 1px solid var(--color-border); }
-
 /* 포인트 카드 */
 .pointCard {
   background: var(--color-surface);

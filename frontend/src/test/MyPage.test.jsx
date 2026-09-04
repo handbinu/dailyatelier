@@ -152,7 +152,10 @@ describe('마이페이지 낙찰 작품 요약', () => {
     expect(await screen.findByRole('img', { name: '테스트 사용자 프로필' }))
       .toHaveAttribute('src', 'https://res.cloudinary.com/test/profile.png')
     expect(screen.getByRole('link', { name: '프로필 사진 변경' }))
+      .toHaveAttribute('href', '/mypage/profile-edit#profile-image')
+    expect(screen.getByRole('link', { name: '프로필 수정' }))
       .toHaveAttribute('href', '/mypage/profile-edit')
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
   })
 
   it('프로필 이미지 로딩 실패 시 닉네임 이니셜을 표시한다', async () => {

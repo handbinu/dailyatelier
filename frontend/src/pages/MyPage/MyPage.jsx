@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getAllMyBids, getAllMyWins, getUserProfile, updateUserProfile } from '../../api/userApi'
+import { getAllMyBids, getAllMyWins, getUserProfile } from '../../api/userApi'
 import { getMyArts } from '../../api/artApi'
 import { getMyInquiries } from '../../api/inquiryApi'
 import { formatPrice } from '../../utils/artDisplay'
@@ -81,7 +81,6 @@ export default function MyPage() {
   const location = useLocation()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [editMode, setEditMode] = useState(false)
   const [bids, setBids] = useState([])
   const [bidsLoading, setBidsLoading] = useState(true)
   const [bidsError, setBidsError] = useState('')
@@ -181,13 +180,7 @@ export default function MyPage() {
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
           {user && (
-            <ProfileCard
-              user={user}
-              isArtist={isArtist}
-              editMode={editMode}
-              setEditMode={setEditMode}
-              onUpdate={() => getUserProfile().then((res) => setUser(res.data))}
-            />
+            <ProfileCard user={user} isArtist={isArtist} />
           )}
           {user && <PointCard user={user} />}
           <QuickActions isArtist={isArtist} isAdmin={isAdmin} navigate={navigate} />
@@ -258,7 +251,7 @@ function MyPageMenu({ title, items, pathname, bidsCount, inquiryCount, artist = 
   )
 }
 
-function ProfileCard({ user, isArtist, editMode, setEditMode, onUpdate }) {
+function ProfileCard({ user, isArtist }) {
   const initial = user?.nickname?.[0] ?? '?'
   const [failedImageUrl, setFailedImageUrl] = useState('')
 
@@ -274,80 +267,12 @@ function ProfileCard({ user, isArtist, editMode, setEditMode, onUpdate }) {
         ) : (
           <span className={styles.avatarInitial}>{initial}</span>
         )}
-        <Link className={styles.avatarEditBtn} aria-label={T.changePhoto} to="/mypage/profile-edit">+</Link>
+        <Link className={styles.avatarEditBtn} aria-label={T.changePhoto} to="/mypage/profile-edit#profile-image">+</Link>
       </div>
       <p className={styles.profileNickname}>{user?.nickname || T.user}</p>
       <p className={styles.profileEmail}>{user?.email || T.emailNone}</p>
       {isArtist && <span className={styles.profileArtistTag}>{T.artist}</span>}
-      <button className={styles.editProfileBtn} onClick={() => setEditMode((v) => !v)}>
-        {editMode ? T.close : T.editProfile}
-      </button>
-      {editMode && <ProfileEditForm user={user} onClose={() => setEditMode(false)} onUpdate={onUpdate} />}
-    </div>
-  )
-}
-
-function ProfileEditForm({ user, onClose, onUpdate }) {
-  const [form, setForm] = useState({
-    nickname: user?.nickname || '',
-    email: user?.email || '',
-    phoneNumber: user?.phoneNumber || '',
-  })
-  const [saving, setSaving] = useState(false)
-  const handle = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-
-  const handleSave = async () => {
-    if (!form.nickname.trim()) {
-      alert('\uB2C9\uB124\uC784\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694.')
-      return
-    }
-
-    setSaving(true)
-    try {
-      await updateUserProfile({
-        nickname: form.nickname,
-        email: form.email,
-        phoneNumber: form.phoneNumber,
-        zipCode: user?.zipCode,
-        userAddress1: user?.userAddress1,
-        userAddress2: user?.userAddress2,
-        artistIntro: user?.artistIntro,
-        homepage: user?.homepage,
-        artistSns: user?.artistSns,
-        artistName: user?.artistName,
-      })
-      alert(T.profileChanged)
-      await onUpdate?.()
-      onClose()
-    } catch (err) {
-      alert(err.response?.data?.message || T.editFail)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className={styles.editForm}>
-      <label className={styles.editLabel}>
-        닉네임
-        <input className={styles.editInput} name="nickname" value={form.nickname} onChange={handle} />
-      </label>
-      <label className={styles.editLabel}>
-        이메일
-        <input className={styles.editInput} name="email" value={form.email} onChange={handle} />
-      </label>
-      <label className={styles.editLabel}>
-        전화번호
-        <input className={styles.editInput} name="phoneNumber" value={form.phoneNumber} onChange={handle} />
-      </label>
-      <div className={styles.editActions}>
-        <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? T.saving : T.save}
-        </button>
-        <button className={styles.cancelBtn} onClick={onClose} disabled={saving}>
-          취소
-        </button>
-      </div>
+      <Link className={styles.editProfileBtn} to="/mypage/profile-edit">{T.editProfile}</Link>
     </div>
   )
 }

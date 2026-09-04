@@ -160,6 +160,50 @@
 }
 .checkBtn:hover { background: var(--color-accent); }
 
+.postcodeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, .55);
+}
+.postcodeDialog {
+  width: min(100%, 560px);
+  max-height: calc(100vh - var(--space-8));
+  padding: var(--space-5);
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.postcodeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.postcodeHeader h2 { color: var(--color-primary); font-size: var(--font-size-lg); }
+.postcodeHeader p { margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.postcodeClose {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+.postcodeHost {
+  min-height: 400px;
+  overflow: hidden;
+}
+.postcodeHost iframe { display: block; width: 100% !important; min-height: 400px; border: 0; }
+
 /* 라디오 */
 .radioRow { display: flex; gap: var(--space-5); }
 .radio {
@@ -210,4 +254,5 @@
   .card { padding: var(--space-5) var(--space-4); }
   .telRow { flex-wrap: wrap; }
   .emailRow { flex-wrap: wrap; }
+  .postcodeDialog { padding: var(--space-4); }
 }
