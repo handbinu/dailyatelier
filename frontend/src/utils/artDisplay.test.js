@@ -20,3 +20,10 @@ test('판매·유찰과 낙찰 상태는 시간과 관계없이 종료로 표시
   assert.equal(getAuctionStatusMeta({ ...activeArt, artStatus: 1 }, Date.parse(start) - 1).phase, 'ENDED')
   assert.deepEqual(getAuctionStatusMeta({ ...activeArt, artStatus: 2 }, Date.parse(start) - 1), { label: '낙찰', tone: 'won', phase: 'ENDED' })
 })
+
+test('취소 상태는 일반 종료와 구분해 표시한다', () => {
+  assert.deepEqual(
+    getAuctionStatusMeta({ artStatus: 3, bidStartTime: null, closingTime: null }),
+    { label: '경매 취소', tone: 'ended', phase: 'CANCELED' },
+  )
+})

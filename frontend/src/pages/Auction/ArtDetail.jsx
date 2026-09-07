@@ -13,7 +13,7 @@ import { createLoginState } from '../../utils/loginReturn'
 import AccessibleDialog from '../../components/Dialog/AccessibleDialog'
 import styles from './ArtDetail.module.css'
 
-const LIST_PATH_PATTERN = /^\/(?:search|auction\/(?:total|digital|analog))(?:\?.*)?$/
+const LIST_PATH_PATTERN = /^\/(?:search|auction\/(?:total|digital|analog)|mypage\/manage-arts)(?:\?.*)?$/
 
 export default function ArtDetail() {
   const { id } = useParams()
@@ -257,6 +257,8 @@ export default function ArtDetail() {
 
   if (art.isOwner) {
     bidDisabledReason = '본인이 등록한 작품에는 입찰할 수 없습니다.'
+  } else if (art.artStatus === 3) {
+    bidDisabledReason = '작가가 취소한 경매에는 입찰할 수 없습니다.'
   } else if (art.artStatus !== 0) {
     bidDisabledReason = '종료된 경매에는 입찰할 수 없습니다.'
   } else if (!hasValidAuctionTime) {

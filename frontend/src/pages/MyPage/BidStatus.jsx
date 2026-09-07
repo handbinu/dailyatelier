@@ -16,6 +16,7 @@ const STATUS_META = {
 const RESULT_META = {
   WON: { label: '낙찰', className: 'resultWon' },
   LOST: { label: '패찰', className: 'resultLost' },
+  CANCELED: { label: '경매 취소', className: 'resultLost' },
 }
 
 const formatClosingTime = (value) => {
@@ -153,6 +154,7 @@ function BidCard({ bid }) {
         </div>
 
         <p className={s.closingTime}>{formatClosingTime(bid.closingTime)} 마감</p>
+        {bid.bidResultMessage && <p className={s.closingTime}>{bid.bidResultMessage}</p>}
 
         <div className={s.cardActions}>
           <ActionBtn to={`/auction/${bid.artId}`} variant="outline">상세 보기</ActionBtn>

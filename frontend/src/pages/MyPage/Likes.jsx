@@ -10,6 +10,7 @@ const STATUS_META = {
   0: { label: '진행 중', color: 'green' },
   1: { label: '종료', color: 'gray' },
   2: { label: '낙찰', color: 'blue' },
+  3: { label: '경매 취소', color: 'gray' },
 }
 
 const fmt = (n) => Number(n ?? 0).toLocaleString()
@@ -84,32 +85,34 @@ export default function Likes() {
           <>
             <div className={s.grid}>
               {likes.map((item) => {
+                const isDeleted = item.artDeleted === true
                 const status = STATUS_META[item.artStatus] ?? { label: '상태 없음', color: 'gray' }
-                const isEnded = item.artStatus === 1 || item.artStatus === 2
+                const isEnded = item.artStatus !== 0
 
                 return (
                   <article key={item.likeId} className={s.card}>
                     <div className={s.thumbWrap}>
-                      <img src={item.artImg} alt={item.artName} className={s.thumb} />
-                      <Badge label={status.label} color={status.color} />
+                      {!isDeleted && <img src={item.artImg} alt={item.artName} className={s.thumb} />}
+                      <Badge label={isDeleted ? '삭제된 작품' : status.label} color={isDeleted ? 'gray' : status.color} />
                     </div>
                     <div className={s.content}>
-                      <p className={s.title}>{item.artName}</p>
-                      <p className={s.artist}>by {item.artistName || '작가 미상'}</p>
-                      <p className={s.price}>현재가 {fmt(item.currentPrice)}원</p>
-                      <div className={s.actions}>
-                        <ActionBtn to={`/auction/${item.artId}`} variant="outline">상세 보기</ActionBtn>
-                        {!isEnded && (
-                          <ActionBtn to={`/auction/${item.artId}`} variant="fill">입찰하기</ActionBtn>
-                        )}
-                        <ActionBtn
-                          onClick={() => handleRemove(item.artId)}
-                          variant="danger"
-                          disabled={removingId === item.artId}
-                        >
-                          {removingId === item.artId ? '삭제 중' : '찜 해제'}
-                        </ActionBtn>
-                      </div>
+                      <p className={s.title}>{isDeleted ? '삭제된 작품' : item.artName}</p>
+                      {isDeleted ? (
+                        <p className={s.artist}>{item.availabilityMessage || '더 이상 이용할 수 없는 작품입니다.'}</p>
+                      ) : (
+                        <>
+                          <p className={s.artist}>by {item.artistName || '작가 미상'}</p>
+                          <p className={s.price}>현재가 {fmt(item.currentPrice)}원</p>
+                          {item.artStatus === 3 && <p className={s.artist}>작가가 취소한 경매입니다.</p>}
+                          <div className={s.actions}>
+                            <ActionBtn to={`/auction/${item.artId}`} variant="outline">상세 보기</ActionBtn>
+                            {!isEnded && <ActionBtn to={`/auction/${item.artId}`} variant="fill">입찰하기</ActionBtn>}
+                            <ActionBtn onClick={() => handleRemove(item.artId)} variant="danger" disabled={removingId === item.artId}>
+                              {removingId === item.artId ? '삭제 중' : '찜 해제'}
+                            </ActionBtn>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </article>
                 )

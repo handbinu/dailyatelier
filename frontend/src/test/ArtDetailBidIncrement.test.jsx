@@ -21,8 +21,8 @@ function LoginStateView() {
   return <output data-testid="login-from">{from?.pathname}{from?.search}{from?.hash}</output>
 }
 
-const renderPage = () => render(
-  <MemoryRouter initialEntries={['/auction/1?source=search#bid']}>
+const renderPage = (entry = '/auction/1?source=search#bid') => render(
+  <MemoryRouter initialEntries={[entry]}>
     <Routes>
       <Route path="/auction/:id" element={<ArtDetail />} />
       <Route path="/login" element={<LoginStateView />} />
@@ -66,6 +66,25 @@ describe('작품 상세 최소 입찰 증분', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '로그인' }))
     expect(await screen.findByTestId('login-from')).toHaveTextContent('/auction/1?source=search#bid')
+  })
+
+  it('취소 작품은 명시적인 상태와 입찰 불가 사유를 표시한다', async () => {
+    getArt.mockResolvedValue({ data: { ...art, artStatus: 3 } })
+    renderPage()
+
+    expect(await screen.findByText('경매 취소')).toBeVisible()
+    expect(screen.getByText('작가가 취소한 경매에는 입찰할 수 없습니다.')).toBeVisible()
+    expect(screen.getByRole('button', { name: '입찰하기' })).toBeDisabled()
+  })
+
+  it('관리 목록에서 진입한 상세는 기존 필터와 페이지로 돌아간다', async () => {
+    renderPage({
+      pathname: '/auction/1',
+      state: { from: '/mypage/manage-arts?state=ACTIVE&page=2' },
+    })
+
+    expect(await screen.findByRole('link', { name: '← 작품 목록으로' }))
+      .toHaveAttribute('href', '/mypage/manage-arts?state=ACTIVE&page=2')
   })
 
   it('최소가보다 1원 낮으면 차단하고 100원 배수가 아닌 유효 입찰은 전송한다', async () => {

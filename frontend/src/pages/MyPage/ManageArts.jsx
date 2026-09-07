@@ -16,6 +16,7 @@ const STATUS_META = {
   0: { label: '진행 중', color: 'green' },
   1: { label: '유찰', color: 'gray' },
   2: { label: '낙찰', color: 'blue' },
+  3: { label: '경매 취소', color: 'gray' },
 }
 const FILTERS = ['전체', '진행 중', '종료']
 const STATE_BY_FILTER = { '전체': 'ALL', '진행 중': 'ACTIVE', '종료': 'ENDED' }
@@ -200,7 +201,9 @@ export default function ManageArts() {
                         <p className={styles.manageBidCount}>입찰 {Number(art.bidCount ?? 0).toLocaleString('ko-KR')}건</p>
                         {art.artStatus !== 0 && (
                           <div className={styles.manageOutcome}>
-                            <strong>{art.result === 'SOLD' ? '낙찰' : '유찰'}</strong>
+                            <strong>
+                              {art.result === 'SOLD' ? '낙찰' : art.result === 'CANCELED' ? '경매 취소' : '유찰'}
+                            </strong>
                             {art.result === 'SOLD' && (
                               <span>
                                 {art.winningPrice == null

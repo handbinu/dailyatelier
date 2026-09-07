@@ -34,6 +34,7 @@ export const getDeadlineMeta = (closingTime) => {
 
 export const getAuctionStatusMeta = ({ artStatus, bidStartTime, closingTime }, now = Date.now()) => {
   if (artStatus === 2) return { label: '낙찰', tone: 'won', phase: 'ENDED' }
+  if (artStatus === 3) return { label: '경매 취소', tone: 'ended', phase: 'CANCELED' }
   if (artStatus !== 0) return { label: '종료', tone: 'ended', phase: 'ENDED' }
 
   const start = new Date(bidStartTime).getTime()
