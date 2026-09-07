@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getAllMyBids, getAllMyWins, getUserProfile } from '../../api/userApi'
 import { getMyArts } from '../../api/artApi'
@@ -81,6 +81,8 @@ export default function MyPage() {
   const location = useLocation()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileError, setProfileError] = useState('')
+  const [profileUpdated] = useState(location.state?.profileUpdated === true)
   const [bids, setBids] = useState([])
   const [bidsLoading, setBidsLoading] = useState(true)
   const [bidsError, setBidsError] = useState('')
@@ -98,17 +100,47 @@ export default function MyPage() {
   const isArtist = userStatus === 1
   const isAdmin = userStatus === 2
 
+  const loadProfile = useCallback(async () => {
+    setLoading(true)
+    setProfileError('')
+    try {
+      const response = await getUserProfile()
+      setUser(response.data)
+    } catch (error) {
+      console.error(T.profileLoadFail, error)
+      setUser(null)
+      setProfileError(error.response?.data?.message || '프로필 정보를 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!token) {
       alert(T.loginRequired)
       navigate('/login', { replace: true })
-      return
+      return undefined
     }
 
-    getUserProfile()
-      .then((res) => setUser(res.data))
-      .catch((err) => console.error(T.profileLoadFail, err))
-      .finally(() => setLoading(false))
+    loadProfile()
+    return undefined
+  }, [loadProfile, navigate, token])
+
+  useEffect(() => {
+    if (location.state?.profileUpdated !== true) return
+    const remainingState = { ...location.state }
+    delete remainingState.profileUpdated
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      {
+        replace: true,
+        state: Object.keys(remainingState).length > 0 ? remainingState : null,
+      },
+    )
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
+  useEffect(() => {
+    if (!token) return undefined
 
     getAllMyBids()
       .then((items) => {
@@ -153,7 +185,6 @@ export default function MyPage() {
   }, [isArtist, navigate, retryKey, token])
 
   if (!token) return null
-  if (loading) return <div style={{ textAlign: 'center', padding: '5rem 0' }}>{T.loading}</div>
 
   const retryOverview = () => {
     setBidsLoading(true)
@@ -177,12 +208,24 @@ export default function MyPage() {
         </div>
       </div>
 
+      {profileUpdated && (
+        <div className={styles.profileUpdateNotice} role="status">
+          {T.profileChanged}
+        </div>
+      )}
+
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
-          {user && (
-            <ProfileCard user={user} isArtist={isArtist} />
-          )}
-          {user && <PointCard user={user} />}
+          {loading ? (
+            <ProfileLoadState message="프로필 정보를 불러오는 중입니다." />
+          ) : profileError ? (
+            <ProfileLoadState message={profileError} onRetry={loadProfile} error />
+          ) : user ? (
+            <>
+              <ProfileCard user={user} isArtist={isArtist} />
+              <PointCard user={user} />
+            </>
+          ) : null}
           <QuickActions isArtist={isArtist} isAdmin={isAdmin} navigate={navigate} />
         </aside>
 
@@ -248,6 +291,17 @@ function MyPageMenu({ title, items, pathname, bidsCount, inquiryCount, artist = 
         })}
       </div>
     </nav>
+  )
+}
+
+function ProfileLoadState({ message, onRetry, error = false }) {
+  return (
+    <div className={styles.profileLoadState} role={error ? 'alert' : 'status'}>
+      <p>{message}</p>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      )}
+    </div>
   )
 }
 

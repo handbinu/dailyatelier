@@ -53,6 +53,18 @@
   width: fit-content;
 }
 
+.profileUpdateNotice {
+  max-width: var(--container-xl);
+  margin: var(--space-6) auto 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
 /* ── 메인 레이아웃 ───────────────────────────────────────── */
 .layout {
   display: grid;
@@ -76,6 +88,27 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding-right: var(--space-2);
+}
+
+.profileLoadState {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.profileLoadState button {
+  min-height: 38px;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--color-primary);
+  cursor: pointer;
 }
 
 /* 프로필 카드 */
@@ -1082,6 +1115,9 @@
 }
 
 @media (max-width: 768px) {
+  .profileUpdateNotice {
+    margin: var(--space-4) var(--space-4) 0;
+  }
   .layout {
     grid-template-columns: 1fr;
     padding: var(--space-4) var(--space-4) var(--space-12);

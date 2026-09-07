@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
+import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
@@ -125,5 +126,21 @@ class UserServiceTest {
                 });
 
         verify(cloudinaryService, never()).uploadProfileImage("missing", image);
+    }
+
+    @Test
+    void storesNameAndReturnsItInSubsequentProfileQuery() {
+        ProfileUpdateDto update = new ProfileUpdateDto();
+        update.setName("변경된 이름");
+        when(userRepository.findByUserId("member")).thenReturn(user);
+        when(pointAccountService.getAccount("member"))
+                .thenReturn(PointAccount.open(user, 0L, LocalDateTime.now()));
+
+        userService.updateUserProfile("member", update);
+
+        assertThat(user.getName()).isEqualTo("변경된 이름");
+        UserProfileDto response = userService.getUserProfile("member");
+        assertThat(response.getName()).isEqualTo("변경된 이름");
+        verify(userRepository).save(user);
     }
 }

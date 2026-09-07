@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProfileEdit from '../pages/MyPage/ProfileEdit'
-import { getUserProfile, updateUserProfile, updateUserProfileImage } from '../api/userApi'
+import { checkNickname, getUserProfile, updateUserProfile, updateUserProfileImage } from '../api/userApi'
 
 vi.mock('../api/userApi', () => ({
   getUserProfile: vi.fn(),
@@ -33,7 +33,7 @@ function renderProfileEdit() {
 
 function LocationProbe() {
   const location = useLocation()
-  return <output data-testid="location">{location.pathname}</output>
+  return <output data-testid="location">{location.pathname}|{JSON.stringify(location.state)}</output>
 }
 
 describe('프로필 사진 변경', () => {
@@ -84,6 +84,7 @@ describe('프로필 사진 변경', () => {
     fireEvent.click(saveButton)
     expect(updateUserProfileImage).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: '사진 저장 중…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '수정 완료' })).toBeDisabled()
 
     resolveUpload({ data: uploadedProfile })
 
@@ -131,6 +132,68 @@ describe('프로필 사진 변경', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Cloudinary 서비스를 사용할 수 없습니다.')
     expect(screen.getByRole('button', { name: '사진 저장' })).toBeEnabled()
     expect(screen.getByRole('img', { name: '테스트 프로필' })).toHaveAttribute('src', 'blob:profile-preview')
+  })
+})
+
+describe('프로필 기본정보 저장', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.setItem('token', 'test-token')
+    getUserProfile.mockResolvedValue({ data: profile })
+    checkNickname.mockResolvedValue({ data: { duplicate: false } })
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:profile-preview'),
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    })
+  })
+
+  it('연속 제출을 한 번만 처리하고 실제 충돌 동작만 저장 중 차단한다', async () => {
+    let resolveUpdate
+    updateUserProfile.mockReturnValue(new Promise((resolve) => { resolveUpdate = resolve }))
+    renderProfileEdit()
+    const imageInput = await screen.findByLabelText('사진 선택')
+    fireEvent.change(imageInput, {
+      target: { files: [new File(['image'], 'profile.png', { type: 'image/png' })] },
+    })
+    const submitButton = screen.getByRole('button', { name: '수정 완료' })
+    const form = submitButton.closest('form')
+
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    expect(updateUserProfile).toHaveBeenCalledTimes(1)
+    expect(updateUserProfile).toHaveBeenCalledWith(expect.objectContaining({ name: '회원' }))
+    expect(screen.getByRole('button', { name: '저장 중…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '취소' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '사진 저장' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '중복확인' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '우편번호 찾기' })).toBeEnabled()
+    expect(imageInput).toBeEnabled()
+
+    resolveUpdate({ data: { message: 'ok' } })
+
+    await waitFor(() => expect(screen.getByTestId('location'))
+      .toHaveTextContent('/mypage|{"profileUpdated":true}'))
+    await waitFor(() => expect(screen.getByRole('button', { name: '수정 완료' })).toBeEnabled())
+  })
+
+  it('기본정보 저장 중 프로필 사진 저장 핸들러의 동시 실행을 막는다', async () => {
+    updateUserProfile.mockReturnValue(new Promise(() => {}))
+    renderProfileEdit()
+    const imageInput = await screen.findByLabelText('사진 선택')
+    fireEvent.change(imageInput, {
+      target: { files: [new File(['image'], 'profile.png', { type: 'image/png' })] },
+    })
+    const form = screen.getByRole('button', { name: '수정 완료' }).closest('form')
+
+    fireEvent.submit(form)
+    fireEvent.click(screen.getByRole('button', { name: '사진 저장' }))
+
+    expect(updateUserProfileImage).not.toHaveBeenCalled()
   })
 })
 

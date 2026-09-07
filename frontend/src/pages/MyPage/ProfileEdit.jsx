@@ -70,6 +70,7 @@ export default function ProfileEdit() {
   const imageInputRef = useRef(null)
   const postcodeHostRef = useRef(null)
   const addressDetailRef = useRef(null)
+  const profileMutationRef = useRef(null)
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
@@ -180,7 +181,8 @@ export default function ProfileEdit() {
   }
 
   const handleImageSave = async () => {
-    if (!selectedImage || imageSaving) return
+    if (!selectedImage || profileMutationRef.current) return
+    profileMutationRef.current = 'image'
     setImageSaving(true)
     setImageError('')
     setImageSaved(false)
@@ -195,6 +197,7 @@ export default function ProfileEdit() {
     } catch (err) {
       setImageError(err.response?.data?.message || '프로필 이미지 저장에 실패했습니다.')
     } finally {
+      profileMutationRef.current = null
       setImageSaving(false)
     }
   }
@@ -232,11 +235,14 @@ export default function ProfileEdit() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (profileMutationRef.current) return
     if (!nickChecked) { alert('닉네임 중복확인을 해주세요.'); return }
     if (form.newPw && form.newPw !== form.newPwConfirm) { alert('새 비밀번호가 일치하지 않습니다.'); return }
+    profileMutationRef.current = 'details'
     setSaving(true)
     try {
       const payload = {
+        name: form.name,
         nickname: form.nickname,
         email: fullEmail,
         phoneNumber: `${form.tel1}-${form.tel2}-${form.tel3}`,
@@ -252,10 +258,11 @@ export default function ProfileEdit() {
         artistName: form.artistName,
       }
       await updateUserProfile(payload)
-      navigate('/mypage')
+      navigate('/mypage', { state: { profileUpdated: true } })
     } catch (err) {
       alert(err.response?.data?.message || '정보 수정에 실패했습니다.')
     } finally {
+      profileMutationRef.current = null
       setSaving(false)
     }
   }
@@ -309,7 +316,7 @@ export default function ProfileEdit() {
                     type="button"
                     className={s.imageSaveBtn}
                     onClick={handleImageSave}
-                    disabled={!selectedImage || imageSaving}
+                    disabled={!selectedImage || imageSaving || saving}
                   >
                     {imageSaving ? '사진 저장 중…' : '사진 저장'}
                   </button>
@@ -433,10 +440,10 @@ export default function ProfileEdit() {
 
           {/* 버튼 */}
           <div className={s.btnRow}>
-            <button type="submit" className={s.submitBtn} disabled={saving}>
+            <button type="submit" className={s.submitBtn} disabled={saving || imageSaving}>
               {saving ? '저장 중…' : '수정 완료'}
             </button>
-            <button type="button" className={s.cancelBtn} onClick={() => navigate(-1)}>취소</button>
+            <button type="button" className={s.cancelBtn} onClick={() => navigate(-1)} disabled={saving}>취소</button>
           </div>
         </form>
       </div>

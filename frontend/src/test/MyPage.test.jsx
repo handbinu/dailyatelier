@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyPage from '../pages/MyPage/MyPage'
 import { getAllMyBids, getAllMyWins, getUserProfile } from '../api/userApi'
@@ -45,8 +45,14 @@ function renderMyPage(initialEntry = '/mypage') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <MyPage />
+      <LocationProbe />
     </MemoryRouter>,
   )
+}
+
+function LocationProbe() {
+  const location = useLocation()
+  return <output data-testid="location-state">{JSON.stringify(location.state)}</output>
 }
 
 describe('마이페이지 낙찰 작품 요약', () => {
@@ -172,5 +178,42 @@ describe('마이페이지 낙찰 작품 요약', () => {
 
     expect(screen.queryByRole('img', { name: '테스트 사용자 프로필' })).not.toBeInTheDocument()
     expect(screen.getByText('테')).toBeVisible()
+  })
+
+  it('프로필 저장 완료를 표시하고 location state를 일회성으로 소비한다', async () => {
+    renderMyPage({ pathname: '/mypage', state: { profileUpdated: true } })
+
+    expect(screen.getByText('회원 정보가 수정되었습니다.').closest('[role="status"]'))
+      .toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('location-state')).toHaveTextContent('null'))
+    expect(screen.getByText('회원 정보가 수정되었습니다.')).toBeVisible()
+  })
+
+  it('프로필 조회 실패를 표시하고 프로필만 다시 조회해 복구한다', async () => {
+    getUserProfile
+      .mockRejectedValueOnce(new Error('조회 실패'))
+      .mockResolvedValueOnce({ data: profile })
+    renderMyPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('프로필 정보를 불러오지 못했습니다.')
+    expect(screen.queryByText('사용자')).not.toBeInTheDocument()
+    expect(screen.queryByText('이메일 정보 없음')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByText('테스트 사용자')).toBeVisible()
+    expect(getUserProfile).toHaveBeenCalledTimes(2)
+    expect(getAllMyBids).toHaveBeenCalledTimes(1)
+    expect(getAllMyWins).toHaveBeenCalledTimes(1)
+    expect(getMyInquiries).toHaveBeenCalledTimes(1)
+  })
+
+  it('프로필 조회 실패와 저장 성공 사실을 구분해 함께 표시한다', async () => {
+    getUserProfile.mockRejectedValue(new Error('조회 실패'))
+    renderMyPage({ pathname: '/mypage', state: { profileUpdated: true } })
+
+    expect(screen.getByText('회원 정보가 수정되었습니다.').closest('[role="status"]'))
+      .toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('프로필 정보를 불러오지 못했습니다.')
   })
 })

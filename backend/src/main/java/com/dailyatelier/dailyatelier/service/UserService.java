@@ -175,6 +175,9 @@ public class UserService {
         }
 
         // 기본 정보 업데이트
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            user.setName(dto.getName());
+        }
         if (dto.getNickname() != null && !dto.getNickname().isBlank()) {
             if (!dto.getNickname().equals(user.getNickname()) && userRepository.existsByNickname(dto.getNickname())) {
                 throw new DomainApiException(
