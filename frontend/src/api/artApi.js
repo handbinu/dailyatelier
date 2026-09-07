@@ -18,5 +18,11 @@ export const getMyArts = ({ state = 'ALL', page = 0, size = 12, signal } = {}) =
 export const createArt = (data) =>
   api.post('/api/arts', data)
 
+export const updateArt = (artId, data) =>
+  api.patch(`/api/arts/${artId}`, data)
+
+export const deleteArt = (artId) =>
+  api.delete(`/api/arts/${artId}`)
+
 export const createBid = (artId, bidPrice) =>
   api.post(`/api/arts/${artId}/bids`, { bidPrice })

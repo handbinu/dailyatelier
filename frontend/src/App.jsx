@@ -32,6 +32,7 @@ import AdminInquiry   from './pages/MyPage/AdminInquiry'
 // ── 마이페이지 세부 — 작가 전용
 import UploadSell   from './pages/MyPage/UploadSell'
 import ManageArts   from './pages/MyPage/ManageArts'
+import EditArt      from './pages/MyPage/EditArt'
 import ArtistReview from './pages/MyPage/ArtistReview.jsx'
 import SalesOrders  from './pages/MyPage/SalesOrders'
 import ArtDetail    from './pages/Auction/ArtDetail'
@@ -99,6 +100,7 @@ function App() {
             <Route element={<ArtistRoute />}>
               <Route path="/upload"                element={<UploadSell />} />
               <Route path="/mypage/manage-arts"    element={<ManageArts />} />
+              <Route path="/mypage/manage-arts/:artId/edit" element={<EditArt />} />
               <Route path="/mypage/artist-review"  element={<ArtistReview />} />
               <Route path="/mypage/sales-orders"   element={<SalesOrders />} />
             </Route>

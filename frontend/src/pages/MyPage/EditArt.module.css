@@ -1,0 +1,8 @@
+.backLink { display: inline-block; margin-bottom: var(--space-4); color: var(--color-text-sub); }
+.help { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.lockNotice, .unavailable { padding: var(--space-3); border-radius: var(--radius-md); background: #fff7e8; color: #805514; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.deleteButton { border: 1px solid #b74646; border-radius: var(--radius-md); background: #fff; color: #a22f2f; font-weight: 700; cursor: pointer; }
+.deleteButton:disabled { cursor: not-allowed; opacity: .55; }
+.state { min-height: 50vh; display: grid; place-content: center; gap: var(--space-4); text-align: center; }
+@media (max-width: 640px) { .actions { grid-template-columns: 1fr; } .deleteButton { min-height: 52px; } }

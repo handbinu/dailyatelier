@@ -946,6 +946,26 @@
   transition: box-shadow var(--transition-base), transform var(--transition-fast);
 }
 .manageCard:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.manageCardLink { display: block; color: inherit; }
+.manageCardActions { padding: 0 var(--space-4) var(--space-4); }
+.manageEditLink {
+  display: block;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-align: center;
+}
+.manageEditLink:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.manageSuccess {
+  padding: var(--space-4);
+  border: 1px solid #9bc9ad;
+  border-radius: var(--radius-md);
+  background: #f0faf4;
+  color: #21663d;
+}
 
 .manageImgWrap {
   position: relative;

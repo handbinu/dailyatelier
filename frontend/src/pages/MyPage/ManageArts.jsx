@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { getMyArts } from '../../api/artApi'
 import { formatClosingTime, formatPrice } from '../../utils/artDisplay'
 import {
@@ -38,6 +38,7 @@ const getVisiblePages = (currentPage, totalPages) => {
 }
 
 export default function ManageArts() {
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const pageParam = searchParams.get('page')
   const currentPage = parsePage(pageParam)
@@ -121,6 +122,9 @@ export default function ManageArts() {
       <PageBanner title="내 작품 관리" crumb="내 작품 관리" />
 
       <main className={styles.managePage}>
+        {location.state?.feedback && (
+          <p className={styles.manageSuccess} role="status">{location.state.feedback}</p>
+        )}
         <div className={styles.manageHeader}>
           {!loading && !error && (
             <p className={styles.manageResultCount}>
@@ -167,14 +171,13 @@ export default function ManageArts() {
               {arts.map((art) => {
                 const status = STATUS_META[art.artStatus] ?? { label: '상태 미정', color: 'gray' }
                 return (
-                  <Link
-                    key={art.artId}
-                    to={`/auction/${art.artId}`}
-                    state={{ from: listLocation }}
-                    className={styles.manageCard}
-                    aria-label={`${art.name} 작품 상세 보기`}
-                  >
-                    <article>
+                  <article key={art.artId} className={styles.manageCard}>
+                    <Link
+                      to={`/auction/${art.artId}`}
+                      state={{ from: listLocation }}
+                      className={styles.manageCardLink}
+                      aria-label={`${art.name} 작품 상세 보기`}
+                    >
                       <div className={styles.manageImgWrap}>
                         <img
                           src={getArtImageSrc(art.imgPath)}
@@ -211,8 +214,19 @@ export default function ManageArts() {
                           마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
                         </p>
                       </div>
-                    </article>
-                  </Link>
+                    </Link>
+                    {art.artStatus === 0 && (
+                      <div className={styles.manageCardActions}>
+                        <Link
+                          to={`/mypage/manage-arts/${art.artId}/edit`}
+                          state={{ from: listLocation }}
+                          className={styles.manageEditLink}
+                        >
+                          수정·삭제
+                        </Link>
+                      </div>
+                    )}
+                  </article>
                 )
               })}
             </div>
