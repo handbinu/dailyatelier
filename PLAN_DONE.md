@@ -1077,3 +1077,26 @@ ORDER BY account.user_id;
 ## 후속 범위
 
 - 홈 Best Art 고정 mock 카드의 상세 이동 문제와 프로필 수정 화면의 무동작 `우편번호 찾기` 버튼은 `BACKLOG.md`에서 별도로 관리한다.
+
+# 미정의 `--space-7` 사용처 정리 완료 기록
+
+## 완료 범위
+
+- 전역 spacing token은 추가하지 않고 `UploadSell`, `MyReview`, `ArtistReview`, `InquiryWrite`의
+  정의되지 않은 `--space-7` 사용처 4개를 기존 token으로 개별 교체했다.
+- 작품 등록 폼 카드 간격은 `--space-8`, 문의 취소 버튼 가로 padding은 `--space-6`을 사용했다.
+- 두 리뷰 상세 모달은 기존 content inset 위계에 맞춰 `--space-6`을 사용했으며, 컴포넌트
+  구조·공통 스타일·다른 디자인 token은 변경하지 않았다.
+
+## 검증 결과
+
+- `git diff --check`와 프런트 전체 ESLint 검사를 통과했다.
+- 리뷰 모달, 리뷰 목록, 문의 작성, 작품 등록 관련 Vitest 5개 파일·25개 테스트를 통과했다.
+- `frontend/src`에서 `var(--space-7` 잔여 사용처가 없음을 확인했다.
+- 사용자가 `/upload`, `/mypage/inquiry/write`, `/mypage/my-review`, `/mypage/artist-review`의
+  데스크톱·모바일 브라우저 QA 항목을 모두 확인해 정상 동작을 확인했다.
+
+## 구현 커밋
+
+- `d4a968b chore: spacing 토큰 정리 계획 추가`
+- `a693493 fix(frontend): 미정의 spacing 토큰 교체`
