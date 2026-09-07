@@ -168,7 +168,7 @@
 .submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
 
 .cancelBtn {
-  padding: var(--space-4) var(--space-7);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-surface);
   color: var(--color-text-sub);
   border: 1px solid var(--color-border);

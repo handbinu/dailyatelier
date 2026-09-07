@@ -206,7 +206,7 @@
 .modalImg img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .modalDetail {
-  padding: var(--space-8) var(--space-7);
+  padding: var(--space-8) var(--space-6);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
