@@ -88,6 +88,8 @@ class ArtServiceTest {
         ArtDetailResponseDto result = artService.getArt(7L, "owner-id");
 
         assertThat(result.getArtStatus()).isEqualTo(2);
+        assertThat(result.getFormat()).isEqualTo(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
+        assertThat(result.getCategory()).isEqualTo(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         assertThat(result.getIsOwner()).isTrue();
     }
 

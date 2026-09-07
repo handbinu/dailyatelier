@@ -1,5 +1,7 @@
 package com.dailyatelier.dailyatelier.dto;
 
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -14,6 +16,8 @@ public class ArtDetailResponseDto {
     private String name;
     private String descript;
     private String material;
+    private ArtFormat format;
+    private ArtCategory category;
     private String wIntro;
     private Integer startPrice;
     private Integer currentPrice;

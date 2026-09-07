@@ -67,6 +67,8 @@ class ArtApiSecurityTest {
         mockMvc.perform(get("/api/arts/2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.artId").value(2))
+                .andExpect(jsonPath("$.format").value("PHYSICAL"))
+                .andExpect(jsonPath("$.category").value("OTHER"))
                 .andExpect(jsonPath("$.isOwner").value(false));
     }
 
@@ -236,6 +238,8 @@ class ArtApiSecurityTest {
                 art.getName(),
                 art.getDescript(),
                 art.getMaterial(),
+                com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL,
+                com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER,
                 art.getWIntro(),
                 art.getStartPrice(),
                 art.getCurrentPrice(),

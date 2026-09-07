@@ -81,6 +81,8 @@ public class ArtService {
                 art.getName(),
                 art.getDescript(),
                 art.getMaterial(),
+                art.getFormat(),
+                art.getCategory(),
                 art.getWIntro(),
                 art.getStartPrice(),
                 art.getCurrentPrice(),
