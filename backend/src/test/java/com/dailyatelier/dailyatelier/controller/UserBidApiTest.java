@@ -40,6 +40,7 @@ class UserBidApiTest {
     void authenticatedUserCanGetOwnBidStatuses() throws Exception {
         BidStatusResponseDto bid = new BidStatusResponseDto(
                 7L,
+                null,
                 "여름의 정원",
                 "하루",
                 "https://example.com/art.jpg",
@@ -71,6 +72,7 @@ class UserBidApiTest {
     void canceledBidIncludesGuideMessage() throws Exception {
         BidStatusResponseDto bid = new BidStatusResponseDto(
                 8L,
+                null,
                 "취소된 작품",
                 "하루",
                 "https://example.com/art.jpg",
@@ -93,6 +95,36 @@ class UserBidApiTest {
                 .andExpect(jsonPath("$.content[0].bidResult").value("CANCELED"))
                 .andExpect(jsonPath("$.content[0].bidResultMessage")
                         .value("작가가 취소한 경매입니다."));
+    }
+
+    @Test
+    void winningBidIncludesOnlyOrderConnectionId() throws Exception {
+        BidStatusResponseDto bid = new BidStatusResponseDto(
+                9L,
+                41L,
+                "낙찰 작품",
+                "하루",
+                "https://example.com/art.jpg",
+                180_000,
+                180_000,
+                true,
+                "ENDED",
+                "WON",
+                null,
+                LocalDateTime.of(2026, 7, 24, 10, 0),
+                LocalDateTime.of(2026, 7, 20, 10, 0),
+                LocalDateTime.of(2026, 7, 24, 10, 0)
+        );
+        when(bidService.getMyBids("winner", 0, 12))
+                .thenReturn(new PageImpl<>(List.of(bid), PageRequest.of(0, 12), 1));
+
+        mockMvc.perform(get("/api/users/me/bids")
+                        .with(authentication(stringAuthentication("winner"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].orderId").value(41))
+                .andExpect(jsonPath("$.content[0].orderStatus").doesNotExist())
+                .andExpect(jsonPath("$.content[0].shippingAddressConfirmed").doesNotExist())
+                .andExpect(jsonPath("$.content[0].availableActions").doesNotExist());
     }
 
     @Test

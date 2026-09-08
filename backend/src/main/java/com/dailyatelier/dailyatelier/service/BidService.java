@@ -305,6 +305,7 @@ public class BidService {
         boolean isLeading = summary.getMyBidPrice().equals(summary.getCurrentPrice());
         return new BidStatusResponseDto(
                 summary.getArtId(),
+                summary.getOrderId(),
                 summary.getArtName(),
                 summary.getArtistName(),
                 summary.getImgPath(),

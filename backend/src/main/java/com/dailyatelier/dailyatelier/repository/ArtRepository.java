@@ -112,6 +112,7 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
             value = """
                     select new com.dailyatelier.dailyatelier.dto.WinningArtResponseDto(
                         art.artId,
+                        orders.orderId,
                         art.name,
                         artist.artistName,
                         art.imgPath,
@@ -121,6 +122,9 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
                     from Art art
                     join art.artist artist
                     join art.winningBid winningBid
+                    left join Order orders
+                      on orders.art = art
+                     and orders.buyer.userId = :userId
                     where art.artStatus = :soldStatus
                       and winningBid.user.userId = :userId
                     order by art.closedAt desc, art.artId desc

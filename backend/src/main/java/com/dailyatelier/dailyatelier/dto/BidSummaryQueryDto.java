@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class BidSummaryQueryDto {
     private Long artId;
+    private Long orderId;
     private String artName;
     private String artistName;
     private String imgPath;

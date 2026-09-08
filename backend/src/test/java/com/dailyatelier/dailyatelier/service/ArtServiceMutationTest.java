@@ -14,6 +14,7 @@ import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
@@ -64,6 +65,9 @@ class ArtServiceMutationTest {
     private ReviewRepository reviewRepository;
 
     @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -89,6 +93,7 @@ class ArtServiceMutationTest {
                 bidRepository,
                 likesRepository,
                 reviewRepository,
+                orderRepository,
                 userRepository,
                 pointAccountRepository,
                 pointHoldRepository,

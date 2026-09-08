@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.dto.WinningArtResponseDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Bid;
+import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,9 @@ class AuctionResultRepositoryTest {
 
     @Autowired
     private BidRepository bidRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     private Artist artist;
     private User winner;
@@ -84,12 +88,16 @@ class AuctionResultRepositoryTest {
                 150_000,
                 BASE_TIME.plusSeconds(4)
         );
-        saveSoldArt(
+        Order newerOrder = saveOrder(newerWin);
+        Art otherWin = saveSoldArt(
                 "다른 사용자 낙찰",
                 other,
                 170_000,
                 BASE_TIME.plusSeconds(5)
         );
+        saveOrder(otherWin);
+        saveBid(otherWin, winner, 160_000, BASE_TIME.minusMinutes(2));
+        assertThat(newerOrder.getOrderId()).isNotNull();
     }
 
     @Test
@@ -110,12 +118,16 @@ class AuctionResultRepositoryTest {
                 .singleElement()
                 .satisfies(result -> {
                     assertThat(result.getArtId()).isEqualTo(newerWin.getArtId());
+                    assertThat(result.getOrderId()).isNotNull();
                     assertThat(result.getWinningPrice()).isEqualTo(150_000);
                     assertThat(result.getClosedAt()).isEqualTo(BASE_TIME.plusSeconds(4));
                 });
         assertThat(secondPage.getContent())
-                .extracting(WinningArtResponseDto::getArtId)
-                .containsExactly(olderWin.getArtId());
+                .singleElement()
+                .satisfies(result -> {
+                    assertThat(result.getArtId()).isEqualTo(olderWin.getArtId());
+                    assertThat(result.getOrderId()).isNull();
+                });
     }
 
     @Test
@@ -170,12 +182,21 @@ class AuctionResultRepositoryTest {
                 PageRequest.of(0, 12)
         );
 
-        assertThat(summaries.getTotalElements()).isEqualTo(4);
+        assertThat(summaries.getTotalElements()).isEqualTo(5);
         assertThat(summaries.getContent())
                 .filteredOn(result -> result.getArtId().equals(newerWin.getArtId()))
                 .singleElement()
-                .satisfies(result ->
-                        assertThat(result.getWinningUserId()).isEqualTo(winner.getUserId()));
+                .satisfies(result -> {
+                    assertThat(result.getWinningUserId()).isEqualTo(winner.getUserId());
+                    assertThat(result.getOrderId()).isNotNull();
+                });
+        assertThat(summaries.getContent())
+                .filteredOn(result -> "다른 사용자 낙찰".equals(result.getArtName()))
+                .singleElement()
+                .satisfies(result -> {
+                    assertThat(result.getWinningUserId()).isEqualTo(other.getUserId());
+                    assertThat(result.getOrderId()).isNull();
+                });
         assertThat(summaries.getContent())
                 .filteredOn(result -> result.getArtId().equals(activeArt.getArtId()))
                 .singleElement()
@@ -222,6 +243,18 @@ class AuctionResultRepositoryTest {
         art.setArtStatus(artStatus);
         art.setClosedAt(closedAt);
         return artRepository.save(art);
+    }
+
+    private Order saveOrder(Art art) {
+        return orderRepository.save(Order.create(
+                art,
+                art.getWinningBid(),
+                art.getWinningBid().getUser(),
+                art.getArtist().getUser(),
+                art.getClosedAt(),
+                art.getClosedAt().plusHours(24),
+                null
+        ));
     }
 
     private Bid saveBid(

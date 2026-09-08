@@ -7,10 +7,12 @@ import com.dailyatelier.dailyatelier.dto.MyArtResponseDto;
 import com.dailyatelier.dailyatelier.dto.MyArtState;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +48,9 @@ class ArtServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private OrderRepository orderRepository;
 
     @InjectMocks
     private ArtService artService;
@@ -91,6 +96,29 @@ class ArtServiceTest {
         assertThat(result.getFormat()).isEqualTo(com.dailyatelier.dailyatelier.entity.ArtFormat.PHYSICAL);
         assertThat(result.getCategory()).isEqualTo(com.dailyatelier.dailyatelier.entity.ArtCategory.OTHER);
         assertThat(result.getIsOwner()).isTrue();
+        assertThat(result.getOrderId()).isNull();
+    }
+
+    @Test
+    void getArtReturnsOrderIdOnlyToWinningBuyer() {
+        Art art = createArt(10L, Art.STATUS_SOLD, "owner-id");
+        Order order = org.mockito.Mockito.mock(Order.class);
+        when(artRepository.findById(10L)).thenReturn(Optional.of(art));
+        when(orderRepository.findByArtArtId(10L)).thenReturn(Optional.of(order));
+        when(order.getBuyerIdSnapshot()).thenReturn("winner-id");
+        when(order.getOrderId()).thenReturn(77L);
+
+        assertThat(artService.getArt(10L, "winner-id").getOrderId()).isEqualTo(77L);
+        assertThat(artService.getArt(10L, "other-id").getOrderId()).isNull();
+    }
+
+    @Test
+    void getArtReturnsNullOrderIdWhenWinningOrderIsMissing() {
+        Art art = createArt(11L, Art.STATUS_SOLD, "owner-id");
+        when(artRepository.findById(11L)).thenReturn(Optional.of(art));
+        when(orderRepository.findByArtArtId(11L)).thenReturn(Optional.empty());
+
+        assertThat(artService.getArt(11L, "winner-id").getOrderId()).isNull();
     }
 
     @Test

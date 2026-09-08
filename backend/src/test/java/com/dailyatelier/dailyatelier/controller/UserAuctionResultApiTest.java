@@ -41,6 +41,7 @@ class UserAuctionResultApiTest {
     void authenticatedUserCanGetOnlyPublicWinningArtFields() throws Exception {
         WinningArtResponseDto result = new WinningArtResponseDto(
                 7L,
+                31L,
                 "여름의 정원",
                 "하루",
                 "https://example.com/art.jpg",
@@ -54,11 +55,15 @@ class UserAuctionResultApiTest {
                         .with(authentication(stringAuthentication("winner"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].artId").value(7))
+                .andExpect(jsonPath("$.content[0].orderId").value(31))
                 .andExpect(jsonPath("$.content[0].winningPrice").value(160000))
                 .andExpect(jsonPath("$.content[0].closedAt")
                         .value("2026-07-27T18:00:04"))
                 .andExpect(jsonPath("$.content[0].winningBidderNickname").doesNotExist())
-                .andExpect(jsonPath("$.content[0].winningUserId").doesNotExist());
+                .andExpect(jsonPath("$.content[0].winningUserId").doesNotExist())
+                .andExpect(jsonPath("$.content[0].orderStatus").doesNotExist())
+                .andExpect(jsonPath("$.content[0].shippingAddressConfirmed").doesNotExist())
+                .andExpect(jsonPath("$.content[0].availableActions").doesNotExist());
     }
 
     @Test

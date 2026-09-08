@@ -21,6 +21,7 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
             value = """
                     select new com.dailyatelier.dailyatelier.dto.BidSummaryQueryDto(
                         art.artId,
+                        orders.orderId,
                         art.name,
                         artist.artistName,
                         art.imgPath,
@@ -36,9 +37,13 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                     join bid.art art
                     join art.artist artist
                     left join art.winningBid winningBid
+                    left join Order orders
+                      on orders.art = art
+                     and orders.buyer.userId = :userId
                     where bid.user.userId = :userId
                     group by
                         art.artId,
+                        orders.orderId,
                         art.name,
                         artist.artistName,
                         art.imgPath,

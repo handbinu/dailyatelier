@@ -500,6 +500,9 @@ class BidServiceTest {
             String winningUserId) {
         return new BidSummaryQueryDto(
                 artId,
+                artStatus == Art.STATUS_SOLD && "bidder".equals(winningUserId)
+                        ? 100L + artId
+                        : null,
                 "테스트 작품 " + artId,
                 "테스트 작가",
                 "https://example.com/art.jpg",

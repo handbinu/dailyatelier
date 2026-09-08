@@ -24,6 +24,7 @@ import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
@@ -54,6 +55,7 @@ public class ArtService {
     private final BidRepository bidRepository;
     private final LikesRepository likesRepository;
     private final ReviewRepository reviewRepository;
+    private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final PointAccountRepository pointAccountRepository;
     private final PointHoldRepository pointHoldRepository;
@@ -73,9 +75,16 @@ public class ArtService {
         boolean isOwner = userId != null
                 && artist.getUser() != null
                 && userId.equals(artist.getUser().getUserId());
+        Long orderId = userId == null || art.getArtStatus() != Art.STATUS_SOLD
+                ? null
+                : orderRepository.findByArtArtId(artId)
+                        .filter(order -> userId.equals(order.getBuyerIdSnapshot()))
+                        .map(com.dailyatelier.dailyatelier.entity.Order::getOrderId)
+                        .orElse(null);
 
         return new ArtDetailResponseDto(
                 art.getArtId(),
+                orderId,
                 artist.getArtistCode(),
                 artist.getArtistName(),
                 art.getName(),

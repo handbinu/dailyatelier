@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class BidStatusResponseDto {
     private Long artId;
+    private Long orderId;
     private String artName;
     private String artistName;
     private String imgPath;

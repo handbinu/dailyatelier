@@ -61,7 +61,7 @@ class ArtApiSecurityTest {
 
     @Test
     void anonymousUserCanGetArtDetail() throws Exception {
-        ArtDetailResponseDto art = createArtDetailResponse(2L);
+        ArtDetailResponseDto art = createArtDetailResponse(2L, null);
         when(artService.getArt(2L, null)).thenReturn(art);
 
         mockMvc.perform(get("/api/arts/2"))
@@ -69,7 +69,22 @@ class ArtApiSecurityTest {
                 .andExpect(jsonPath("$.artId").value(2))
                 .andExpect(jsonPath("$.format").value("PHYSICAL"))
                 .andExpect(jsonPath("$.category").value("OTHER"))
+                .andExpect(jsonPath("$.orderId").isEmpty())
                 .andExpect(jsonPath("$.isOwner").value(false));
+    }
+
+    @Test
+    void winningBuyerCanGetOnlyRelatedOrderIdFromArtDetail() throws Exception {
+        ArtDetailResponseDto art = createArtDetailResponse(3L, 51L);
+        when(artService.getArt(3L, "winner")).thenReturn(art);
+
+        mockMvc.perform(get("/api/arts/3")
+                        .with(authentication(stringAuthentication("winner"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").value(51))
+                .andExpect(jsonPath("$.orderStatus").doesNotExist())
+                .andExpect(jsonPath("$.shippingAddressConfirmed").doesNotExist())
+                .andExpect(jsonPath("$.availableActions").doesNotExist());
     }
 
     @Test
@@ -229,10 +244,11 @@ class ArtApiSecurityTest {
         );
     }
 
-    private ArtDetailResponseDto createArtDetailResponse(Long artId) {
+    private ArtDetailResponseDto createArtDetailResponse(Long artId, Long orderId) {
         ArtResponseDto art = createArtResponse(artId, 0);
         return new ArtDetailResponseDto(
                 art.getArtId(),
+                orderId,
                 art.getArtistCode(),
                 art.getArtistName(),
                 art.getName(),

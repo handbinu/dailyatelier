@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ArtDetailResponseDto {
     private Long artId;
+    private Long orderId;
     private String artistCode;
     private String artistName;
     private String name;
