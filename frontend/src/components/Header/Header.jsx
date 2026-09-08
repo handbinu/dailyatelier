@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AUTH_STATE_CHANGED_EVENT, clearStoredAuth } from '../../utils/authStorage'
 import styles from './Header.module.css'
@@ -28,10 +28,18 @@ export default function Header() {
   const mobileMenuRef = useRef(null)
   const [openIdx, setOpenIdx] = useState(null)
   const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileOpenLocationKey, setMobileOpenLocationKey] = useState(null)
   const [searchType, setSearchType] = useState('artwork')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [, setAuthVersion] = useState(0)
+  const mobileOpen = mobileOpenLocationKey === location.key
+  const setMobileOpen = useCallback((nextOpen) => {
+    setMobileOpenLocationKey((currentKey) => {
+      const currentlyOpen = currentKey === location.key
+      const shouldOpen = typeof nextOpen === 'function' ? nextOpen(currentlyOpen) : nextOpen
+      return shouldOpen ? location.key : null
+    })
+  }, [location.key])
 
   const token = localStorage.getItem('token')
   const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
@@ -62,7 +70,7 @@ export default function Header() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [mobileOpen, openIdx])
+  }, [mobileOpen, openIdx, setMobileOpen])
 
   useEffect(() => {
     if (!mobileOpen) return undefined
@@ -87,7 +95,7 @@ export default function Header() {
       document.body.style.overflow = previousOverflow
       mediaQuery.removeEventListener('change', closeAtDesktop)
     }
-  }, [mobileOpen])
+  }, [mobileOpen, setMobileOpen])
 
   useEffect(() => {
     const handleAuthChange = () => setAuthVersion((version) => version + 1)

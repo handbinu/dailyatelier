@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import Header from '../components/Header/Header'
 
 function LocationDisplay() {
@@ -8,19 +8,38 @@ function LocationDisplay() {
   return <output data-testid="location">{location.pathname}{location.search}</output>
 }
 
-function renderHeader() {
-  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+function HistoryControls() {
+  const navigate = useNavigate()
+  return (
+    <>
+      <button type="button" onClick={() => navigate(-1)}>뒤로</button>
+      <button type="button" onClick={() => navigate(1)}>앞으로</button>
+    </>
+  )
+}
+
+function renderHeader({ initialEntries = ['/'], initialIndex, mediaQuery } = {}) {
+  const resolvedMediaQuery = mediaQuery ?? {
     matches: false,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-  }))
+  }
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(resolvedMediaQuery))
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={initialEntries} initialIndex={initialIndex}>
       <Header />
+      <main>본문</main>
+      <footer>푸터</footer>
       <LocationDisplay />
+      <HistoryControls />
     </MemoryRouter>,
   )
 }
+
+afterEach(() => {
+  localStorage.clear()
+  vi.unstubAllGlobals()
+})
 
 function submitWithEnter(input) {
   fireEvent.submit(input.closest('form'))
@@ -85,6 +104,98 @@ describe('Header 검색', () => {
 
     expect(screen.getByTestId('location')).toHaveTextContent(`/artists?keyword=${encodeURIComponent('모바일 작가')}`)
     expect(screen.getAllByRole('combobox', { name: '검색 유형' })).toHaveLength(1)
+  })
+
+  it('로고 route 이동 후 모바일 메뉴와 배경 잠금을 정리한다', () => {
+    renderHeader({ initialEntries: ['/mypage'] })
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    const logo = screen.getByRole('link', { name: 'Daily Atelier' })
+    logo.focus()
+
+    expect(document.body.style.overflow).toBe('hidden')
+    expect(screen.getByRole('main').inert).toBe(true)
+    expect(screen.getByRole('contentinfo').inert).toBe(true)
+
+    fireEvent.click(logo)
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+    expect(screen.getByRole('button', { name: '모바일 메뉴 열기' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('navigation', { name: '모바일 주 메뉴' })).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
+    expect(screen.getByRole('main').inert).toBe(false)
+    expect(screen.getByRole('contentinfo').inert).toBe(false)
+    expect(logo).toHaveFocus()
+  })
+
+  it.each([
+    { label: '작가 목록', target: '/artists', authenticated: false },
+    { label: '마이페이지', target: '/mypage', authenticated: true },
+  ])('모바일 내부 링크 $label 이동 후 메뉴를 닫는다', ({ label, target, authenticated }) => {
+    if (authenticated) localStorage.setItem('token', 'test-token')
+    renderHeader({ initialEntries: ['/auction/total'] })
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    const mobileMenu = screen.getByRole('navigation', { name: '모바일 주 메뉴' })
+    const link = within(mobileMenu).getByRole('link', { name: label })
+    link.focus()
+    fireEvent.click(link)
+
+    expect(screen.getByTestId('location')).toHaveTextContent(target)
+    expect(screen.queryByRole('navigation', { name: '모바일 주 메뉴' })).not.toBeInTheDocument()
+    expect(link).not.toHaveFocus()
+  })
+
+  it('뒤로가기와 앞으로가기 route 변경 후 모바일 메뉴를 닫는다', () => {
+    renderHeader({
+      initialEntries: ['/auction/total', '/artists', '/mypage'],
+      initialIndex: 1,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '뒤로' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/auction/total')
+    expect(screen.queryByRole('navigation', { name: '모바일 주 메뉴' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    fireEvent.click(screen.getByRole('button', { name: '앞으로' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/artists')
+    expect(screen.queryByRole('navigation', { name: '모바일 주 메뉴' })).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
+    expect(screen.getByRole('main').inert).toBe(false)
+    expect(screen.getByRole('contentinfo').inert).toBe(false)
+  })
+
+  it('모바일 메뉴는 Escape 후 햄버거로 focus를 복귀한다', () => {
+    vi.stubGlobal('requestAnimationFrame', (callback) => callback())
+    renderHeader()
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    const toggle = screen.getByRole('button', { name: '모바일 메뉴 열기' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle).toHaveFocus()
+  })
+
+  it('데스크톱 breakpoint 진입 시 모바일 메뉴를 닫는다', () => {
+    let changeHandler
+    const mediaQuery = {
+      matches: false,
+      addEventListener: vi.fn((event, handler) => {
+        if (event === 'change') changeHandler = handler
+      }),
+      removeEventListener: vi.fn(),
+    }
+    renderHeader({ mediaQuery })
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일 메뉴 열기' }))
+    act(() => changeHandler({ matches: true }))
+
+    expect(screen.queryByRole('navigation', { name: '모바일 주 메뉴' })).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
   })
 
   it('데스크톱 드롭다운은 제어 대상을 연결하고 Escape 후 trigger로 복귀한다', () => {
