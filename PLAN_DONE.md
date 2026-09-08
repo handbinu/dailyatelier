@@ -613,3 +613,26 @@ HAVING account.available_balance <> COALESCE(SUM(tx.available_delta), 0)
     OR account.held_balance <> COALESCE(SUM(tx.held_delta), 0)
 ORDER BY account.user_id;
 ```
+
+## 모바일 메뉴의 페이지 이동 후 닫힘 처리
+
+### 원인과 구현 내용
+
+- 일반 route 전환에서 `Header`가 재사용되어 로고 클릭이나 브라우저 history 이동 시 열린 모바일 메뉴 상태가 유지되고, body 스크롤 잠금과 배경 `inert`도 남았다.
+- 모바일 메뉴가 열린 location key를 상태로 관리해 로고, 내부 링크, 뒤로가기·앞으로가기 등 route 변경 수단과 관계없이 메뉴가 닫히도록 했다.
+- 닫힘 effect cleanup으로 body `overflow`와 `main`/`footer`의 `inert`를 복원하고, 기존 Escape의 햄버거 focus 복귀와 데스크톱 breakpoint 동작을 유지했다.
+
+### 자동 테스트 결과
+
+- Header 테스트 12건, 전체 프론트 component test 31개 파일·166건을 통과했다.
+- 수정 파일 ESLint와 production build, `git diff --check`를 통과했다. build에서는 기존 500kB 초과 chunk 경고만 확인됐다.
+
+### 브라우저 QA 결과
+
+- 사용자 브라우저 QA에서 로고·공개/인증 메뉴 링크·뒤로가기·앞으로가기 후 메뉴 닫힘과 본문 스크롤 복원을 확인했다.
+- 키보드 Escape의 햄버거 focus 복귀와 데스크톱 너비 전환 후 메뉴·검색 동작에 문제가 없음을 확인했다.
+
+### 관련 커밋
+
+- `edcaf06 chore: 모바일 메뉴 닫힘 처리 계획 추가`
+- `a3b04de fix(frontend): 페이지 이동 시 모바일 메뉴 닫기`
