@@ -88,6 +88,17 @@
 }
 .orderGroup:hover { box-shadow: var(--shadow-sm); }
 
+.pointPanel {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-alt);
+}
+.pointValues { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); font-size: var(--font-size-sm); }
+.pointValues strong { margin-left: var(--space-1); color: var(--color-primary); }
+.pointGuide, .pointStatus { margin-top: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.pointError { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); color: var(--color-error); font-size: var(--font-size-xs); }
+.pointError button { min-height: 36px; padding: var(--space-1) var(--space-3); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); background: var(--color-surface); cursor: pointer; }
+
 /* 주문 행 */
 .orderRow {
   display: grid;

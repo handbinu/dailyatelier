@@ -11,6 +11,7 @@ import {
   updateOrderShippingAddress,
 } from '../../api/orderApi'
 import { getUserProfile } from '../../api/userApi'
+import { getPointSummary } from '../../api/pointApi'
 import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
 import {
   formatOrderDate,
@@ -75,8 +76,8 @@ const getInitialAddress = (order, profile) => {
 export default function OrderStatus() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const targetArtId = searchParams.get('artId')
+  const [searchParams] = useSearchParams()
+  const targetOrderId = searchParams.get('orderId')
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(0)
   const [result, setResult] = useState(null)
@@ -90,7 +91,15 @@ export default function OrderStatus() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [addressConfirmation, setAddressConfirmation] = useState(null)
+  const [pointSummary, setPointSummary] = useState({
+    availablePoint: 0,
+    heldPoint: 0,
+    loading: false,
+    loaded: false,
+    error: '',
+  })
   const requestGuard = useRef(createOrderRequestGuard())
+  const handledTargetOrderId = useRef(null)
   const listRequest = useRef(null)
   const listParams = useRef({ filter, page })
   listParams.current = { filter, page }
@@ -130,6 +139,29 @@ export default function OrderStatus() {
     },
   ), [handleRequestError])
 
+  const loadPoints = useCallback(async () => {
+    setPointSummary((current) => ({ ...current, loading: true, error: '' }))
+    try {
+      const { data } = await getPointSummary()
+      setPointSummary({
+        availablePoint: Number(data.availablePoint ?? 0),
+        heldPoint: Number(data.heldPoint ?? 0),
+        loading: false,
+        loaded: true,
+        error: '',
+      })
+      return data
+    } catch (requestError) {
+      setPointSummary((current) => ({
+        ...current,
+        loading: false,
+        loaded: false,
+        error: requestError.response?.data?.message || '포인트 정보를 불러오지 못했습니다.',
+      }))
+      return null
+    }
+  }, [])
+
   const loadDetail = useCallback(async (orderId, { force = false } = {}) => {
     if (!force && details[orderId]) return details[orderId]
 
@@ -161,16 +193,37 @@ export default function OrderStatus() {
   }, [filter, loadOrders, page])
 
   useEffect(() => {
-    if (!targetArtId || !result?.content?.length) return
-    const matched = result.content.find(
-      (order) => String(order.artId) === targetArtId,
-    )
-    if (!matched) return
+    if (!targetOrderId || handledTargetOrderId.current === targetOrderId) return
+    handledTargetOrderId.current = targetOrderId
+    if (!/^\d+$/.test(targetOrderId)) {
+      setError('잘못된 주문 연결입니다.')
+      return
+    }
 
-    setOpenOrderId(matched.orderId)
-    loadDetail(matched.orderId)
-    setSearchParams({}, { replace: true })
-  }, [loadDetail, result, setSearchParams, targetArtId])
+    const openTargetOrder = async () => {
+      const orderId = Number(targetOrderId)
+      const detail = await loadDetail(orderId)
+      if (!detail) return
+
+      setOpenOrderId(orderId)
+      const addressConfirmed = Boolean(detail.addressConfirmedAt && detail.shippingAddress)
+      if (detail.status === 'PAYMENT_PENDING' && addressConfirmed) {
+        loadPoints()
+      }
+      if (!addressConfirmed && detail.availableActions?.includes('UPDATE_SHIPPING_ADDRESS')) {
+        let profile = null
+        try {
+          profile = (await getUserProfile()).data
+        } catch (requestError) {
+          handleRequestError(requestError, '기본 배송지를 불러오지 못했습니다. 직접 입력해 주세요.')
+        }
+        setAddressForm(getInitialAddress(detail, profile))
+        setEditingOrderId(orderId)
+      }
+    }
+
+    openTargetOrder()
+  }, [handleRequestError, loadDetail, loadPoints, targetOrderId])
 
   const summaryItems = useMemo(() => {
     const counts = result?.statusCounts ?? {}
@@ -214,7 +267,11 @@ export default function OrderStatus() {
     }
     setOpenOrderId(orderId)
     setEditingOrderId(null)
-    await loadDetail(orderId)
+    const detail = await loadDetail(orderId)
+    const addressConfirmed = Boolean(detail?.addressConfirmedAt && detail?.shippingAddress)
+    if (detail?.status === 'PAYMENT_PENDING' && addressConfirmed && !pointSummary.loaded) {
+      await loadPoints()
+    }
   }
 
   const startAddressEdit = async (orderId) => {
@@ -355,6 +412,7 @@ export default function OrderStatus() {
       const { data } = await request
       setDetails((current) => ({ ...current, [orderId]: data }))
       await loadOrders()
+      if (action === 'PAY') await loadPoints()
       setNotice(action === 'CANCEL'
         ? '낙찰 포기가 처리되었습니다.'
         : action === 'PAY'
@@ -370,10 +428,13 @@ export default function OrderStatus() {
         '주문 상태를 변경하지 못했습니다.',
       )
       if (orderError.shouldReload) {
-        await Promise.all([
+        const reloads = [
           loadDetail(orderId, { force: true }),
           loadOrders(),
-        ])
+        ]
+        if (action === 'PAY') reloads.push(loadPoints())
+        await Promise.all(reloads)
+        setError(orderError.message)
       }
     } finally {
       requestGuard.current.end(orderId)
@@ -381,7 +442,22 @@ export default function OrderStatus() {
     }
   }
 
-  const items = result?.content ?? []
+  const listItems = result?.content ?? []
+  const targetDetail = /^\d+$/.test(targetOrderId || '')
+    ? details[Number(targetOrderId)]
+    : null
+  const targetSummary = targetDetail && !listItems.some(
+    (order) => order.orderId === targetDetail.orderId)
+    ? {
+        ...targetDetail,
+        artImage: targetDetail.artImage,
+        counterpartyName: targetDetail.sellerArtistName || targetDetail.sellerNickname,
+        shippingAddressConfirmed: Boolean(
+          targetDetail.addressConfirmedAt && targetDetail.shippingAddress,
+        ),
+      }
+    : null
+  const items = targetSummary ? [targetSummary, ...listItems] : listItems
 
   return (
     <PageWrap>
@@ -439,11 +515,13 @@ export default function OrderStatus() {
                   isEditing={editingOrderId === order.orderId}
                   isDetailLoading={detailLoadingId === order.orderId}
                   isProcessing={processingId === order.orderId}
+                  pointSummary={pointSummary}
                   addressForm={addressForm}
                   onToggle={() => toggleDetail(order.orderId)}
                   onAddressEdit={() => startAddressEdit(order.orderId)}
                   onAddressCancel={() => setEditingOrderId(null)}
                   onAddressChange={updateAddressField}
+                  onPointRetry={loadPoints}
                   onAddressSubmit={(event) =>
                     submitAddress(event, order.orderId)}
                   onAction={(action) =>
@@ -499,11 +577,13 @@ function OrderItem({
   isEditing,
   isDetailLoading,
   isProcessing,
+  pointSummary,
   addressForm,
   onToggle,
   onAddressEdit,
   onAddressCancel,
   onAddressChange,
+  onPointRetry,
   onAddressSubmit,
   onAction,
 }) {
@@ -571,10 +651,14 @@ function OrderItem({
             <button
               type="button"
               className={s.primaryBtn}
-              onClick={() => onAction('PAY')}
-              disabled={isProcessing}
+              onClick={() => pointSummary.loaded ? onAction('PAY') : onPointRetry()}
+              disabled={isProcessing || pointSummary.loading || Boolean(pointSummary.error)}
             >
-              포인트 결제
+              {pointSummary.loading
+                ? '포인트 조회 중…'
+                : pointSummary.loaded
+                  ? '포인트 결제'
+                  : pointSummary.error ? '포인트 확인 필요' : '포인트 확인'}
             </button>
           )}
           {actions.includes('CONFIRM') && (
@@ -627,6 +711,14 @@ function OrderItem({
           </button>
         </div>
       </div>
+
+      {order.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed && (
+        <PaymentPointSummary
+          order={order}
+          summary={pointSummary}
+          onRetry={onPointRetry}
+        />
+      )}
 
       {isOpen && (
         <div
@@ -712,6 +804,26 @@ function OrderProgress({ status }) {
         })}
       </div>
     </div>
+  )
+}
+
+function PaymentPointSummary({ order, summary, onRetry }) {
+  return (
+    <section className={s.pointPanel} aria-live="polite" aria-busy={summary.loading}>
+      <div className={s.pointValues}>
+        <span>사용 가능 포인트 <strong>{summary.loaded ? `${summary.availablePoint.toLocaleString('ko-KR')}P` : '—'}</strong></span>
+        <span>전체 예치 포인트 <strong>{summary.loaded ? `${summary.heldPoint.toLocaleString('ko-KR')}P` : '—'}</strong></span>
+        <span>결제 금액 <strong>{formatOrderPrice(order.winningPrice)}</strong></span>
+      </div>
+      <p className={s.pointGuide}>낙찰 금액은 입찰 시 이미 예치되어 있으며, 결제하면 해당 예치가 확정됩니다.</p>
+      {summary.loading && <p className={s.pointStatus}>포인트 정보를 확인하고 있습니다.</p>}
+      {summary.error && (
+        <div className={s.pointError} role="alert">
+          <span>{summary.error}</span>
+          <button type="button" onClick={onRetry}>다시 조회</button>
+        </div>
+      )}
+    </section>
   )
 }
 

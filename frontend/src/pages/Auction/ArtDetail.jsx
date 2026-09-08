@@ -403,6 +403,15 @@ export default function ArtDetail() {
             </div>
           </form>
 
+          {art.orderId && (
+            <Link
+              to={`/mypage/order-status?orderId=${art.orderId}`}
+              className={styles.orderLink}
+            >
+              낙찰 주문 확인
+            </Link>
+          )}
+
           {art.isOwner ? (
             <p className={styles.ownerNotice}>내가 등록한 작품입니다.</p>
           ) : (

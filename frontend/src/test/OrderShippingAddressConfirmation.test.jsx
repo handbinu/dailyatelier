@@ -8,6 +8,7 @@ import {
 } from '../api/orderApi'
 import OrderStatus from '../pages/MyPage/OrderStatus'
 import { getUserProfile } from '../api/userApi'
+import { getPointSummary } from '../api/pointApi'
 
 vi.mock('../api/orderApi', () => ({
   cancelBuyerOrder: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock('../api/orderApi', () => ({
 }))
 
 vi.mock('../api/userApi', () => ({ getUserProfile: vi.fn() }))
+vi.mock('../api/pointApi', () => ({ getPointSummary: vi.fn() }))
 
 const shippingAddress = {
   recipientName: '기존 수령인',
@@ -88,6 +90,7 @@ describe('구매자 배송지 재확정 dialog', () => {
     getBuyerOrders.mockResolvedValue({ data: makePage() })
     getBuyerOrder.mockResolvedValue({ data: detail })
     getUserProfile.mockResolvedValue({ data: {} })
+    getPointSummary.mockResolvedValue({ data: { availablePoint: 10_000, heldPoint: 450_000 } })
     updateOrderShippingAddress.mockResolvedValue({ data: detail })
   })
 

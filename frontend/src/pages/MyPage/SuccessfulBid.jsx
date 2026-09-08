@@ -78,12 +78,16 @@ export default function SuccessfulBid() {
                     <p className={s.price}>낙찰가 {formatPrice(item.winningPrice)}원</p>
                     <div className={s.actions}>
                       <ActionBtn to={`/auction/${item.artId}`} variant="outline">상세 보기</ActionBtn>
-                      <ActionBtn
-                        to={`/mypage/order-status?artId=${item.artId}`}
-                        variant="fill"
-                      >
-                        주문 확인
-                      </ActionBtn>
+                      {item.orderId ? (
+                        <ActionBtn
+                          to={`/mypage/order-status?orderId=${item.orderId}`}
+                          variant="fill"
+                        >
+                          주문 확인
+                        </ActionBtn>
+                      ) : (
+                        <p className={s.orderUnavailable}>연결된 주문을 확인할 수 없습니다.</p>
+                      )}
                     </div>
                   </div>
                 </article>

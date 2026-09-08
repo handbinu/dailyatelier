@@ -161,6 +161,14 @@ function BidCard({ bid }) {
           {!isEnded && (
             <ActionBtn to={`/auction/${bid.artId}`} variant="fill">가격 올리기</ActionBtn>
           )}
+          {isEnded && bid.bidResult === 'WON' && bid.orderId && (
+            <ActionBtn to={`/mypage/order-status?orderId=${bid.orderId}`} variant="fill">
+              낙찰 주문 확인
+            </ActionBtn>
+          )}
+          {isEnded && bid.bidResult === 'WON' && !bid.orderId && (
+            <p className={s.orderUnavailable}>연결된 주문을 확인할 수 없습니다.</p>
+          )}
         </div>
       </div>
     </div>
