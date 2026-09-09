@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SuccessfulBid from '../pages/MyPage/SuccessfulBid'
@@ -157,6 +157,12 @@ describe('낙찰 후 주문 연결 흐름', () => {
 
     expect(await screen.findByRole('button', { name: '포인트 조회 중…' })).toBeDisabled()
     resolvePoints({ data: { availablePoint: 25_000, heldPoint: 450_000 } })
+    const pointHeading = await screen.findByRole('heading', { name: '포인트 결제 안내' })
+    const pointPanel = pointHeading.closest('section')
+    expect(within(pointPanel).getByText(/사용 가능 포인트가 결제 금액보다 적어도 결제할 수 있습니다/)).toBeInTheDocument()
+    expect(within(pointPanel).getByText('사용 가능 포인트')).toBeInTheDocument()
+    expect(within(pointPanel).getByText('전체 예치 포인트')).toBeInTheDocument()
+    expect(within(pointPanel).getByText('결제 금액')).toBeInTheDocument()
     expect(await screen.findByText('25,000P')).toBeInTheDocument()
     expect(screen.getByText('450,000P')).toBeInTheDocument()
     expect(screen.getAllByText('450,000원').length).toBeGreaterThan(0)

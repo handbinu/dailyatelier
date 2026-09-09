@@ -810,12 +810,24 @@ function OrderProgress({ status }) {
 function PaymentPointSummary({ order, summary, onRetry }) {
   return (
     <section className={s.pointPanel} aria-live="polite" aria-busy={summary.loading}>
-      <div className={s.pointValues}>
-        <span>사용 가능 포인트 <strong>{summary.loaded ? `${summary.availablePoint.toLocaleString('ko-KR')}P` : '—'}</strong></span>
-        <span>전체 예치 포인트 <strong>{summary.loaded ? `${summary.heldPoint.toLocaleString('ko-KR')}P` : '—'}</strong></span>
-        <span>결제 금액 <strong>{formatOrderPrice(order.winningPrice)}</strong></span>
-      </div>
-      <p className={s.pointGuide}>낙찰 금액은 입찰 시 이미 예치되어 있으며, 결제하면 해당 예치가 확정됩니다.</p>
+      <h3 className={s.pointTitle}>포인트 결제 안내</h3>
+      <p className={s.pointGuide}>
+        정상 낙찰 주문은 입찰 시 결제 금액이 이미 예치되어 있어, 사용 가능 포인트가 결제 금액보다 적어도 결제할 수 있습니다.
+      </p>
+      <dl className={s.pointValues}>
+        <div>
+          <dt>사용 가능 포인트</dt>
+          <dd>{summary.loaded ? `${summary.availablePoint.toLocaleString('ko-KR')}P` : '—'}</dd>
+        </div>
+        <div>
+          <dt>전체 예치 포인트</dt>
+          <dd>{summary.loaded ? `${summary.heldPoint.toLocaleString('ko-KR')}P` : '—'}</dd>
+        </div>
+        <div>
+          <dt>결제 금액</dt>
+          <dd>{formatOrderPrice(order.winningPrice)}</dd>
+        </div>
+      </dl>
       {summary.loading && <p className={s.pointStatus}>포인트 정보를 확인하고 있습니다.</p>}
       {summary.error && (
         <div className={s.pointError} role="alert">
