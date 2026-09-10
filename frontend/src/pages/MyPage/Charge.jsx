@@ -28,7 +28,9 @@ export default function Charge() {
   const [method,    setMethod]    = useState('internal')
   const [agreed,    setAgreed]    = useState(false)
   const [charging,  setCharging]  = useState(false)
-  const [done,      setDone]      = useState(false)
+  const [completedCharge, setCompletedCharge] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
   const [balance, setBalance] = useState(0)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -37,6 +39,7 @@ export default function Charge() {
   const [transactions, setTransactions] = useState([])
   const [charges, setCharges] = useState([])
   const chargeRequest = useRef(null)
+  const chargeSubmitting = useRef(false)
 
   const token = localStorage.getItem('token')
 
@@ -49,9 +52,6 @@ export default function Charge() {
       return undefined
     }
     const controller = new AbortController()
-    setLoading(true)
-    setLoaded(false)
-    setError('')
     Promise.all([
       getPointSummary({ signal: controller.signal }),
       getPointTransactions({ size: 10, signal: controller.signal }),
@@ -75,30 +75,83 @@ export default function Charge() {
   if (!token) return null
 
   const handlePreset = (val) => {
+    if (chargeSubmitting.current) return
     setAmount(val)
     chargeRequest.current = invalidateChargeRequest()
   }
 
+  const retryInitialLoad = () => {
+    setLoading(true)
+    setLoaded(false)
+    setError('')
+    setReloadKey((value) => value + 1)
+  }
+
+  const refreshPointData = async () => {
+    setRefreshing(true)
+    setRefreshError('')
+
+    const results = await Promise.allSettled([
+      getPointSummary(),
+      getPointTransactions({ size: 10 }),
+      getPointCharges({ size: 10 }),
+    ])
+    const [summaryResult, transactionResult, chargeResult] = results
+    const failed = []
+
+    if (summaryResult.status === 'fulfilled') {
+      const nextBalance = Number(summaryResult.value.data.availablePoint ?? 0)
+      setBalance(nextBalance)
+      setCompletedCharge((current) => current && ({
+        ...current,
+        balance: nextBalance,
+        balanceLoaded: true,
+      }))
+    } else {
+      failed.push('최신 잔액')
+    }
+    if (transactionResult.status === 'fulfilled') {
+      setTransactions(transactionResult.value.data?.content ?? [])
+    } else {
+      failed.push('포인트 거래 내역')
+    }
+    if (chargeResult.status === 'fulfilled') {
+      setCharges(chargeResult.value.data?.content ?? [])
+    } else {
+      failed.push('충전 내역')
+    }
+
+    if (failed.length > 0) {
+      setRefreshError(`충전은 완료됐지만 ${failed.join(', ')}을 불러오지 못했습니다.`)
+    }
+    setRefreshing(false)
+  }
+
   const handleCharge = async (e) => {
     e.preventDefault()
+    if (chargeSubmitting.current) return
     if (finalAmount < 1000) { alert('최소 충전 금액은 1,000원입니다.'); return }
     if (!agreed) { alert('결제 유의사항에 동의해주세요.'); return }
-    setCharging(true)
-    setError('')
+
     chargeRequest.current = chargeRequestFor(
       chargeRequest.current, finalAmount, method, () => crypto.randomUUID(),
     )
+    const request = {
+      amount: finalAmount,
+      method,
+      key: chargeRequest.current.key,
+    }
+    chargeSubmitting.current = true
+    setCharging(true)
+    setError('')
     try {
-      await chargePoint(finalAmount, chargeRequest.current.key)
-      const [summary, transactionHistory, chargeHistory] = await Promise.all([
-        getPointSummary(),
-        getPointTransactions({ size: 10 }),
-        getPointCharges({ size: 10 }),
-      ])
-      setBalance(Number(summary.data.availablePoint ?? 0))
-      setTransactions(transactionHistory.data?.content ?? [])
-      setCharges(chargeHistory.data?.content ?? [])
-      setDone(true)
+      const { data } = await chargePoint(request.amount, request.key)
+      setCompletedCharge({
+        amount: Number(data?.paidAmount ?? request.amount),
+        method: request.method,
+        balance: null,
+        balanceLoaded: false,
+      })
     } catch (requestError) {
       setError(requestError.response?.data?.message || '충전에 실패했습니다. 다시 시도해 주세요.')
       if (requestError.response?.status === 409) {
@@ -106,22 +159,48 @@ export default function Charge() {
           .then(({ data }) => setBalance(Number(data.availablePoint ?? 0)))
           .catch(() => {})
       }
-    } finally {
       setCharging(false)
+      chargeSubmitting.current = false
+      return
     }
+
+    setCharging(false)
+    await refreshPointData()
+    chargeSubmitting.current = false
   }
 
-  if (done) {
+  if (completedCharge) {
     return (
       <PageWrap>
         <PageBanner title="충전 완료" crumb="적립금 충전" />
         <div className={s.doneWrap}>
           <div className={s.doneIcon}>💰</div>
-          <h2 className={s.doneTitle}>{fmt(finalAmount)}P 충전 완료!</h2>
-          <p className={s.doneSub}>현재 사용 가능 포인트 <strong>{fmt(balance)}P</strong></p>
+          <h2 className={s.doneTitle}>{fmt(completedCharge.amount)}P 충전 완료!</h2>
+          <p className={s.doneSub}>
+            현재 사용 가능 포인트{' '}
+            <strong>{completedCharge.balanceLoaded ? `${fmt(completedCharge.balance)}P` : '확인 필요'}</strong>
+          </p>
+          {refreshing && <p role="status">최신 포인트 정보를 확인하고 있습니다.</p>}
+          {refreshError && (
+            <div className={s.errorBox} role="alert">
+              <span>{refreshError}</span>
+              <button type="button" onClick={refreshPointData} disabled={refreshing}>다시 조회</button>
+            </div>
+          )}
           <div className={s.doneActions}>
             <button className={s.doneBtn} onClick={() => navigate('/mypage')}>마이페이지로</button>
-            <button className={`${s.doneBtn} ${s.doneBtnOutline}`} onClick={() => { setDone(false); setAgreed(false); chargeRequest.current = null }}>추가 충전</button>
+            <button
+              className={`${s.doneBtn} ${s.doneBtnOutline}`}
+              onClick={() => {
+                setCompletedCharge(null)
+                setRefreshError('')
+                setAgreed(false)
+                chargeRequest.current = null
+              }}
+              disabled={refreshing}
+            >
+              추가 충전
+            </button>
           </div>
         </div>
       </PageWrap>
@@ -156,6 +235,7 @@ export default function Charge() {
                   type="button"
                   className={`${s.presetBtn} ${amount === v ? s.presetBtnActive : ''}`}
                   onClick={() => handlePreset(v)}
+                  disabled={charging}
                 >
                   {fmt(v)}P
                 </button>
@@ -172,7 +252,7 @@ export default function Charge() {
             <div className={s.errorBox} role="alert">
               <span>{error}</span>
               {!loaded && !loading && (
-                <button type="button" onClick={() => setReloadKey(value => value + 1)}>다시 조회</button>
+                <button type="button" onClick={retryInitialLoad}>다시 조회</button>
               )}
             </div>
           )}
@@ -187,6 +267,7 @@ export default function Charge() {
                   type="button"
                   className={`${s.methodBtn} ${method === m.id ? s.methodBtnActive : ''}`}
                   onClick={() => setMethod(m.id)}
+                  disabled={charging}
                 >
                   <span className={s.methodIcon}>{m.icon}</span>
                   <span className={s.methodLabel}>{m.label}</span>
@@ -221,6 +302,7 @@ export default function Charge() {
                 checked={agreed}
                 onChange={e => setAgreed(e.target.checked)}
                 className={s.agreeCheck}
+                disabled={charging}
               />
               <span>주문 내용과 유의사항을 확인하였으며 결제 진행에 동의합니다.</span>
             </label>

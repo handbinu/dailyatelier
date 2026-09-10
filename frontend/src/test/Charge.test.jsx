@@ -18,6 +18,16 @@ vi.mock('../api/pointApi', () => ({
 
 const emptyPage = { data: { content: [] } }
 
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
+
 function renderCharge() {
   return render(
     <MemoryRouter>
@@ -112,5 +122,58 @@ describe('데모 포인트 충전 화면', () => {
     expect(screen.getByText('51,000P')).toBeInTheDocument()
     expect(chargePoint).toHaveBeenCalledWith(50_000, 'charge-key')
     expect(getPointSummary).toHaveBeenCalledTimes(2)
+  })
+
+  it('충전 요청 중 입력 변경과 같은 렌더의 연속 제출을 막고 요청 금액을 표시한다', async () => {
+    mockSuccessfulLookup(1_000)
+    const charge = deferred()
+    chargePoint.mockReturnValue(charge.promise)
+
+    renderCharge()
+
+    const submit = await screen.findByRole('button', { name: '50,000P 데모 충전' })
+    await waitFor(() => expect(submit).toBeEnabled())
+    fireEvent.click(screen.getByRole('checkbox'))
+    const form = submit.closest('form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    expect(chargePoint).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: '100,000P' })).toBeDisabled()
+    expect(screen.getByRole('checkbox')).toBeDisabled()
+
+    charge.resolve({ data: { paidAmount: 50_000 } })
+
+    expect(await screen.findByRole('heading', { name: '50,000P 충전 완료!' }))
+      .toBeInTheDocument()
+  })
+
+  it('충전 성공 후 재조회 실패를 성공과 분리하고 완료 상태에서 다시 조회한다', async () => {
+    getPointSummary
+      .mockResolvedValueOnce({ data: { availablePoint: 1_000, heldPoint: 0 } })
+      .mockRejectedValueOnce({ response: { data: { message: '잔액 조회 실패' } } })
+      .mockResolvedValueOnce({ data: { availablePoint: 51_000, heldPoint: 0 } })
+    getPointTransactions.mockResolvedValue(emptyPage)
+    getPointCharges.mockResolvedValue(emptyPage)
+    chargePoint.mockResolvedValue({ data: { paidAmount: 50_000 } })
+
+    renderCharge()
+
+    const submit = await screen.findByRole('button', { name: '50,000P 데모 충전' })
+    await waitFor(() => expect(submit).toBeEnabled())
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(submit)
+
+    expect(await screen.findByRole('heading', { name: '50,000P 충전 완료!' }))
+      .toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('충전은 완료됐지만 최신 잔액')
+    expect(screen.queryByText(/충전에 실패했습니다/)).not.toBeInTheDocument()
+    expect(screen.getByText('확인 필요')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 조회' }))
+
+    expect(await screen.findByText('51,000P')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(chargePoint).toHaveBeenCalledTimes(1)
   })
 })
