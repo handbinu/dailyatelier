@@ -52,6 +52,19 @@ const pendingDetail = {
   answer: null,
 }
 
+const otherInquiry = {
+  ...pendingInquiry,
+  inquiryId: 5,
+  title: '포인트 문의',
+  inquiryType: 'POINT',
+}
+
+const otherDetail = {
+  ...pendingDetail,
+  ...otherInquiry,
+  content: '포인트 사용 내역이 궁금합니다.',
+}
+
 function deferred() {
   let resolve
   let reject
@@ -81,7 +94,57 @@ describe('문의 실제 연동', () => {
 
     expect(await screen.findByText('배송 예정일이 궁금합니다.')).toBeVisible()
     expect(screen.getByText('내일 출고 예정입니다.')).toBeVisible()
-    expect(getInquiryDetail).toHaveBeenCalledWith(4)
+    expect(getInquiryDetail).toHaveBeenCalledWith(4, {
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it('내 문의에서 A의 늦은 응답이 현재 펼친 B의 상세 상태를 덮지 않는다', async () => {
+    getMyInquiries.mockResolvedValue({ data: { content: [pendingInquiry, otherInquiry] } })
+    const firstRequest = deferred()
+    const secondRequest = deferred()
+    getInquiryDetail
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise)
+
+    render(<MemoryRouter><InquiryList /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /배송 문의/ }))
+    const firstSignal = getInquiryDetail.mock.calls[0][1].signal
+    fireEvent.click(screen.getByRole('button', { name: /포인트 문의/ }))
+
+    expect(firstSignal.aborted).toBe(true)
+    secondRequest.resolve({ data: otherDetail })
+    expect(await screen.findByText('포인트 사용 내역이 궁금합니다.')).toBeVisible()
+
+    firstRequest.resolve({ data: pendingDetail })
+    await waitFor(() => expect(screen.queryByText('배송 예정일이 궁금합니다.')).not.toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('문의 상세 내용을 불러오는 중입니다.')).not.toBeInTheDocument()
+  })
+
+  it('내 문의에서 접기와 캐시된 문의 열기가 진행 중인 상세 요청을 무효화한다', async () => {
+    getMyInquiries.mockResolvedValue({ data: { content: [pendingInquiry, otherInquiry] } })
+    const firstRequest = deferred()
+    getInquiryDetail
+      .mockResolvedValueOnce({ data: otherDetail })
+      .mockReturnValueOnce(firstRequest.promise)
+
+    render(<MemoryRouter><InquiryList /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /포인트 문의/ }))
+    expect(await screen.findByText('포인트 사용 내역이 궁금합니다.')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: /포인트 문의/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: /배송 문의/ }))
+    const firstSignal = getInquiryDetail.mock.calls[1][1].signal
+    fireEvent.click(screen.getByRole('button', { name: /포인트 문의/ }))
+
+    expect(firstSignal.aborted).toBe(true)
+    expect(screen.getByText('포인트 사용 내역이 궁금합니다.')).toBeVisible()
+    firstRequest.reject({ response: { data: { message: '늦은 상세 오류' } } })
+    await waitFor(() => expect(screen.queryByText('늦은 상세 오류')).not.toBeInTheDocument())
+    expect(screen.queryByText('문의 상세 내용을 불러오는 중입니다.')).not.toBeInTheDocument()
   })
 
   it('등록 성공 후 가짜 완료 화면 대신 문의 목록으로 이동한다', async () => {
@@ -174,5 +237,64 @@ describe('문의 실제 연동', () => {
     await waitFor(() => expect(getAdminInquiries).toHaveBeenCalledTimes(3))
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     expect(answerInquiry).toHaveBeenCalledTimes(1)
+  })
+
+  it('관리자 문의 A의 늦은 성공이 B의 상세와 답변 입력값을 덮지 않는다', async () => {
+    getAdminInquiries.mockResolvedValue({ data: { content: [pendingInquiry, otherInquiry] } })
+    const firstRequest = deferred()
+    const secondRequest = deferred()
+    getInquiryDetail
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise)
+
+    render(<MemoryRouter><AdminInquiry /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /배송 문의/ }))
+    const firstSignal = getInquiryDetail.mock.calls[0][1].signal
+    fireEvent.click(screen.getByRole('button', { name: /포인트 문의/ }))
+
+    expect(firstSignal.aborted).toBe(true)
+    secondRequest.resolve({ data: otherDetail })
+    expect(await screen.findByText('포인트 사용 내역이 궁금합니다.')).toBeVisible()
+    expect(screen.getByLabelText('답변')).toHaveValue('')
+
+    firstRequest.resolve({ data: { ...pendingDetail, answer: '늦은 답변' } })
+    await waitFor(() => expect(screen.queryByText('배송 예정일이 궁금합니다.')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('답변')).toHaveValue('')
+    expect(screen.queryByText('문의 상세 내용을 불러오는 중입니다.')).not.toBeInTheDocument()
+  })
+
+  it('관리자 문의 A의 늦은 실패를 현재 B의 오류로 표시하지 않는다', async () => {
+    getAdminInquiries.mockResolvedValue({ data: { content: [pendingInquiry, otherInquiry] } })
+    const firstRequest = deferred()
+    getInquiryDetail
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockResolvedValueOnce({ data: otherDetail })
+
+    render(<MemoryRouter><AdminInquiry /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /배송 문의/ }))
+    fireEvent.click(screen.getByRole('button', { name: /포인트 문의/ }))
+    expect(await screen.findByText('포인트 사용 내역이 궁금합니다.')).toBeVisible()
+
+    firstRequest.reject({ response: { data: { message: '늦은 관리자 오류' } } })
+    await waitFor(() => expect(screen.queryByText('늦은 관리자 오류')).not.toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('문의 상세 내용을 불러오는 중입니다.')).not.toBeInTheDocument()
+  })
+
+  it('관리자 문의 상세 요청은 언마운트 시 취소된다', async () => {
+    getAdminInquiries.mockResolvedValue({ data: { content: [pendingInquiry] } })
+    const request = deferred()
+    getInquiryDetail.mockReturnValue(request.promise)
+
+    const view = render(<MemoryRouter><AdminInquiry /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /배송 문의/ }))
+    const signal = getInquiryDetail.mock.calls[0][1].signal
+    view.unmount()
+
+    expect(signal.aborted).toBe(true)
+    request.resolve({ data: pendingDetail })
   })
 })

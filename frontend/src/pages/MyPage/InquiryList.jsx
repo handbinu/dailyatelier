@@ -1,5 +1,5 @@
 // src/pages/MyPage/InquiryList.jsx  —  내 문의 목록 + 상세 (아코디언)
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageBanner, Badge, FilterBar, Empty, PageWrap } from './components/atoms'
 import { getInquiryDetail, getMyInquiries } from '../../api/inquiryApi'
@@ -23,6 +23,7 @@ export default function InquiryList() {
   const [loadingDetailId, setLoadingDetailId] = useState(null)
   const [error, setError] = useState('')
   const [detailError, setDetailError] = useState('')
+  const detailRequest = useRef(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -44,6 +45,12 @@ export default function InquiryList() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => () => {
+    const controller = detailRequest.current
+    detailRequest.current = null
+    controller?.abort()
+  }, [])
+
   const items = filter === '전체'
     ? inquiries
     : filter === '대기 중'
@@ -54,21 +61,34 @@ export default function InquiryList() {
   const unanswered = inquiries.filter(q => !q.answered).length
 
   const handleToggle = async (inquiryId) => {
+    const previousController = detailRequest.current
+    detailRequest.current = null
+    previousController?.abort()
+    setLoadingDetailId(null)
+    setDetailError('')
+
     if (open === inquiryId) {
       setOpen(null)
       return
     }
     setOpen(inquiryId)
-    setDetailError('')
     if (details[inquiryId]) return
+
+    const controller = new AbortController()
+    detailRequest.current = controller
     setLoadingDetailId(inquiryId)
     try {
-      const { data } = await getInquiryDetail(inquiryId)
+      const { data } = await getInquiryDetail(inquiryId, { signal: controller.signal })
+      if (detailRequest.current !== controller || controller.signal.aborted) return
       setDetails(current => ({ ...current, [inquiryId]: data }))
     } catch (requestError) {
+      if (detailRequest.current !== controller || controller.signal.aborted || requestError.code === 'ERR_CANCELED') return
       setDetailError(requestError.response?.data?.message || '문의 상세 내용을 불러오지 못했습니다.')
     } finally {
-      setLoadingDetailId(null)
+      if (detailRequest.current === controller) {
+        detailRequest.current = null
+        setLoadingDetailId(null)
+      }
     }
   }
 

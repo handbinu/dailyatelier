@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageBanner, Badge, Empty, FilterBar, PageWrap } from './components/atoms'
 import { answerInquiry, getAdminInquiries, getInquiryDetail } from '../../api/inquiryApi'
+import { createLatestRequest } from '../../utils/latestRequest'
 import s from './InquiryList.module.css'
 
 const FILTERS = [
@@ -27,6 +28,7 @@ export default function AdminInquiry() {
   const [notice, setNotice] = useState('')
   const [refreshError, setRefreshError] = useState('')
   const answerSubmitting = useRef(false)
+  const detailRequest = useRef(null)
 
   const loadInquiries = useCallback(async (status = filter, { afterMutation = false } = {}) => {
     setLoading(true)
@@ -54,20 +56,40 @@ export default function AdminInquiry() {
     loadInquiries(filter)
   }, [filter, loadInquiries])
 
-  const selectInquiry = async (inquiryId) => {
-    if (answerSubmitting.current) return
-    setDetailLoading(true)
-    setError('')
-    setNotice('')
-    try {
-      const { data } = await getInquiryDetail(inquiryId)
-      setSelected(data)
-      setAnswer(data.answer ?? '')
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || '문의 상세 내용을 불러오지 못했습니다.')
-    } finally {
-      setDetailLoading(false)
+  useEffect(() => {
+    const request = createLatestRequest()
+    detailRequest.current = request
+    return () => {
+      request.dispose()
+      if (detailRequest.current === request) detailRequest.current = null
     }
+  }, [])
+
+  const selectInquiry = (inquiryId) => {
+    if (answerSubmitting.current) return
+    return detailRequest.current?.run(
+      async ({ signal }) => {
+        const { data } = await getInquiryDetail(inquiryId, { signal })
+        return data
+      },
+      {
+        onStart: () => {
+          setDetailLoading(true)
+          setSelected(null)
+          setAnswer('')
+          setError('')
+          setNotice('')
+        },
+        onSuccess: (data) => {
+          setSelected(data)
+          setAnswer(data.answer ?? '')
+        },
+        onError: (requestError) => {
+          setError(requestError.response?.data?.message || '문의 상세 내용을 불러오지 못했습니다.')
+        },
+        onFinally: () => setDetailLoading(false),
+      },
+    )
   }
 
   const submitAnswer = async (event) => {
