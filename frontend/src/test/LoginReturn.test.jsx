@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { login } from '../api/authApi'
@@ -7,6 +7,16 @@ import PrivateRoute from '../pages/auth/PrivateRoute'
 import { toSafeReturnPath } from '../utils/loginReturn'
 
 vi.mock('../api/authApi', () => ({ login: vi.fn() }))
+
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
 
 function LocationView() {
   const location = useLocation()
@@ -58,6 +68,45 @@ describe('로그인 후 원래 위치 복귀', () => {
     renderRoutes(['/login'])
     await submitLogin()
     expect(await screen.findByTestId('location')).toHaveTextContent('/')
+  })
+
+  it('처리 중 입력과 연속 제출을 막고 실패 후 다시 제출할 수 있다', async () => {
+    const firstRequest = deferred()
+    login.mockReturnValue(firstRequest.promise)
+    renderRoutes(['/login'])
+
+    const userIdInput = screen.getByLabelText('아이디')
+    const passwordInput = screen.getByLabelText('비밀번호')
+    fireEvent.change(userIdInput, { target: { value: 'user' } })
+    fireEvent.change(passwordInput, { target: { value: 'password' } })
+
+    const form = screen.getByRole('button', { name: '로그인' }).closest('form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    expect(login).toHaveBeenCalledTimes(1)
+    expect(userIdInput).toBeDisabled()
+    expect(passwordInput).toBeDisabled()
+    expect(screen.getByRole('button', { name: '로그인 중…' })).toBeDisabled()
+
+    await act(async () => {
+      firstRequest.reject({ response: { data: { message: '로그인 실패' } } })
+      try {
+        await firstRequest.promise
+      } catch {
+        // 컴포넌트의 오류 처리 완료를 기다린다.
+      }
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('로그인 실패')
+    expect(userIdInput).toBeEnabled()
+    expect(passwordInput).toBeEnabled()
+
+    login.mockResolvedValue({
+      data: { token: 'token', userId: 'user', nickname: '사용자', userStatus: 0 },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+    await waitFor(() => expect(login).toHaveBeenCalledTimes(2))
   })
 
   it.each([

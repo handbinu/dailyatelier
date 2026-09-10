@@ -170,4 +170,56 @@ describe.each(cases)('$label 중복확인', ({ Component, submitName, nicknameLa
       nickname: 'verified-name',
     }))
   })
+
+  it('처리 중 입력과 연속 제출을 막고 실패 후 다시 제출할 수 있다', async () => {
+    const firstRequest = deferred()
+    checkUserId.mockResolvedValue({ data: { duplicate: false } })
+    checkNickname.mockResolvedValue({ data: { duplicate: false } })
+    register.mockReturnValue(firstRequest.promise)
+    const { container } = renderRegister(Component)
+
+    fireEvent.change(screen.getByLabelText(/^아이디/), {
+      target: { value: 'verified-user' },
+    })
+    fireEvent.click(duplicateButtons()[0])
+    await screen.findByText('사용 가능합니다. ✓')
+
+    fireEvent.change(screen.getByRole('textbox', { name: new RegExp(nicknameLabel) }), {
+      target: { value: 'verified-name' },
+    })
+    fireEvent.click(duplicateButtons()[1])
+    await waitFor(() => expect(screen.getAllByText('사용 가능합니다. ✓')).toHaveLength(2))
+
+    fireEvent.change(screen.getByLabelText(/^비밀번호 \*/), {
+      target: { name: 'password', value: 'Password1!' },
+    })
+    fireEvent.change(screen.getByLabelText(/비밀번호 재입력/), {
+      target: { value: 'Password1!' },
+    })
+
+    const form = screen.getByRole('button', { name: submitName }).closest('form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    expect(register).toHaveBeenCalledTimes(1)
+    container.querySelectorAll('input').forEach((input) => expect(input).toBeDisabled())
+    screen.getAllByRole('button').forEach((button) => expect(button).toBeDisabled())
+
+    await act(async () => {
+      firstRequest.reject({ response: { data: { message: '가입 실패' } } })
+      try {
+        await firstRequest.promise
+      } catch {
+        // 컴포넌트의 오류 처리 완료를 기다린다.
+      }
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('가입 실패')
+    container.querySelectorAll('input').forEach((input) => expect(input).toBeEnabled())
+    duplicateButtons().forEach((button) => expect(button).toBeEnabled())
+
+    register.mockResolvedValue({ data: {} })
+    fireEvent.submit(form)
+    await waitFor(() => expect(register).toHaveBeenCalledTimes(2))
+  })
 })

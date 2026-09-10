@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { login } from '../../api/authApi'
 import { getLoginReturnPath } from '../../utils/loginReturn'
@@ -10,6 +10,7 @@ function Login() {
   const [form, setForm] = useState({ userId: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const submitGuard = useRef(false)
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -17,6 +18,9 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitGuard.current) return
+
+    submitGuard.current = true
     setError('')
     setLoading(true)
 
@@ -32,6 +36,7 @@ function Login() {
         err.response?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.'
       )
     } finally {
+      submitGuard.current = false
       setLoading(false)
     }
   }
@@ -52,6 +57,7 @@ function Login() {
               placeholder="아이디"
               value={form.userId}
               onChange={handleChange}
+              disabled={loading}
               required
               autoComplete="username"
             />
@@ -66,6 +72,7 @@ function Login() {
               placeholder="비밀번호"
               value={form.password}
               onChange={handleChange}
+              disabled={loading}
               required
               autoComplete="current-password"
             />

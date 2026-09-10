@@ -18,6 +18,7 @@ function RegisterArtist(){
     const [pwMsg, setPwMsg] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const submitGuard = useRef(false)
     const userIdRef = useRef(null)
     const nicknameRef = useRef(null)
     const pwConfirmRef = useRef(null)
@@ -47,6 +48,8 @@ function RegisterArtist(){
     }
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submitGuard.current) return
+
         setError('')
         if (!checked.userId) {
             setError('아이디 중복확인을 해주세요.')
@@ -63,7 +66,8 @@ function RegisterArtist(){
             pwConfirmRef.current?.focus()
             return
         }
-    
+
+        submitGuard.current = true
         setLoading(true)
         try{
             await registerArtist(form)
@@ -71,6 +75,7 @@ function RegisterArtist(){
         }catch(err){
             setError(err.response?.data?.message || '회원가입 중 오류가 발생했습니다.')
         } finally {
+            submitGuard.current = false
             setLoading(false)
         }
     }
@@ -92,12 +97,13 @@ function RegisterArtist(){
                             ref={userIdRef} id="artist-register-id"
                             type="text" name="userId" placeholder="사용할 아이디"
                             value={form.userId} onChange={handleChange} required
+                            disabled={loading}
                             autoComplete="username" aria-describedby="artist-register-id-message"
                             aria-invalid={Boolean(messages.userId && !checked.userId)}
                         />
                         <button type="button" className={styles.btnCheck}
                             onClick={() => check('userId')}
-                            disabled={checking.userId}>
+                            disabled={loading || checking.userId}>
                             {checking.userId ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
@@ -114,6 +120,7 @@ function RegisterArtist(){
                         type="password" name="password"
                         placeholder="문자·숫자·특수문자 포함 8~20자"
                         value={form.password} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="new-password"
                     />
                 </div>
@@ -125,6 +132,7 @@ function RegisterArtist(){
                         ref={pwConfirmRef} id="artist-register-password-confirm"
                         type="password" placeholder="비밀번호 재입력"
                         value={pwConfirm} onChange={handlePwConfirm} required
+                        disabled={loading}
                         autoComplete="new-password" aria-describedby="artist-register-password-message"
                         aria-invalid={Boolean(pwConfirm && form.password !== pwConfirm)}
                     />
@@ -144,13 +152,14 @@ function RegisterArtist(){
                             ref={nicknameRef} id="artist-register-nickname"
                             type="text" name="nickname" placeholder="닉네임, 10자 이내"
                             value={form.nickname} onChange={handleChange} 
+                            disabled={loading}
                             required maxLength={10}
                             aria-describedby="artist-register-nickname-message"
                             aria-invalid={Boolean(messages.nickname && !checked.nickname)}
                         />
                         <button type="button" className={styles.btnCheck}
                             onClick={() => check('nickname')}
-                            disabled={checking.nickname}>
+                            disabled={loading || checking.nickname}>
                             {checking.nickname ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
@@ -166,6 +175,7 @@ function RegisterArtist(){
                         id="artist-register-name" type="text" name="artistName"
                         placeholder="작가명 (미입력 시 활동명 자동 적용)"
                         value={form.artistName} onChange={handleChange} 
+                        disabled={loading}
                         maxLength={50}
                         aria-describedby="artist-register-name-hint"
                     />
@@ -179,6 +189,7 @@ function RegisterArtist(){
                         id="artist-register-homepage" type="url" name="homepage"
                         placeholder="https://example.com"
                         value={form.homepage} onChange={handleChange}
+                        disabled={loading}
                         autoComplete="url"
                     />
                 </div>
@@ -190,6 +201,7 @@ function RegisterArtist(){
                         id="artist-register-sns" type="text" name="artistSns"
                         placeholder="예: @daily_art"
                         value={form.artistSns} onChange={handleChange}
+                        disabled={loading}
                     />
                 </div>
 
@@ -201,6 +213,7 @@ function RegisterArtist(){
                     <input
                         id="artist-register-real-name" type="text" name="name" placeholder="실명"
                         value={form.name} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="name"
                     />
                 </div>
@@ -211,6 +224,7 @@ function RegisterArtist(){
                     <input
                         id="artist-register-phone" type="tel" name="phoneNumber" placeholder="- 없이 입력"
                         value={form.phoneNumber} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="tel"
                     />
                 </div>
@@ -221,6 +235,7 @@ function RegisterArtist(){
                     <input
                         id="artist-register-email" type="email" name="email" placeholder="example@email.com"
                         value={form.email} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="email"
                     />
                 </div>

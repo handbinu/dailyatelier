@@ -18,6 +18,7 @@ function RegisterUser(){
     const [pwMsg, setPwMsg] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const submitGuard = useRef(false)
     const userIdRef = useRef(null)
     const nicknameRef = useRef(null)
     const pwConfirmRef = useRef(null)
@@ -47,6 +48,8 @@ function RegisterUser(){
     }
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submitGuard.current) return
+
         setError('')
         if (!checked.userId) {
             setError('아이디 중복확인을 해주세요.')
@@ -63,7 +66,8 @@ function RegisterUser(){
             pwConfirmRef.current?.focus()
             return
         }
-    
+
+        submitGuard.current = true
         setLoading(true)
         try{
             await registerUser(form)
@@ -71,6 +75,7 @@ function RegisterUser(){
         }catch(err){
             setError(err.response?.data?.message || '회원가입 중 오류가 발생했습니다.')
         } finally {
+            submitGuard.current = false
             setLoading(false)
         }
     }
@@ -92,12 +97,13 @@ function RegisterUser(){
                             ref={userIdRef} id="user-register-id"
                             type="text" name="userId" placeholder="사용할 아이디"
                             value={form.userId} onChange={handleChange} required
+                            disabled={loading}
                             autoComplete="username" aria-describedby="user-register-id-message"
                             aria-invalid={Boolean(messages.userId && !checked.userId)}
                         />
                         <button type="button" className={styles.btnCheck}
                             onClick={() => check('userId')}
-                            disabled={checking.userId}>
+                            disabled={loading || checking.userId}>
                             {checking.userId ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
@@ -117,6 +123,7 @@ function RegisterUser(){
                         type="password" name="password"
                         placeholder="문자·숫자·특수문자 포함 8~20자"
                         value={form.password} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="new-password"
                     />
                 </div>
@@ -128,6 +135,7 @@ function RegisterUser(){
                         ref={pwConfirmRef} id="user-register-password-confirm"
                         type="password" placeholder="비밀번호 재입력"
                         value={pwConfirm} onChange={handlePwConfirm} required
+                        disabled={loading}
                         autoComplete="new-password" aria-describedby="user-register-password-message"
                         aria-invalid={Boolean(pwConfirm && form.password !== pwConfirm)}
                     />
@@ -144,6 +152,7 @@ function RegisterUser(){
                     <input
                         id="user-register-name" type="text" name="name" placeholder="실명"
                         value={form.name} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="name"
                     />
                 </div>
@@ -156,12 +165,13 @@ function RegisterUser(){
                             ref={nicknameRef} id="user-register-nickname"
                             type="text" name="nickname" placeholder="사용할 닉네임"
                             value={form.nickname} onChange={handleChange} required
+                            disabled={loading}
                             aria-describedby="user-register-nickname-message"
                             aria-invalid={Boolean(messages.nickname && !checked.nickname)}
                         />
                         <button type="button" className={styles.btnCheck}
                             onClick={() => check('nickname')}
-                            disabled={checking.nickname}>
+                            disabled={loading || checking.nickname}>
                             {checking.nickname ? '확인 중...' : '중복확인'}
                         </button>
                     </div>
@@ -176,6 +186,7 @@ function RegisterUser(){
                     <input
                         id="user-register-phone" type="tel" name="phoneNumber" placeholder="- 없이 입력"
                         value={form.phoneNumber} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="tel"
                     />
                 </div>
@@ -186,6 +197,7 @@ function RegisterUser(){
                     <input
                         id="user-register-email" type="email" name="email" placeholder="example@email.com"
                         value={form.email} onChange={handleChange} required
+                        disabled={loading}
                         autoComplete="email"
                     />
                 </div>
