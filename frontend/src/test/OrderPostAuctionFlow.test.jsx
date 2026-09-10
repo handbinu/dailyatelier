@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SuccessfulBid from '../pages/MyPage/SuccessfulBid'
@@ -31,12 +32,23 @@ vi.mock('../api/orderApi', () => ({
 }))
 vi.mock('../api/pointApi', () => ({ getPointSummary: vi.fn() }))
 
-const page = (content = []) => ({
+const page = (content = [], overrides = {}) => ({
   content,
   statusCounts: { PAYMENT_PENDING: content.length },
   totalElements: content.length,
   totalPages: content.length ? 1 : 0,
+  ...overrides,
 })
+
+const deferred = () => {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
 
 const targetDetail = {
   orderId: 77,
@@ -95,6 +107,75 @@ describe('낙찰 후 주문 연결 흐름', () => {
     expect(await screen.findByRole('link', { name: '주문 확인' }))
       .toHaveAttribute('href', '/mypage/order-status?orderId=77')
     expect(screen.getByText('연결된 주문을 확인할 수 없습니다.')).toBeInTheDocument()
+  })
+
+  it('낙찰 작품은 최신 요청만 반영하고 언마운트 시 활성 요청을 취소한다', async () => {
+    const previousRequest = deferred()
+    const currentRequest = deferred()
+    const pageRequest = deferred()
+    getMyWins
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockReturnValueOnce(currentRequest.promise)
+      .mockReturnValueOnce(pageRequest.promise)
+
+    const view = render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/mypage/successful-bid']}>
+          <SuccessfulBid />
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    await waitFor(() => expect(getMyWins).toHaveBeenCalledTimes(2))
+    const previousSignal = getMyWins.mock.calls[0][0].signal
+    expect(previousSignal.aborted).toBe(true)
+
+    currentRequest.resolve({ data: page([
+      { artId: 8, orderId: 88, artName: '최신 낙찰 작품', winningPrice: 500_000 },
+    ], { totalPages: 2 }) })
+    expect(await screen.findByText('최신 낙찰 작품')).toBeVisible()
+
+    previousRequest.resolve({ data: page([
+      { artId: 7, orderId: 77, artName: '이전 낙찰 작품', winningPrice: 400_000 },
+    ]) })
+    await waitFor(() => expect(screen.queryByText('이전 낙찰 작품')).not.toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '다음' }))
+    await waitFor(() => expect(getMyWins).toHaveBeenCalledTimes(3))
+    expect(getMyWins.mock.calls[2][0]).toMatchObject({ page: 1, size: 12 })
+    const pageSignal = getMyWins.mock.calls[2][0].signal
+
+    view.unmount()
+    expect(pageSignal.aborted).toBe(true)
+    pageRequest.reject({ code: 'ERR_CANCELED' })
+  })
+
+  it('낙찰 작품의 이전 요청이 늦게 실패해도 최신 결과를 유지한다', async () => {
+    const previousRequest = deferred()
+    const currentRequest = deferred()
+    getMyWins
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockReturnValueOnce(currentRequest.promise)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/mypage/successful-bid']}>
+          <SuccessfulBid />
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    await waitFor(() => expect(getMyWins).toHaveBeenCalledTimes(2))
+    currentRequest.resolve({ data: page([
+      { artId: 8, orderId: 88, artName: '현재 낙찰 작품', winningPrice: 500_000 },
+    ]) })
+    expect(await screen.findByText('현재 낙찰 작품')).toBeVisible()
+
+    previousRequest.reject({ response: { data: { message: '늦은 목록 오류' } } })
+    await waitFor(() => expect(screen.queryByText('늦은 목록 오류')).not.toBeInTheDocument())
+    expect(screen.getByText('현재 낙찰 작품')).toBeVisible()
+    expect(screen.queryByText('낙찰 작품을 불러오는 중입니다.')).not.toBeInTheDocument()
   })
 
   it('입찰 현황의 낙찰 건은 orderId로 주문 화면에 진입한다', async () => {

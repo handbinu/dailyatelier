@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageBanner, Empty, PageWrap, ActionBtn } from './components/atoms'
 import { getMyWins } from '../../api/userApi'
 import { formatClosingTime, formatPrice } from '../../utils/artDisplay'
 import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
+import { createLatestRequest } from '../../utils/latestRequest'
 import s from './SuccessfulBid.module.css'
 
 const PAGE_SIZE = 12
@@ -14,28 +15,46 @@ export default function SuccessfulBid() {
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const winsRequest = useRef(null)
 
-  const loadWins = useCallback(async () => {
-    setLoading(true)
-    setError('')
-
-    try {
-      const { data } = await getMyWins({
-        page,
-        size: PAGE_SIZE,
-      })
-      setResult(data)
-    } catch (requestError) {
-      setResult(null)
-      if (requestError.response?.status === 401) {
-        setError('로그인이 만료되었습니다. 다시 로그인해 주세요.')
-      } else {
-        setError(requestError.response?.data?.message || '낙찰 작품을 불러오지 못했습니다.')
-      }
-    } finally {
-      setLoading(false)
-    }
+  const loadWins = useCallback(() => {
+    const requestPage = page
+    return winsRequest.current?.run(
+      async ({ signal }) => {
+        const { data } = await getMyWins({
+          page: requestPage,
+          size: PAGE_SIZE,
+          signal,
+        })
+        return data
+      },
+      {
+        onStart: () => {
+          setLoading(true)
+          setError('')
+        },
+        onSuccess: setResult,
+        onError: (requestError) => {
+          setResult(null)
+          if (requestError.response?.status === 401) {
+            setError('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+          } else {
+            setError(requestError.response?.data?.message || '낙찰 작품을 불러오지 못했습니다.')
+          }
+        },
+        onFinally: () => setLoading(false),
+      },
+    )
   }, [page])
+
+  useEffect(() => {
+    const request = createLatestRequest()
+    winsRequest.current = request
+    return () => {
+      request.dispose()
+      if (winsRequest.current === request) winsRequest.current = null
+    }
+  }, [])
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -43,7 +62,7 @@ export default function SuccessfulBid() {
       return
     }
     loadWins()
-  }, [loadWins, navigate])
+  }, [loadWins, navigate, page])
 
   const wins = result?.content ?? []
 
