@@ -79,9 +79,9 @@ export default function BidStatus() {
       <div className={s.body}>
         <div className={s.summary}>
           {[
-            { label: '진행 중',   value: ongoing,  color: 'var(--color-accent)' },
-            { label: '종료 임박', value: imminent, color: '#c0622a'              },
-            { label: '종료',      value: ended,    color: 'var(--color-text-muted)' },
+            { label: '진행 중',   value: loading || error ? '-' : ongoing,  color: 'var(--color-accent)' },
+            { label: '종료 임박', value: loading || error ? '-' : imminent, color: '#c0622a'              },
+            { label: '종료',      value: loading || error ? '-' : ended,    color: 'var(--color-text-muted)' },
           ].map(({ label, value, color }) => (
             <div key={label} className={s.summaryCard} style={{ '--c': color }}>
               <span className={s.summaryValue}>{value}<small>건</small></span>

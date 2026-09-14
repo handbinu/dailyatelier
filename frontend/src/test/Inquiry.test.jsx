@@ -99,6 +99,20 @@ describe('문의 실제 연동', () => {
     })
   })
 
+  it('문의 목록 조회 실패 후 화면에서 다시 시도해 복구한다', async () => {
+    getMyInquiries
+      .mockRejectedValueOnce({ response: { data: { message: '문의 조회 실패' } } })
+      .mockResolvedValueOnce({ data: { content: [inquiry] } })
+
+    render(<MemoryRouter><InquiryList /></MemoryRouter>)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('문의 조회 실패')
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByRole('button', { name: /배송 문의/ })).toBeVisible()
+    expect(getMyInquiries).toHaveBeenCalledTimes(2)
+  })
+
   it('내 문의에서 A의 늦은 응답이 현재 펼친 B의 상세 상태를 덮지 않는다', async () => {
     getMyInquiries.mockResolvedValue({ data: { content: [pendingInquiry, otherInquiry] } })
     const firstRequest = deferred()

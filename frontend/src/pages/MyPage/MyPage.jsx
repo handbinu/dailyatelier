@@ -93,6 +93,8 @@ export default function MyPage() {
   const [myArtsLoading, setMyArtsLoading] = useState(true)
   const [myArtsError, setMyArtsError] = useState('')
   const [inquiryCount, setInquiryCount] = useState(0)
+  const [inquiryLoading, setInquiryLoading] = useState(true)
+  const [inquiryError, setInquiryError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
 
   const token = localStorage.getItem('token')
@@ -177,11 +179,14 @@ export default function MyPage() {
         .finally(() => setMyArtsLoading(false))
     }
 
+    setInquiryLoading(true)
+    setInquiryError('')
     getMyInquiries({ status: 'PENDING', size: 1 })
       .then(({ data }) => {
         setInquiryCount(Number(data?.totalElements ?? 0))
       })
-      .catch(() => setInquiryCount(0))
+      .catch(() => setInquiryError('문의 대기 수를 불러오지 못했습니다.'))
+      .finally(() => setInquiryLoading(false))
   }, [isArtist, navigate, retryKey, token])
 
   if (!token) return null
@@ -235,8 +240,10 @@ export default function MyPage() {
               title="회원 메뉴"
               items={USER_TABS}
               pathname={location.pathname}
-              bidsCount={bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
-              inquiryCount={inquiryCount}
+              bidsCount={bidsLoading || bidsError
+                ? '-'
+                : bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
+              inquiryCount={inquiryLoading || inquiryError ? '-' : inquiryCount}
             />
             {isArtist && (
               <MyPageMenu
@@ -385,8 +392,8 @@ function OverviewTab({
   const ongoing = bids.filter((bid) => bid.auctionStatus !== 'ENDED')
   const imminent = bids.filter((bid) => bid.auctionStatus === 'IMMINENT')
   const stats = [
-    { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: ongoing.length, unit: '건', color: 'var(--color-accent)' },
-    { label: '\uC885\uB8CC \uC784\uBC15', value: imminent.length, unit: '건', color: '#c0622a' },
+    { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: bidsLoading || bidsError ? '-' : ongoing.length, unit: '건', color: 'var(--color-accent)' },
+    { label: '\uC885\uB8CC \uC784\uBC15', value: bidsLoading || bidsError ? '-' : imminent.length, unit: '건', color: '#c0622a' },
     {
       label: T.successful,
       value: winsLoading || winsError ? '-' : wins.length,

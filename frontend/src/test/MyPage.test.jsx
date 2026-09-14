@@ -145,6 +145,32 @@ describe('마이페이지 낙찰 작품 요약', () => {
     expect(screen.getByText('12')).toBeVisible()
   })
 
+  it('문의 배지는 조회 실패를 0건으로 표시하지 않는다', async () => {
+    getMyInquiries.mockRejectedValue(new Error('조회 실패'))
+
+    renderMyPage()
+
+    const userMenu = await screen.findByRole('navigation', { name: '회원 메뉴' })
+    const inquiryLink = within(userMenu).getByRole('link', { name: /문의 현황/ })
+    expect(within(inquiryLink).getByText('-')).toBeVisible()
+    expect(within(inquiryLink).queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('입찰 조회 실패 중 메뉴 배지와 통계를 0건으로 표시하지 않는다', async () => {
+    getAllMyBids.mockRejectedValue(new Error('조회 실패'))
+
+    renderMyPage()
+
+    expect(await screen.findByText('입찰 현황을 불러오지 못했습니다.')).toBeVisible()
+    const userMenu = screen.getByRole('navigation', { name: '회원 메뉴' })
+    expect(within(within(userMenu).getByRole('link', { name: /입찰 현황/ })).getByText('-')).toBeVisible()
+
+    for (const label of ['진행 중 입찰', '종료 임박']) {
+      const card = screen.getByText(label).closest('div')
+      expect(within(card).getByText('-')).toBeVisible()
+    }
+  })
+
   it('프로필 이미지를 표시하고 변경 링크를 제공한다', async () => {
     getUserProfile.mockResolvedValue({
       data: {

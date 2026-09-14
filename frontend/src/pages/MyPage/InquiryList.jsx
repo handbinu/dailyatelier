@@ -1,7 +1,7 @@
 // src/pages/MyPage/InquiryList.jsx  —  내 문의 목록 + 상세 (아코디언)
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PageBanner, Badge, FilterBar, Empty, PageWrap } from './components/atoms'
+import { PageBanner, Badge, FilterBar, Empty, PageWrap, ActionBtn } from './components/atoms'
 import { getInquiryDetail, getMyInquiries } from '../../api/inquiryApi'
 import s from './InquiryList.module.css'
 
@@ -23,6 +23,7 @@ export default function InquiryList() {
   const [loadingDetailId, setLoadingDetailId] = useState(null)
   const [error, setError] = useState('')
   const [detailError, setDetailError] = useState('')
+  const [retryKey, setRetryKey] = useState(0)
   const detailRequest = useRef(null)
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function InquiryList() {
     }
     loadInquiries()
     return () => controller.abort()
-  }, [])
+  }, [retryKey])
 
   useEffect(() => () => {
     const controller = detailRequest.current
@@ -118,7 +119,14 @@ export default function InquiryList() {
         {loading
           ? <div className={s.feedback} role="status">문의 내역을 불러오는 중입니다.</div>
           : error
-            ? <div className={s.feedback} role="alert">{error}</div>
+            ? (
+                <div className={s.feedback} role="alert">
+                  <p>{error}</p>
+                  <ActionBtn onClick={() => setRetryKey((key) => key + 1)} variant="outline">
+                    다시 시도
+                  </ActionBtn>
+                </div>
+              )
           : items.length === 0
           ? <Empty msg="문의 내역이 없습니다." />
           : <div className={s.list}>

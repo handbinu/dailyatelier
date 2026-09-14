@@ -22,6 +22,7 @@ export default function Likes() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [moreError, setMoreError] = useState('')
   const [removingId, setRemovingId] = useState(null)
 
   const loadLikes = useCallback(async (page = 0) => {
@@ -31,14 +32,23 @@ export default function Likes() {
     } else {
       setLoadingMore(true)
     }
-    setError('')
+    if (isFirstPage) {
+      setError('')
+    } else {
+      setMoreError('')
+    }
 
     try {
       const { data } = await getMyLikes({ page, size: PAGE_SIZE })
       setLikes((prev) => (isFirstPage ? data.content : [...prev, ...data.content]))
       setPageInfo({ page: data.number, last: data.last })
     } catch (err) {
-      setError(err.response?.data?.message || '찜한 작품을 불러오지 못했습니다.')
+      const message = err.response?.data?.message || '찜한 작품을 불러오지 못했습니다.'
+      if (isFirstPage) {
+        setError(message)
+      } else {
+        setMoreError(message)
+      }
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -119,14 +129,15 @@ export default function Likes() {
               })}
             </div>
 
-            {!pageInfo.last && (
+            {(!pageInfo.last || moreError) && (
               <div className={s.more}>
+                {moreError && <p role="alert">{moreError}</p>}
                 <ActionBtn
                   onClick={() => loadLikes(pageInfo.page + 1)}
                   variant="outline"
                   disabled={loadingMore}
                 >
-                  {loadingMore ? '불러오는 중' : '더 보기'}
+                  {loadingMore ? '불러오는 중' : moreError ? '다시 시도' : '더 보기'}
                 </ActionBtn>
               </div>
             )}
