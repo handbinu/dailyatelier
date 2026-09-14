@@ -29,13 +29,16 @@ export default function InquiryWrite() {
   const [errors,     setErrors]     = useState({})
   const [submitting, setSub]        = useState(false)
   const fileRef = useRef()
+  const submitGuard = useRef(false)
 
   const set = (key) => (e) => {
+    if (submitGuard.current) return
     setForm(f => ({ ...f, [key]: e.target.value }))
     setErrors(er => ({ ...er, [key]: '' }))
   }
 
   const onFileChange = (e) => {
+    if (submitGuard.current) return
     const f = e.target.files[0]
     if (!f) return
     if (f.size > 10 * 1024 * 1024) {
@@ -58,6 +61,7 @@ export default function InquiryWrite() {
   }
 
   const removeFile = () => {
+    if (submitGuard.current) return
     setFile(null)
     setFilePreview(null)
     setErrors(er => ({ ...er, file: '' }))
@@ -76,7 +80,10 @@ export default function InquiryWrite() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitGuard.current) return
     if (!validate()) return
+
+    submitGuard.current = true
     setSub(true)
     setErrors(er => ({ ...er, submit: '' }))
     try {
@@ -91,6 +98,7 @@ export default function InquiryWrite() {
     } catch (error) {
       setErrors(er => ({ ...er, submit: error.response?.data?.message || '문의 등록에 실패했습니다. 다시 시도해 주세요.' }))
     } finally {
+      submitGuard.current = false
       setSub(false)
     }
   }
@@ -112,7 +120,11 @@ export default function InquiryWrite() {
                   <button
                     key={t} type="button"
                     className={`${s.typeBtn} ${form.type === t ? s.typeBtnActive : ''}`}
-                    onClick={() => setForm(f => ({ ...f, type: t }))}
+                    onClick={() => {
+                      if (submitGuard.current) return
+                      setForm(f => ({ ...f, type: t }))
+                    }}
+                    disabled={submitting}
                   >
                     {t}
                   </button>
@@ -131,6 +143,7 @@ export default function InquiryWrite() {
                 className={`${s.input} ${errors.title ? s.inputErr : ''}`}
                 value={form.title}
                 onChange={set('title')}
+                disabled={submitting}
                 placeholder="문의 제목을 입력해주세요"
                 maxLength={50}
               />
@@ -148,6 +161,7 @@ export default function InquiryWrite() {
                 className={`${s.textarea} ${errors.content ? s.inputErr : ''}`}
                 value={form.content}
                 onChange={set('content')}
+                disabled={submitting}
                 placeholder="문의하실 내용을 상세하게 입력해주세요. (최소 10자)"
                 rows={8}
               />
@@ -163,7 +177,7 @@ export default function InquiryWrite() {
                       ? <img src={filePreview} alt="미리보기" className={s.imgPreview} />
                       : <span className={s.fileName}>📎 {file.name}</span>
                     }
-                    <button type="button" className={s.removeFile} onClick={removeFile}>✕ 제거</button>
+                    <button type="button" className={s.removeFile} onClick={removeFile} disabled={submitting}>✕ 제거</button>
                   </div>
                 : <label className={s.fileLabel}>
                     📎 파일 선택
@@ -173,6 +187,7 @@ export default function InquiryWrite() {
                       accept="image/png,image/jpeg,image/jpg,application/pdf"
                       className={s.fileInput}
                       onChange={onFileChange}
+                      disabled={submitting}
                     />
                   </label>
               }
@@ -187,7 +202,11 @@ export default function InquiryWrite() {
                 <input
                   type="checkbox"
                   checked={form.emailAlert}
-                  onChange={e => setForm(f => ({ ...f, emailAlert: e.target.checked }))}
+                  onChange={e => {
+                    if (submitGuard.current) return
+                    setForm(f => ({ ...f, emailAlert: e.target.checked }))
+                  }}
+                  disabled={submitting}
                   className={s.checkbox}
                 />
                 <span className={s.checkText}>
@@ -206,7 +225,10 @@ export default function InquiryWrite() {
             <button type="submit" className={s.submitBtn} disabled={submitting}>
               {submitting ? '등록 중…' : '문의 등록'}
             </button>
-            <button type="button" className={s.cancelBtn} onClick={() => navigate(-1)}>
+            <button type="button" className={s.cancelBtn} onClick={() => {
+              if (submitGuard.current) return
+              navigate(-1)
+            }} disabled={submitting}>
               취소
             </button>
           </div>

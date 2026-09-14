@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InquiryList from '../pages/MyPage/InquiryList'
@@ -180,6 +180,69 @@ describe('문의 실제 연동', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('첨부 파일 형식이 올바르지 않습니다.')
     expect(screen.getByLabelText(/제목/)).toHaveValue('배송 문의')
+  })
+
+  it('문의 등록 중 연속 제출과 입력 변경을 막고 실패 후 다시 제출한다', async () => {
+    const firstRequest = deferred()
+    createInquiry.mockReturnValue(firstRequest.promise)
+    const { container } = render(<MemoryRouter><InquiryWrite /></MemoryRouter>)
+
+    const title = screen.getByLabelText(/제목/)
+    const content = screen.getByLabelText(/내용/)
+    const attachment = container.querySelector('input[type="file"]')
+    const emailAlert = screen.getByRole('checkbox')
+    const file = new File(['attachment'], 'question.pdf', { type: 'application/pdf' })
+
+    fireEvent.click(screen.getByRole('button', { name: '포인트' }))
+    fireEvent.change(title, { target: { value: '포인트 문의' } })
+    fireEvent.change(content, { target: { value: '포인트 사용 내역이 궁금합니다.' } })
+    fireEvent.change(attachment, { target: { files: [file] } })
+    fireEvent.click(emailAlert)
+
+    const form = screen.getByRole('button', { name: '문의 등록' }).closest('form')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    expect(createInquiry).toHaveBeenCalledTimes(1)
+    expect(createInquiry).toHaveBeenCalledWith({
+      inquiryType: 'POINT',
+      title: '포인트 문의',
+      content: '포인트 사용 내역이 궁금합니다.',
+      emailAlert: false,
+      attachment: file,
+    })
+    expect(title).toBeDisabled()
+    expect(content).toBeDisabled()
+    expect(emailAlert).toBeDisabled()
+    screen.getAllByRole('button', { name: /회원정보|포인트|작품|배송|경매|기타/ })
+      .forEach((button) => expect(button).toBeDisabled())
+    expect(screen.getByRole('button', { name: '✕ 제거' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '등록 중…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '취소' })).toBeDisabled()
+
+    await act(async () => {
+      firstRequest.reject({ response: { data: { message: '문의 등록 실패' } } })
+      try {
+        await firstRequest.promise
+      } catch {
+        // 컴포넌트의 오류 처리 완료를 기다린다.
+      }
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('문의 등록 실패')
+    expect(title).toBeEnabled()
+    expect(title).toHaveValue('포인트 문의')
+    expect(content).toBeEnabled()
+    expect(content).toHaveValue('포인트 사용 내역이 궁금합니다.')
+    expect(emailAlert).toBeEnabled()
+    expect(emailAlert).not.toBeChecked()
+    expect(screen.getByText(/question\.pdf/)).toBeVisible()
+    expect(screen.getByRole('button', { name: '✕ 제거' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
+
+    createInquiry.mockResolvedValue({ data: detail })
+    fireEvent.submit(form)
+    await waitFor(() => expect(createInquiry).toHaveBeenCalledTimes(2))
   })
 
   it('관리자 답변 중 대상과 입력 변경 및 같은 렌더의 연속 제출을 막는다', async () => {
