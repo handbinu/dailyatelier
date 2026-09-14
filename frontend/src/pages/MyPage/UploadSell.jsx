@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useRef } from 'react'
 import api from '../../api/authApi'
 import { createArt } from '../../api/artApi'
 import {
@@ -56,6 +57,7 @@ export default function UploadSell() {
   const [createdArt, setCreatedArt] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
+  const submitGuard = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -64,11 +66,13 @@ export default function UploadSell() {
   }, [previewUrl])
 
   const setValue = (key) => (e) => {
+    if (submitGuard.current) return
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
     setErrors((prev) => ({ ...prev, [key]: '' }))
   }
 
   const handleFormatChange = (e) => {
+    if (submitGuard.current) return
     const format = e.target.value
     setForm((prev) => ({
       ...prev,
@@ -79,6 +83,7 @@ export default function UploadSell() {
   }
 
   const clearImage = () => {
+    if (submitGuard.current) return
     setSelectedFile(null)
     setErrors((prev) => ({ ...prev, imgFile: '' }))
     setPreviewUrl((prev) => {
@@ -88,6 +93,7 @@ export default function UploadSell() {
   }
 
   const handleImageChange = (e) => {
+    if (submitGuard.current) return
     const file = e.target.files?.[0]
     if (!file) {
       clearImage()
@@ -190,8 +196,10 @@ export default function UploadSell() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitGuard.current) return
     if (!validate()) return
 
+    submitGuard.current = true
     setSubmitting(true)
     try {
       const uploaded = await uploadToCloudinary(selectedFile)
@@ -211,6 +219,7 @@ export default function UploadSell() {
       const message = err.response?.data?.message || err.message || '작품 등록에 실패했습니다.'
       setErrors((prev) => ({ ...prev, submit: message }))
     } finally {
+      submitGuard.current = false
       setSubmitting(false)
     }
   }
@@ -260,6 +269,7 @@ export default function UploadSell() {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleImageChange}
+                disabled={submitting}
               />
               <p className={s.fileHint}>jpg, jpeg, png, webp / 5MB 이하</p>
             </FormField>
@@ -279,6 +289,7 @@ export default function UploadSell() {
                   className={s.input}
                   value={form.name}
                   onChange={setValue('name')}
+                  disabled={submitting}
                   maxLength={30}
                   placeholder="작품명을 입력해 주세요"
                 />
@@ -289,6 +300,7 @@ export default function UploadSell() {
                   className={s.textarea}
                   value={form.descript}
                   onChange={setValue('descript')}
+                  disabled={submitting}
                   maxLength={300}
                   rows={4}
                   placeholder="예: 차분한 색감, 따뜻한 빛, 잔잔한 분위기"
@@ -297,7 +309,7 @@ export default function UploadSell() {
 
               <div className={s.classificationGrid}>
                 <FormField label="작품 형태 *" error={errors.format}>
-                  <select className={s.input} value={form.format} onChange={handleFormatChange} required>
+                  <select className={s.input} value={form.format} onChange={handleFormatChange} disabled={submitting} required>
                     <option value="">형태 선택</option>
                     <option value="DIGITAL">디지털</option>
                     <option value="PHYSICAL">실물</option>
@@ -308,7 +320,7 @@ export default function UploadSell() {
                     className={s.input}
                     value={form.category}
                     onChange={setValue('category')}
-                    disabled={!form.format}
+                    disabled={submitting || !form.format}
                     required
                   >
                     <option value="">카테고리 선택</option>
@@ -324,6 +336,7 @@ export default function UploadSell() {
                   className={s.input}
                   value={form.material}
                   onChange={setValue('material')}
+                  disabled={submitting}
                   maxLength={60}
                   placeholder="예: 캔버스에 유채, 종이에 수채"
                 />
@@ -334,6 +347,7 @@ export default function UploadSell() {
                   className={s.textarea}
                   value={form.wIntro}
                   onChange={setValue('wIntro')}
+                  disabled={submitting}
                   maxLength={500}
                   rows={4}
                   placeholder="작품을 만든 계기나 짧은 소개를 적어주세요"
@@ -356,6 +370,7 @@ export default function UploadSell() {
                     step={1}
                     value={form.startPrice}
                     onChange={setValue('startPrice')}
+                    disabled={submitting}
                     placeholder="0"
                   />
                   <span className={s.priceUnit}>원</span>
@@ -374,6 +389,7 @@ export default function UploadSell() {
                     step="100"
                     value={form.minimumBidIncrement}
                     onChange={setValue('minimumBidIncrement')}
+                    disabled={submitting}
                     aria-describedby={`minimum-bid-increment-help minimum-bid-increment-example${errors.minimumBidIncrement ? ' minimum-bid-increment-error' : ''}`}
                     aria-invalid={Boolean(errors.minimumBidIncrement)}
                   />
@@ -400,6 +416,7 @@ export default function UploadSell() {
                     type="datetime-local"
                     value={form.bidStartTime}
                     onChange={setValue('bidStartTime')}
+                    disabled={submitting}
                   />
                 </FormField>
                 <FormField label="입찰 종료 시간 *" error={errors.closingTime}>
@@ -408,6 +425,7 @@ export default function UploadSell() {
                     type="datetime-local"
                     value={form.closingTime}
                     onChange={setValue('closingTime')}
+                    disabled={submitting}
                   />
                 </FormField>
               </div>
