@@ -39,7 +39,14 @@ describe('작품 편집·삭제 화면', () => {
     deleteArt.mockResolvedValue({ data: { artId: 7, action: 'DELETED', artStatus: null } })
     vi.stubGlobal('confirm', vi.fn(() => true))
     vi.stubGlobal('scrollTo', vi.fn())
-    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:preview'), revokeObjectURL: vi.fn() })
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:preview'),
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    })
   })
 
   it('상세 초기값과 수정할 수 없는 작품명을 표시한다', async () => {
