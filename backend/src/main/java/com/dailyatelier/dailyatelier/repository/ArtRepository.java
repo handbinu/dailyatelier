@@ -87,7 +87,6 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
             Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
     @Query("select art from Art art where art.artId = :artId")
     Optional<Art> findByIdForUpdate(@Param("artId") Long artId);
 

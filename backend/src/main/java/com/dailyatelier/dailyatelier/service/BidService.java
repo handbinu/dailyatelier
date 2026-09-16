@@ -22,11 +22,7 @@ import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import jakarta.persistence.LockTimeoutException;
-import jakarta.persistence.PessimisticLockException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -34,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.sql.SQLException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,13 +50,39 @@ public class BidService {
     private final PointHoldRepository pointHoldRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final Clock clock;
+    private final BidLockTimeoutExecutor bidLockTimeoutExecutor;
 
     @Transactional
     public BidCreateResponseDto createBid(
             Long artId,
             String userId,
             BidCreateRequestDto request) {
-        Art art = findArtForUpdate(artId);
+        try {
+            return bidLockTimeoutExecutor.execute(
+                    () -> createBidWithLockTimeout(artId, userId, request)
+            );
+        } catch (RuntimeException exception) {
+            if (!isMySqlLockWaitTimeout(exception)) {
+                throw exception;
+            }
+            throw new BidApiException(
+                    HttpStatus.CONFLICT,
+                    "BID_CONFLICT",
+                    "다른 입찰이 처리 중입니다. 잠시 후 다시 시도해 주세요."
+            );
+        }
+    }
+
+    private BidCreateResponseDto createBidWithLockTimeout(
+            Long artId,
+            String userId,
+            BidCreateRequestDto request) {
+        Art art = artRepository.findByIdForUpdate(artId)
+                .orElseThrow(() -> new BidApiException(
+                        HttpStatus.NOT_FOUND,
+                        "ART_NOT_FOUND",
+                        "작품을 찾을 수 없습니다."
+                ));
         User bidder = userRepository.findByUserId(userId);
         if (bidder == null) {
             throw new BidApiException(
@@ -215,24 +238,16 @@ public class BidService {
                 .map(summary -> toBidStatusResponse(summary, userId, now));
     }
 
-    private Art findArtForUpdate(Long artId) {
-        try {
-            return artRepository.findByIdForUpdate(artId)
-                    .orElseThrow(() -> new BidApiException(
-                            HttpStatus.NOT_FOUND,
-                            "ART_NOT_FOUND",
-                            "작품을 찾을 수 없습니다."
-                    ));
-        } catch (LockTimeoutException
-                 | PessimisticLockException
-                 | PessimisticLockingFailureException
-                 | QueryTimeoutException exception) {
-            throw new BidApiException(
-                    HttpStatus.CONFLICT,
-                    "BID_CONFLICT",
-                    "다른 입찰이 처리 중입니다. 잠시 후 다시 시도해 주세요."
-            );
+    private boolean isMySqlLockWaitTimeout(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof SQLException sqlException
+                    && sqlException.getErrorCode() == 1205) {
+                return true;
+            }
+            current = current.getCause();
         }
+        return false;
     }
 
     private void validateBidderIsNotSeller(Art art, String userId) {

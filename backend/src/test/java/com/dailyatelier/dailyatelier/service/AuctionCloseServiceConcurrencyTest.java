@@ -54,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         OrderService.class,
         ShippingAddressPolicy.class,
         BidService.class,
+        BidLockTimeoutExecutor.class,
         AuctionCloseServiceConcurrencyTest.MutableClockConfig.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)

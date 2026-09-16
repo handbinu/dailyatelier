@@ -43,7 +43,7 @@ import static org.mockito.Mockito.verify;
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import({BidService.class, TimeConfig.class})
+@Import({BidService.class, BidLockTimeoutExecutor.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class BidServiceTransactionTest {
 

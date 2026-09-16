@@ -58,6 +58,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Import({
         ArtService.class,
         BidService.class,
+        BidLockTimeoutExecutor.class,
         AuctionCloseService.class,
         OrderService.class,
         ShippingAddressPolicy.class,

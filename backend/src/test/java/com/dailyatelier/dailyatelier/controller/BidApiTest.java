@@ -165,6 +165,47 @@ class BidApiTest {
                 .andExpect(jsonPath("$.code").value("BID_LIMIT_REACHED"));
     }
 
+    @Test
+    void lockTimeoutReturnsStructuredBidConflict() throws Exception {
+        when(bidService.createBid(eq(7L), eq("bidder"), any(BidCreateRequestDto.class)))
+                .thenThrow(new BidApiException(
+                        HttpStatus.CONFLICT,
+                        "BID_CONFLICT",
+                        "다른 입찰이 처리 중입니다. 잠시 후 다시 시도해 주세요."
+                ));
+
+        mockMvc.perform(post("/api/arts/7/bids")
+                        .with(authentication(stringAuthentication("bidder")))
+                        .contentType("application/json")
+                        .content("""
+                                {"bidPrice": 150000}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("BID_CONFLICT"))
+                .andExpect(jsonPath("$.message").value(
+                        "다른 입찰이 처리 중입니다. 잠시 후 다시 시도해 주세요."))
+                .andExpect(jsonPath("$.path").value("/api/arts/7/bids"));
+    }
+
+    @Test
+    void generalDatabaseFailureRemainsInternalServerError() throws Exception {
+        when(bidService.createBid(eq(7L), eq("bidder"), any(BidCreateRequestDto.class)))
+                .thenThrow(new org.springframework.dao.DataAccessResourceFailureException(
+                        "database unavailable"
+                ));
+
+        mockMvc.perform(post("/api/arts/7/bids")
+                        .with(authentication(stringAuthentication("bidder")))
+                        .contentType("application/json")
+                        .content("""
+                                {"bidPrice": 150000}
+                                """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
+    }
+
     private UsernamePasswordAuthenticationToken stringAuthentication(String userId) {
         return new UsernamePasswordAuthenticationToken(userId, null, List.of());
     }

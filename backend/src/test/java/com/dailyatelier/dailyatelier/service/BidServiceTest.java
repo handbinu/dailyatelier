@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -33,8 +34,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -66,6 +69,9 @@ class BidServiceTest {
     @Mock
     private PointTransactionRepository pointTransactionRepository;
 
+    @Mock
+    private BidLockTimeoutExecutor bidLockTimeoutExecutor;
+
     private BidService bidService;
 
     @BeforeEach
@@ -81,8 +87,11 @@ class BidServiceTest {
                 pointAccountRepository,
                 pointHoldRepository,
                 pointTransactionRepository,
-                clock
+                clock,
+                bidLockTimeoutExecutor
         );
+        lenient().when(bidLockTimeoutExecutor.execute(any()))
+                .thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
         PointAccount account = PointAccount.open(createUser("bidder"), 1_000_000L, NOW);
         lenient().when(pointAccountRepository.findByUserIdForUpdate("bidder"))
                 .thenReturn(Optional.of(account));
@@ -131,7 +140,10 @@ class BidServiceTest {
     @Test
     void createBidReturnsConflictWhenPessimisticLockFails() {
         when(artRepository.findByIdForUpdate(1L))
-                .thenThrow(new PessimisticLockingFailureException("lock timeout"));
+                .thenThrow(new PessimisticLockingFailureException(
+                        "lock timeout",
+                        new SQLException("lock wait timeout", "40001", 1205)
+                ));
 
         assertBidError(
                 () -> bidService.createBid(1L, "bidder", createRequest(120_000)),
@@ -139,6 +151,36 @@ class BidServiceTest {
                 "BID_CONFLICT"
         );
         verify(bidRepository, never()).save(any());
+    }
+
+    @Test
+    void createBidReturnsConflictWhenPointAccountLockTimesOut() {
+        Art art = createOpenArt("seller", 100_000);
+        when(artRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(art));
+        when(userRepository.findByUserId("bidder")).thenReturn(createUser("bidder"));
+        when(pointAccountRepository.findByUserIdForUpdate("bidder"))
+                .thenThrow(new PessimisticLockingFailureException(
+                        "lock timeout",
+                        new SQLException("lock wait timeout", "40001", 1205)
+                ));
+
+        assertBidError(
+                () -> bidService.createBid(1L, "bidder", createRequest(120_000)),
+                HttpStatus.CONFLICT,
+                "BID_CONFLICT"
+        );
+        verify(bidRepository, never()).save(any());
+    }
+
+    @Test
+    void createBidDoesNotMisclassifyGeneralDatabaseFailureAsConflict() {
+        DataAccessResourceFailureException databaseFailure =
+                new DataAccessResourceFailureException("database unavailable");
+        when(artRepository.findByIdForUpdate(1L)).thenThrow(databaseFailure);
+
+        assertThatThrownBy(() ->
+                bidService.createBid(1L, "bidder", createRequest(120_000)))
+                .isSameAs(databaseFailure);
     }
 
     @Test

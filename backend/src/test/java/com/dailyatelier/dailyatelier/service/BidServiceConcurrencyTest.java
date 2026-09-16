@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import({BidService.class, PointAccountService.class, TimeConfig.class})
+@Import({BidService.class, BidLockTimeoutExecutor.class, PointAccountService.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class BidServiceConcurrencyTest {
 
