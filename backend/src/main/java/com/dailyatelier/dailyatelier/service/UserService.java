@@ -7,12 +7,15 @@ import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.CloudinaryCleanup;
+import com.dailyatelier.dailyatelier.entity.CloudinaryCleanupStatus;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.Address;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
+import com.dailyatelier.dailyatelier.repository.CloudinaryCleanupRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.repository.AddressRepository;
 import jakarta.transaction.Transactional;
@@ -22,10 +25,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    private static final Set<CloudinaryCleanupStatus> ACTIVE_CLEANUP_STATUSES =
+            Set.of(
+                    CloudinaryCleanupStatus.PENDING,
+                    CloudinaryCleanupStatus.PROCESSING
+            );
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -34,6 +43,7 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PointAccountService pointAccountService;
     private final CloudinaryService cloudinaryService;
+    private final CloudinaryCleanupRepository cloudinaryCleanupRepository;
 
     //로그인
     public LoginResponseDto login(LoginRequestDto dto){
@@ -137,16 +147,35 @@ public class UserService {
     public UserProfileDto updateProfileImage(
             String userId,
             org.springframework.web.multipart.MultipartFile image) {
-        User user = userRepository.findByUserId(userId);
-        if (user == null) {
+        if (!userRepository.existsById(userId)) {
             throw userNotFound();
         }
 
         CloudinaryUploadResult uploaded = cloudinaryService.uploadProfileImage(userId, image);
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(this::userNotFound);
+        String previousPublicId = user.getProfileImagePublicId();
         user.setProfileImageUrl(uploaded.secureUrl());
         user.setProfileImagePublicId(uploaded.publicId());
+        if (previousPublicId != null && !previousPublicId.equals(uploaded.publicId())) {
+            registerImageCleanup(previousPublicId);
+        }
         userRepository.save(user);
         return getUserProfile(userId);
+    }
+
+    private void registerImageCleanup(String publicId) {
+        if (cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                publicId,
+                ACTIVE_CLEANUP_STATUSES
+        )) {
+            return;
+        }
+        cloudinaryCleanupRepository.save(CloudinaryCleanup.pending(
+                publicId,
+                "image",
+                LocalDateTime.now()
+        ));
     }
 
     // 마이페이지 프로필 수정

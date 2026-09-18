@@ -8,11 +8,13 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.CloudinaryCleanup;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.CloudinaryCleanupRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
@@ -80,6 +82,9 @@ class ArtServiceMutationTest {
     private PointTransactionRepository pointTransactionRepository;
 
     @Mock
+    private CloudinaryCleanupRepository cloudinaryCleanupRepository;
+
+    @Mock
     private CloudinaryService cloudinaryService;
 
     private ArtService artService;
@@ -101,6 +106,7 @@ class ArtServiceMutationTest {
                 pointAccountRepository,
                 pointHoldRepository,
                 pointTransactionRepository,
+                cloudinaryCleanupRepository,
                 cloudinaryService,
                 clock
         );
@@ -137,6 +143,32 @@ class ArtServiceMutationTest {
                 request.getImgPath(),
                 request.getPublicId()
         );
+        verify(cloudinaryCleanupRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsCreatingArtWithPublicIdThatHasActiveCleanup() {
+        User user = new User();
+        user.setUserId("owner");
+        user.setUserStatus(1);
+        Artist artist = new Artist();
+        artist.setUser(user);
+        ArtCreateRequestDto request = createRequest();
+        request.setFormat(ArtFormat.PHYSICAL);
+        request.setCategory(ArtCategory.OTHER);
+        when(userRepository.findByUserId("owner")).thenReturn(user);
+        when(artistRepository.findByUser(user)).thenReturn(Optional.of(artist));
+        when(cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                org.mockito.ArgumentMatchers.eq(request.getPublicId()),
+                any()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> artService.createArt("owner", request))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("CLOUDINARY_IMAGE_PENDING_CLEANUP"));
+
+        verify(artRepository, never()).save(any());
     }
 
     @Test
@@ -200,6 +232,12 @@ class ArtServiceMutationTest {
                 request.getImgPath(),
                 request.getPublicId()
         );
+        ArgumentCaptor<CloudinaryCleanup> cleanup =
+                ArgumentCaptor.forClass(CloudinaryCleanup.class);
+        verify(cloudinaryCleanupRepository).save(cleanup.capture());
+        assertThat(cleanup.getValue().getPublicId()).isEqualTo("arts/owner/original");
+        assertThat(cleanup.getValue().getResourceType()).isEqualTo("image");
+        assertThat(cleanup.getValue().getNextAttemptAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -217,6 +255,70 @@ class ArtServiceMutationTest {
         assertThat(art.getImgPath()).isEqualTo(existingUrl);
         assertThat(art.getCloudinaryPublicId()).isEqualTo(existingPublicId);
         verify(cloudinaryService, never()).validateArtImageReference(any(), any(), any());
+        verify(cloudinaryCleanupRepository, never()).save(any());
+    }
+
+    @Test
+    void doesNotRegisterCleanupWhenImagePublicIdDoesNotChange() {
+        Art art = createActiveArt("owner");
+        art.setCloudinaryPublicId("arts/owner/original");
+        ArtUpdateRequestDto request = new ArtUpdateRequestDto();
+        request.setImgPath(art.getImgPath());
+        request.setPublicId(art.getCloudinaryPublicId());
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+
+        artService.updateArt(1L, "owner", request);
+
+        verify(cloudinaryCleanupRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsReplacingArtImageWithPublicIdThatHasActiveCleanup() {
+        Art art = createActiveArt("owner");
+        ArtUpdateRequestDto request = new ArtUpdateRequestDto();
+        request.setImgPath(
+                "https://res.cloudinary.com/test/image/upload/v1/arts/owner/pending.jpg"
+        );
+        request.setPublicId("arts/owner/pending");
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+        when(cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                org.mockito.ArgumentMatchers.eq("arts/owner/pending"),
+                any()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> artService.updateArt(1L, "owner", request))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("CLOUDINARY_IMAGE_PENDING_CLEANUP"));
+
+        assertThat(art.getCloudinaryPublicId()).isEqualTo("arts/owner/original");
+        verify(artRepository, never()).save(any());
+    }
+
+    @Test
+    void treatsExistingActiveCleanupAsSuccessfulRegistration() {
+        Art art = createActiveArt("owner");
+        ArtUpdateRequestDto request = new ArtUpdateRequestDto();
+        request.setImgPath(
+                "https://res.cloudinary.com/test/image/upload/v1/arts/owner/changed.jpg"
+        );
+        request.setPublicId("arts/owner/changed");
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+        when(cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                org.mockito.ArgumentMatchers.anyString(),
+                any()
+        )).thenAnswer(invocation -> "arts/owner/original".equals(
+                invocation.getArgument(0)
+        ));
+
+        ArtResponseDto response = artService.updateArt(1L, "owner", request);
+
+        assertThat(response.getImgPath()).isEqualTo(request.getImgPath());
+        assertThat(art.getCloudinaryPublicId()).isEqualTo(request.getPublicId());
+        verify(cloudinaryCleanupRepository, never()).save(any());
     }
 
     @Test
@@ -354,6 +456,7 @@ class ArtServiceMutationTest {
     @Test
     void physicallyDeletesArtWithoutBidAndDetachesLikes() {
         Art art = createActiveArt("owner");
+        art.setCloudinaryPublicId(null);
         stubLockedArt(art);
         when(bidRepository.existsByArt(art)).thenReturn(false);
         when(reviewRepository.existsByArt(art)).thenReturn(false);
@@ -366,11 +469,31 @@ class ArtServiceMutationTest {
         assertThat(response.getArtStatus()).isNull();
         verify(likesRepository).detachArt(art);
         verify(artRepository).delete(art);
+        verify(cloudinaryCleanupRepository, never()).save(any());
+    }
+
+    @Test
+    void registersCleanupBeforePhysicalDeleteWhenPublicIdExists() {
+        Art art = createActiveArt("owner");
+        art.setCloudinaryPublicId("arts/owner/delete-me");
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+        when(reviewRepository.existsByArt(art)).thenReturn(false);
+
+        artService.deleteArt(1L, "owner");
+
+        ArgumentCaptor<CloudinaryCleanup> cleanup =
+                ArgumentCaptor.forClass(CloudinaryCleanup.class);
+        verify(cloudinaryCleanupRepository).save(cleanup.capture());
+        assertThat(cleanup.getValue().getPublicId()).isEqualTo("arts/owner/delete-me");
+        assertThat(cleanup.getValue().getNextAttemptAt()).isEqualTo(NOW);
+        verify(artRepository).delete(art);
     }
 
     @Test
     void changesArtWithBidToCanceledAndPreservesRelations() {
         Art art = createActiveArt("owner");
+        art.setCloudinaryPublicId("arts/owner/canceled");
         stubLockedArt(art);
         when(bidRepository.existsByArt(art)).thenReturn(true);
 
@@ -384,6 +507,7 @@ class ArtServiceMutationTest {
         assertThat(art.getClosedAt()).isEqualTo(NOW);
         verify(likesRepository, never()).detachArt(any());
         verify(artRepository, never()).delete(any());
+        verify(cloudinaryCleanupRepository, never()).save(any());
     }
 
     @Test
@@ -484,6 +608,7 @@ class ArtServiceMutationTest {
         art.setBidStartTime(NOW.minusDays(1));
         art.setClosingTime(NOW.plusDays(1));
         art.setImgPath("https://example.com/original.jpg");
+        art.setCloudinaryPublicId("arts/owner/original");
         art.setArtStatus(Art.STATUS_ACTIVE);
         return art;
     }

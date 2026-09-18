@@ -12,6 +12,8 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.CloudinaryCleanup;
+import com.dailyatelier.dailyatelier.entity.CloudinaryCleanupStatus;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PointHold;
 import com.dailyatelier.dailyatelier.entity.PointHoldReleaseReason;
@@ -23,6 +25,7 @@ import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.CloudinaryCleanupRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
@@ -44,11 +47,17 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ArtService {
     private static final int MAX_PAGE_SIZE = 50;
+    private static final Set<CloudinaryCleanupStatus> ACTIVE_CLEANUP_STATUSES =
+            Set.of(
+                    CloudinaryCleanupStatus.PENDING,
+                    CloudinaryCleanupStatus.PROCESSING
+            );
 
     private final ArtRepository artRepository;
     private final ArtistRepository artistRepository;
@@ -60,6 +69,7 @@ public class ArtService {
     private final PointAccountRepository pointAccountRepository;
     private final PointHoldRepository pointHoldRepository;
     private final PointTransactionRepository pointTransactionRepository;
+    private final CloudinaryCleanupRepository cloudinaryCleanupRepository;
     private final CloudinaryService cloudinaryService;
     private final Clock clock;
 
@@ -178,6 +188,7 @@ public class ArtService {
                 dto.getImgPath(),
                 dto.getPublicId()
         );
+        rejectActiveCleanupReference(dto.getPublicId());
 
         Art art = new Art();
         art.setArtist(artist);
@@ -250,9 +261,18 @@ public class ArtService {
                     dto.getImgPath(),
                     dto.getPublicId()
             );
+            if (!dto.getPublicId().trim().equals(art.getCloudinaryPublicId())) {
+                rejectActiveCleanupReference(dto.getPublicId());
+            }
         }
 
+        String previousPublicId = art.getCloudinaryPublicId();
         applyUpdate(art, dto);
+        if (dto.isImgPathProvided()
+                && previousPublicId != null
+                && !previousPublicId.equals(art.getCloudinaryPublicId())) {
+            registerImageCleanup(previousPublicId, now);
+        }
         return toResponse(artRepository.save(art));
     }
 
@@ -282,6 +302,9 @@ public class ArtService {
             );
         }
 
+        if (art.getCloudinaryPublicId() != null) {
+            registerImageCleanup(art.getCloudinaryPublicId(), now);
+        }
         likesRepository.detachArt(art);
         artRepository.delete(art);
         return new ArtDeleteResponseDto(
@@ -440,6 +463,32 @@ public class ArtService {
             art.setImgPath(dto.getImgPath().trim());
             art.setCloudinaryPublicId(dto.getPublicId().trim());
         }
+    }
+
+    private void registerImageCleanup(String publicId, LocalDateTime now) {
+        if (hasActiveCleanup(publicId)) {
+            return;
+        }
+        cloudinaryCleanupRepository.save(
+                CloudinaryCleanup.pending(publicId, "image", now)
+        );
+    }
+
+    private void rejectActiveCleanupReference(String publicId) {
+        if (hasActiveCleanup(publicId.trim())) {
+            throw new DomainApiException(
+                    HttpStatus.CONFLICT,
+                    "CLOUDINARY_IMAGE_PENDING_CLEANUP",
+                    "정리 대기 중인 이미지는 다시 사용할 수 없습니다."
+            );
+        }
+    }
+
+    private boolean hasActiveCleanup(String publicId) {
+        return cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                publicId,
+                ACTIVE_CLEANUP_STATUSES
+        );
     }
 
     private ArtResponseDto toResponse(Art art) {

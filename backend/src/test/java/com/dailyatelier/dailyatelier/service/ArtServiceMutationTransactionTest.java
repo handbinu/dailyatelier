@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtDeleteResponseDto;
+import com.dailyatelier.dailyatelier.dto.ArtUpdateRequestDto;
 import com.dailyatelier.dailyatelier.dto.LikeItemDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
@@ -19,6 +20,7 @@ import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.CloudinaryCleanupRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
@@ -40,6 +42,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -100,6 +104,12 @@ class ArtServiceMutationTransactionTest {
     private PointTransactionRepository pointTransactionRepository;
 
     @Autowired
+    private CloudinaryCleanupRepository cloudinaryCleanupRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private Artist artist;
@@ -109,6 +119,7 @@ class ArtServiceMutationTransactionTest {
     void setUp() {
         jdbcTemplate.update("UPDATE art SET active_point_hold_id = NULL");
         pointTransactionRepository.deleteAll();
+        cloudinaryCleanupRepository.deleteAll();
         pointHoldRepository.deleteAll();
         pointAccountRepository.deleteAll();
         reviewRepository.deleteAll();
@@ -150,6 +161,10 @@ class ArtServiceMutationTransactionTest {
         assertThat(response.getAction())
                 .isEqualTo(ArtDeleteResponseDto.Action.DELETED);
         assertThat(artRepository.findById(artId)).isEmpty();
+        assertThat(cloudinaryCleanupRepository.findAll())
+                .singleElement()
+                .satisfies(cleanup -> assertThat(cleanup.getPublicId())
+                        .isEqualTo("arts/owner/test-art"));
         assertThat(likesRepository.findAll())
                 .singleElement()
                 .satisfies(like -> assertThat(like.getArt()).isNull());
@@ -243,6 +258,30 @@ class ArtServiceMutationTransactionTest {
                 .singleElement()
                 .satisfies(like -> assertThat(like.getArt().getArtId())
                         .isEqualTo(artId));
+        assertThat(cloudinaryCleanupRepository.count()).isZero();
+    }
+
+    @Test
+    void rollsBackImageReferenceAndCleanupRegistrationTogether() {
+        Art art = saveActiveArt("rollback 대상");
+        String oldUrl = art.getImgPath();
+        String oldPublicId = art.getCloudinaryPublicId();
+        ArtUpdateRequestDto request = new ArtUpdateRequestDto();
+        request.setImgPath(
+                "https://res.cloudinary.com/test/image/upload/v1/arts/owner/new-art.jpg"
+        );
+        request.setPublicId("arts/owner/new-art");
+
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.executeWithoutResult(status -> {
+            artService.updateArt(art.getArtId(), "owner", request);
+            status.setRollbackOnly();
+        });
+
+        Art reloaded = artRepository.findById(art.getArtId()).orElseThrow();
+        assertThat(reloaded.getImgPath()).isEqualTo(oldUrl);
+        assertThat(reloaded.getCloudinaryPublicId()).isEqualTo(oldPublicId);
+        assertThat(cloudinaryCleanupRepository.count()).isZero();
     }
 
     @Test
@@ -305,6 +344,7 @@ class ArtServiceMutationTransactionTest {
         art.setBidStartTime(NOW.minusDays(1));
         art.setClosingTime(NOW.plusDays(1));
         art.setImgPath("https://example.com/art.jpg");
+        art.setCloudinaryPublicId("arts/owner/test-art");
         art.setArtStatus(Art.STATUS_ACTIVE);
         return artRepository.save(art);
     }
