@@ -243,3 +243,8 @@ ORDER BY account.user_id;
 - 작품·프로필은 URL과 case-sensitive `public_id`를 함께 저장하고 `arts/{userId}`·`profiles/{userId}` namespace 및 URL 동일 자산을 검증한다. 기존 URL-only 데이터와 `CANCELED` 작품 이미지는 자동 삭제하지 않는다.
 - 이미지 교체·작품 물리 삭제는 같은 DB 트랜잭션에 cleanup을 등록하고, commit 이후 작업자가 lease·claim fencing·참조 재검증을 거쳐 삭제한다. 성공/not-found는 완료, 네트워크·408·429·5xx는 제한 재시도, 비재시도 오류와 최대 시도 초과는 `FAILED`로 보존한다.
 - 실제 빈 MySQL 8.0에서 Flyway V1~V9, Hibernate validate, 재실행 0건, `SKIP LOCKED`, lease 재선점과 stale claim 차단을 검증했다. 브라우저 업로드 후 API 미도달 자산 정리는 별도 backlog로 유지한다.
+
+## React Hooks lint 개선
+
+- 작품 수정 화면은 경매 시작·종료 시각까지 다음 갱신을 예약해 재진입이나 입력 없이 잠금 상태를 최신화하며, `Date.now()`를 렌더에서 제거했다.
+- 판매 주문 목록과 중복 확인은 렌더 중 ref를 갱신하지 않고 최신 값·요청 판별 계약을 유지했다. `react-hooks/purity`, `react-hooks/refs`를 error로 재활성화했다.
