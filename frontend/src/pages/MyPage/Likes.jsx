@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageBanner, Badge, Empty, PageWrap, ActionBtn } from './components/atoms'
 import { getMyLikes, removeArtLike } from '../../api/userApi'
+import { createLatestRequest } from '../../utils/latestRequest'
 import s from './Likes.module.css'
 
 const PAGE_SIZE = 12
@@ -24,34 +25,51 @@ export default function Likes() {
   const [error, setError] = useState('')
   const [moreError, setMoreError] = useState('')
   const [removingId, setRemovingId] = useState(null)
+  const likesRequest = useRef(null)
 
-  const loadLikes = useCallback(async (page = 0) => {
+  const loadLikes = useCallback((page = 0) => {
     const isFirstPage = page === 0
-    if (isFirstPage) {
-      setLoading(true)
-    } else {
-      setLoadingMore(true)
-    }
-    if (isFirstPage) {
-      setError('')
-    } else {
-      setMoreError('')
-    }
+    return likesRequest.current?.run(
+      ({ signal }) => getMyLikes({ page, size: PAGE_SIZE, signal }),
+      {
+        onStart: () => {
+          if (isFirstPage) {
+            setLoading(true)
+            setError('')
+          } else {
+            setLoadingMore(true)
+            setMoreError('')
+          }
+        },
+        onSuccess: ({ data }) => {
+          setLikes((prev) => (isFirstPage ? data.content : [...prev, ...data.content]))
+          setPageInfo({ page: data.number, last: data.last })
+        },
+        onError: (err) => {
+          const message = err.response?.data?.message || '찜한 작품을 불러오지 못했습니다.'
+          if (isFirstPage) {
+            setError(message)
+          } else {
+            setMoreError(message)
+          }
+        },
+        onFinally: () => {
+          if (isFirstPage) {
+            setLoading(false)
+          } else {
+            setLoadingMore(false)
+          }
+        },
+      },
+    )
+  }, [])
 
-    try {
-      const { data } = await getMyLikes({ page, size: PAGE_SIZE })
-      setLikes((prev) => (isFirstPage ? data.content : [...prev, ...data.content]))
-      setPageInfo({ page: data.number, last: data.last })
-    } catch (err) {
-      const message = err.response?.data?.message || '찜한 작품을 불러오지 못했습니다.'
-      if (isFirstPage) {
-        setError(message)
-      } else {
-        setMoreError(message)
-      }
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
+  useEffect(() => {
+    const request = createLatestRequest()
+    likesRequest.current = request
+    return () => {
+      request.dispose()
+      if (likesRequest.current === request) likesRequest.current = null
     }
   }, [])
 

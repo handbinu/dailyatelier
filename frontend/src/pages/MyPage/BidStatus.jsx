@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllMyBids } from '../../api/userApi'
 import { formatPrice } from '../../utils/artDisplay'
 import { getArtImageSrc } from '../../utils/artImage'
+import { createLatestRequest } from '../../utils/latestRequest'
 import { PageBanner, Badge, FilterBar, Empty, PageWrap, ArtThumb, ActionBtn } from './components/atoms'
 import s from './BidStatus.module.css'
 
@@ -39,20 +40,35 @@ export default function BidStatus() {
   const [bids, setBids] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const bidsRequest = useRef(null)
 
-  const loadBids = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setBids(await getAllMyBids())
-    } catch (requestError) {
-      if (requestError.response?.status === 401) {
-        setError('로그인이 만료되었습니다. 다시 로그인해 주세요.')
-      } else {
-        setError(requestError.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
-      }
-    } finally {
-      setLoading(false)
+  const loadBids = useCallback(() => {
+    return bidsRequest.current?.run(
+      ({ signal }) => getAllMyBids({ signal }),
+      {
+        onStart: () => {
+          setLoading(true)
+          setError('')
+        },
+        onSuccess: setBids,
+        onError: (requestError) => {
+          if (requestError.response?.status === 401) {
+            setError('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+          } else {
+            setError(requestError.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+          }
+        },
+        onFinally: () => setLoading(false),
+      },
+    )
+  }, [])
+
+  useEffect(() => {
+    const request = createLatestRequest()
+    bidsRequest.current = request
+    return () => {
+      request.dispose()
+      if (bidsRequest.current === request) bidsRequest.current = null
     }
   }, [])
 

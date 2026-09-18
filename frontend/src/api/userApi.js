@@ -22,16 +22,16 @@ export const checkNickname = (value) =>
   api.get('/api/check/nickname', { params: { value } })
 
 // 마이페이지 찜 목록 조회
-export const getMyLikes = ({ page = 0, size = 12 } = {}) =>
-  api.get('/api/users/me/likes', { params: { page, size } })
+export const getMyLikes = ({ page = 0, size = 12, signal } = {}) =>
+  api.get('/api/users/me/likes', { params: { page, size }, signal })
 
 // 마이페이지 입찰 현황 조회
-export const getMyBids = ({ page = 0, size = 50 } = {}) =>
-  api.get('/api/users/me/bids', { params: { page, size } })
+export const getMyBids = ({ page = 0, size = 50, signal } = {}) =>
+  api.get('/api/users/me/bids', { params: { page, size }, signal })
 
 // 상태별 집계와 필터가 전체 입찰 내역을 기준으로 동작하도록 모든 페이지 조회
-export const getAllMyBids = async () => {
-  const firstResponse = await getMyBids({ page: 0, size: 50 })
+export const getAllMyBids = async ({ signal } = {}) => {
+  const firstResponse = await getMyBids({ page: 0, size: 50, signal })
   const firstPage = firstResponse.data
   const totalPages = Number(firstPage?.totalPages ?? 0)
 
@@ -40,7 +40,7 @@ export const getAllMyBids = async () => {
   const remainingResponses = await Promise.all(
     Array.from(
       { length: totalPages - 1 },
-      (_, index) => getMyBids({ page: index + 1, size: 50 }),
+      (_, index) => getMyBids({ page: index + 1, size: 50, signal }),
     ),
   )
 
