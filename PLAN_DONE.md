@@ -235,4 +235,11 @@ ORDER BY account.user_id;
 ## 마이페이지 조회 상태와 재시도 UX 개선
 
 - 문의·입찰 통계에서 조회 중·실패를 정상 `0`건과 구분해 `-`로 표시하고, 찜 추가 조회 실패 시 기존 목록을 유지한 채 실패한 페이지를 재시도하도록 했다.
+- 입찰·찜 목록은 새 조회와 화면 이탈 시 이전 요청을 취소하고, 늦은 이전 응답이 최신 목록 상태를 덮지 않도록 한다.
 - loading 전환 순간은 브라우저에서 명확히 확인하지 못해 자동 테스트로 검증했다.
+
+## Cloudinary 고아 이미지 안전 정리
+
+- 작품·프로필은 URL과 case-sensitive `public_id`를 함께 저장하고 `arts/{userId}`·`profiles/{userId}` namespace 및 URL 동일 자산을 검증한다. 기존 URL-only 데이터와 `CANCELED` 작품 이미지는 자동 삭제하지 않는다.
+- 이미지 교체·작품 물리 삭제는 같은 DB 트랜잭션에 cleanup을 등록하고, commit 이후 작업자가 lease·claim fencing·참조 재검증을 거쳐 삭제한다. 성공/not-found는 완료, 네트워크·408·429·5xx는 제한 재시도, 비재시도 오류와 최대 시도 초과는 `FAILED`로 보존한다.
+- 실제 빈 MySQL 8.0에서 Flyway V1~V9, Hibernate validate, 재실행 0건, `SKIP LOCKED`, lease 재선점과 stale claim 차단을 검증했다. 브라우저 업로드 후 API 미도달 자산 정리는 별도 backlog로 유지한다.
