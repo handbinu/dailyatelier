@@ -64,4 +64,16 @@ class ArtCreateRequestDtoTest {
                     .contains("minimumBidIncrementValid");
         }
     }
+
+    @Test
+    void readsCloudinaryPublicIdAsPartOfImageContract() throws Exception {
+        ArtCreateRequestDto request = objectMapper.readValue(
+                "{\"imgPath\":\"https://res.cloudinary.com/test/image/upload/v1/arts/member/work.jpg\","
+                        + "\"publicId\":\"arts/member/work\"}",
+                ArtCreateRequestDto.class
+        );
+
+        assertThat(request.getImgPath()).contains("arts/member/work.jpg");
+        assertThat(request.getPublicId()).isEqualTo("arts/member/work");
+    }
 }

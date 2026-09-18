@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -49,6 +50,9 @@ public class ArtCreateRequestDto {
 
     @NotBlank
     private String imgPath;
+
+    @Size(max = 320)
+    private String publicId;
 
     private Integer artStatus = 0;
 

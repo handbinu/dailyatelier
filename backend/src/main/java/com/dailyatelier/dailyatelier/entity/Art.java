@@ -70,6 +70,9 @@ public class Art {
     @Column(nullable = false)
     private String imgPath;
 
+    @Column(name = "cloudinary_public_id", length = 320, unique = true)
+    private String cloudinaryPublicId;
+
     @Column(nullable = false)
     private Integer artStatus;
 

@@ -6,7 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(properties = {
         "spring.flyway.enabled=true",
@@ -29,13 +32,13 @@ class FlywayEmptyDatabaseMySqlTest {
             "users", "artist", "art", "bid", "orders", "address",
             "inquiry", "likes", "review", "point_account",
             "point_transaction", "point_hold", "point_charge",
-            "payment_callback_event"
+            "payment_callback_event", "cloudinary_cleanup"
     );
 
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
-            Map.entry("users", 11),
+            Map.entry("users", 12),
             Map.entry("artist", 6),
-            Map.entry("art", 19),
+            Map.entry("art", 20),
             Map.entry("bid", 5),
             Map.entry("orders", 44),
             Map.entry("address", 4),
@@ -46,7 +49,8 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("point_transaction", 15),
             Map.entry("point_hold", 12),
             Map.entry("point_charge", 18),
-            Map.entry("payment_callback_event", 10)
+            Map.entry("payment_callback_event", 10),
+            Map.entry("cloudinary_cleanup", 10)
     );
 
     private static final Set<String> EXPECTED_INDEXES = Set.of(
@@ -65,7 +69,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "idx_point_transaction_reference",
             "idx_point_hold_art_created",
             "idx_point_hold_user_status_created",
-            "idx_callback_status_received"
+            "idx_callback_status_received",
+            "idx_cloudinary_cleanup_pending"
     );
 
     private static final Map<String, String> EXPECTED_INDEX_COLUMNS = Map.ofEntries(
@@ -84,7 +89,8 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("idx_point_transaction_reference", "reference_type,reference_id,type"),
             Map.entry("idx_point_hold_art_created", "art_id,created_at"),
             Map.entry("idx_point_hold_user_status_created", "user_id,status,created_at"),
-            Map.entry("idx_callback_status_received", "status,received_at,callback_event_id")
+            Map.entry("idx_callback_status_received", "status,received_at,callback_event_id"),
+            Map.entry("idx_cloudinary_cleanup_pending", "status,next_attempt_at,cleanup_id")
     );
 
     private static final Set<String> EXPECTED_UNIQUE_CONSTRAINTS = Set.of(
@@ -97,7 +103,10 @@ class FlywayEmptyDatabaseMySqlTest {
             "uq_point_charge_merchant_order",
             "uq_point_charge_provider_pg_order",
             "uq_point_charge_user_idempotency",
-            "uq_callback_provider_event"
+            "uq_callback_provider_event",
+            "uq_art_cloudinary_public_id",
+            "uq_users_profile_image_public_id",
+            "uq_cloudinary_cleanup_active_public_id"
     );
 
     private static final Map<String, String> EXPECTED_UNIQUE_COLUMNS = Map.ofEntries(
@@ -110,7 +119,10 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("uq_point_charge_merchant_order", "merchant_order_id"),
             Map.entry("uq_point_charge_provider_pg_order", "provider,pg_order_id"),
             Map.entry("uq_point_charge_user_idempotency", "user_id,idempotency_key"),
-            Map.entry("uq_callback_provider_event", "provider,provider_event_id")
+            Map.entry("uq_callback_provider_event", "provider,provider_event_id"),
+            Map.entry("uq_art_cloudinary_public_id", "cloudinary_public_id"),
+            Map.entry("uq_users_profile_image_public_id", "profile_image_public_id"),
+            Map.entry("uq_cloudinary_cleanup_active_public_id", "active_public_id")
     );
 
     private static final Set<String> EXPECTED_FOREIGN_KEYS = Set.of(
@@ -169,7 +181,9 @@ class FlywayEmptyDatabaseMySqlTest {
             "chk_point_charge_paid_amount",
             "chk_callback_attempt_count",
             "chk_art_minimum_bid_increment",
-            "chk_review_star"
+            "chk_review_star",
+            "chk_cloudinary_cleanup_status",
+            "chk_cloudinary_cleanup_attempt_count"
     );
 
     private static final Map<String, String> EXPECTED_CHECK_CLAUSES = Map.ofEntries(
@@ -182,6 +196,11 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("chk_point_charge_requested_amount", "requested_amount>0"),
             Map.entry("chk_point_charge_paid_amount", "paid_amount>=0"),
             Map.entry("chk_callback_attempt_count", "attempt_count>=0"),
+            Map.entry(
+                    "chk_cloudinary_cleanup_status",
+                    "statusin'pending','processing','done','failed'"
+            ),
+            Map.entry("chk_cloudinary_cleanup_attempt_count", "attempt_count>=0"),
             Map.entry("chk_review_star", "starbetween1and10"),
             Map.entry(
                     "chk_art_minimum_bid_increment",
@@ -197,10 +216,10 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
-        assertThat(constraintCount("PRIMARY KEY")).isEqualTo(14);
+        assertThat(constraintCount("PRIMARY KEY")).isEqualTo(15);
         assertThat(constraintNames("UNIQUE"))
                 .isEqualTo(EXPECTED_UNIQUE_CONSTRAINTS);
         assertThat(uniqueConstraintColumns())
@@ -216,17 +235,102 @@ class FlywayEmptyDatabaseMySqlTest {
         assertThat(expectedIndexColumns()).isEqualTo(EXPECTED_INDEX_COLUMNS);
         assertImportantColumn("users", "reserve", "int", false, "0");
         assertImportantColumn("users", "profile_image_url", "varchar", true, null);
+        assertImportantColumn("users", "profile_image_public_id", "varchar", true, null);
         assertImportantColumn("art", "active_point_hold_id", "bigint", true, null);
         assertImportantColumn("art", "format", "varchar", false, null);
         assertImportantColumn("art", "category", "varchar", false, null);
         assertImportantColumn("art", "created_at", "datetime", false, null);
         assertImportantColumn("art", "minimum_bid_increment", "int", false, "1000");
+        assertImportantColumn("art", "cloudinary_public_id", "varchar", true, null);
+        assertImportantColumn("cloudinary_cleanup", "status", "varchar", false, null);
+        assertImportantColumn("cloudinary_cleanup", "attempt_count", "int", false, "0");
+        assertImportantColumn("cloudinary_cleanup", "active_public_id", "varchar", true, null);
+        assertCloudinaryIdentifierColumn("art", "cloudinary_public_id", false);
+        assertCloudinaryIdentifierColumn("users", "profile_image_public_id", false);
+        assertCloudinaryIdentifierColumn("cloudinary_cleanup", "public_id", false);
+        assertCloudinaryIdentifierColumn("cloudinary_cleanup", "active_public_id", true);
         assertImportantColumn("orders", "payment_method", "varchar", false, null);
         assertImportantColumn("orders", "refund_request_status", "varchar", true, null);
         assertImportantColumn("review", "user_id", "varchar", false, null);
         assertImportantColumn("review", "art_id", "bigint", false, null);
         assertImportantColumn("review", "order_id", "bigint", false, null);
         assertImportantColumn("review", "star", "int", false, null);
+    }
+
+    @Test
+    @Transactional
+    void cloudinaryCleanupConstraintsEnforceLifecycleAndIdentifierSemantics() {
+        jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/CaseId', 'image', 'PENDING', CURRENT_TIMESTAMP)
+                """);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT active_public_id FROM cloudinary_cleanup WHERE public_id = 'arts/member/CaseId'",
+                String.class
+        )).isEqualTo("arts/member/CaseId");
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/CaseId', 'image', 'PROCESSING', CURRENT_TIMESTAMP)
+                """))
+                .isInstanceOf(DataAccessException.class);
+
+        jdbcTemplate.update("""
+                UPDATE cloudinary_cleanup
+                SET status = 'DONE', completed_at = CURRENT_TIMESTAMP
+                WHERE public_id = 'arts/member/CaseId'
+                """);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT active_public_id IS NULL FROM cloudinary_cleanup WHERE status = 'DONE'",
+                Boolean.class
+        )).isTrue();
+        jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/CaseId', 'image', 'PENDING', CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/caseid', 'image', 'PENDING', CURRENT_TIMESTAMP)
+                """);
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/bad-status', 'image', 'UNKNOWN', CURRENT_TIMESTAMP)
+                """))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, attempt_count, created_at
+                ) VALUES ('arts/member/bad-attempt', 'image', 'PENDING', -1, CURRENT_TIMESTAMP)
+                """))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at, active_public_id
+                ) VALUES (
+                    'arts/member/generated', 'image', 'DONE', CURRENT_TIMESTAMP,
+                    'arts/member/wrong'
+                )
+                """))
+                .isInstanceOf(DataAccessException.class);
+
+        insertLegacyUser("legacy-null-1");
+        insertLegacyUser("legacy-null-2");
+        insertLegacyArt("legacy-null-art-1");
+        insertLegacyArt("legacy-null-art-2");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE profile_image_public_id IS NULL",
+                Long.class
+        )).isEqualTo(2L);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM art WHERE cloudinary_public_id IS NULL",
+                Long.class
+        )).isEqualTo(2L);
     }
 
     @Test
@@ -328,6 +432,8 @@ class FlywayEmptyDatabaseMySqlTest {
         clauses.replaceAll((name, clause) -> clause
                 .replace("`", "")
                 .replace(" ", "")
+                .replace("_utf8mb4", "")
+                .replace("\\'", "'")
                 .replaceAll("(?i)mod\\(([^,]+),([^)]+)\\)", "$1%$2")
                 .replace("(", "")
                 .replace(")", "")
@@ -395,6 +501,54 @@ class FlywayEmptyDatabaseMySqlTest {
         assertThat(column.get("is_nullable"))
                 .isEqualTo(nullable ? "YES" : "NO");
         assertThat(column.get("column_default")).isEqualTo(defaultValue);
+    }
+
+    private void assertCloudinaryIdentifierColumn(
+            String tableName,
+            String columnName,
+            boolean generated) {
+        Map<String, Object> column = jdbcTemplate.queryForMap("""
+                select character_maximum_length, collation_name, extra,
+                       generation_expression
+                from information_schema.columns
+                where table_schema = database()
+                  and table_name = ?
+                  and column_name = ?
+                """, tableName, columnName);
+        assertThat(((Number) column.get("character_maximum_length")).longValue())
+                .isEqualTo(320L);
+        assertThat(column.get("collation_name")).isEqualTo("utf8mb4_bin");
+        if (generated) {
+            assertThat(String.valueOf(column.get("extra")).toLowerCase())
+                    .contains("stored generated");
+            assertThat(String.valueOf(column.get("generation_expression")).toLowerCase())
+                    .contains("pending", "processing", "public_id");
+        } else {
+            assertThat(String.valueOf(column.get("generation_expression")))
+                    .isEmpty();
+        }
+    }
+
+    private void insertLegacyUser(String userId) {
+        jdbcTemplate.update("""
+                INSERT INTO users (
+                    user_id, password, name, nickname, phone_number, email,
+                    join_date, user_status, reserve, email_agree
+                ) VALUES (?, 'encoded', 'legacy', ?, '010-0000-0000', ?,
+                          CURRENT_TIMESTAMP, 0, 0, TRUE)
+                """, userId, userId.substring(userId.length() - 6), userId + "@test.dev");
+    }
+
+    private void insertLegacyArt(String name) {
+        jdbcTemplate.update("""
+                INSERT INTO art (
+                    name, descript, start_price, current_price,
+                    bid_start_time, closing_time, img_path, art_status,
+                    format, category, created_at, minimum_bid_increment
+                ) VALUES (?, 'legacy', 1000, 1000,
+                          CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 DAY),
+                          '/legacy.jpg', 0, 'PHYSICAL', 'OTHER', CURRENT_TIMESTAMP, 1000)
+                """, name);
     }
 
     private long count(String tableName) {

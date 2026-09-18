@@ -41,6 +41,9 @@ public class ArtUpdateRequestDto {
     @Size(max = 2048)
     private String imgPath;
 
+    @Size(max = 320)
+    private String publicId;
+
     @JsonIgnore
     private boolean startPriceProvided;
 
@@ -70,6 +73,9 @@ public class ArtUpdateRequestDto {
 
     @JsonIgnore
     private boolean imgPathProvided;
+
+    @JsonIgnore
+    private boolean publicIdProvided;
 
     @JsonSetter("startPrice")
     public void setStartPrice(Integer startPrice) {
@@ -129,6 +135,12 @@ public class ArtUpdateRequestDto {
     public void setImgPath(String imgPath) {
         this.imgPathProvided = true;
         this.imgPath = imgPath;
+    }
+
+    @JsonSetter("publicId")
+    public void setPublicId(String publicId) {
+        this.publicIdProvided = true;
+        this.publicId = publicId;
     }
 
     @JsonIgnore

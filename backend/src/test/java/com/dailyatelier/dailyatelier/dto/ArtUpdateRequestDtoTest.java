@@ -116,6 +116,23 @@ class ArtUpdateRequestDtoTest {
                 .contains("startPrice", "descript", "providedImgPathValid");
     }
 
+    @Test
+    void distinguishesMissingCloudinaryPublicIdFromProvidedValue() throws Exception {
+        ArtUpdateRequestDto missing = objectMapper.readValue(
+                "{\"imgPath\":\"/legacy-art.jpg\"}",
+                ArtUpdateRequestDto.class
+        );
+        ArtUpdateRequestDto provided = objectMapper.readValue(
+                "{\"imgPath\":\"https://res.cloudinary.com/test/image/upload/v1/arts/member/work.jpg\","
+                        + "\"publicId\":\"arts/member/work\"}",
+                ArtUpdateRequestDto.class
+        );
+
+        assertThat(missing.isPublicIdProvided()).isFalse();
+        assertThat(provided.isPublicIdProvided()).isTrue();
+        assertThat(provided.getPublicId()).isEqualTo("arts/member/work");
+    }
+
     private Set<String> messages(
             Set<ConstraintViolation<ArtUpdateRequestDto>> violations) {
         return violations.stream()

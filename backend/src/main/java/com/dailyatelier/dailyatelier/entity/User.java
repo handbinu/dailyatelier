@@ -47,4 +47,7 @@ public class User {
 
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
+
+    @Column(name = "profile_image_public_id", length = 320, unique = true)
+    private String profileImagePublicId;
 }
