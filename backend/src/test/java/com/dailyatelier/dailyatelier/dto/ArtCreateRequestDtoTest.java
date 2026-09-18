@@ -26,6 +26,16 @@ class ArtCreateRequestDtoTest {
     }
 
     @Test
+    void requiresCloudinaryPublicIdForNewArtImage() {
+        ArtCreateRequestDto request = new ArtCreateRequestDto();
+        request.setImgPath("https://res.cloudinary.com/test/image/upload/v1/arts/member/work.jpg");
+
+        assertThat(validator.validate(request))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .contains("publicId");
+    }
+
+    @Test
     void defaultsMissingMinimumBidIncrementAndRejectsExplicitNull() throws Exception {
         ArtCreateRequestDto missing = objectMapper.readValue("{}", ArtCreateRequestDto.class);
         ArtCreateRequestDto explicitNull = objectMapper.readValue(

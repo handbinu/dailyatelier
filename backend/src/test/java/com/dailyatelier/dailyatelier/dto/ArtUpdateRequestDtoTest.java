@@ -131,6 +131,9 @@ class ArtUpdateRequestDtoTest {
         assertThat(missing.isPublicIdProvided()).isFalse();
         assertThat(provided.isPublicIdProvided()).isTrue();
         assertThat(provided.getPublicId()).isEqualTo("arts/member/work");
+        assertThat(messages(validator.validate(missing)))
+                .contains("이미지 URL과 Cloudinary 식별자는 함께 입력해야 합니다.");
+        assertThat(validator.validate(provided)).isEmpty();
     }
 
     private Set<String> messages(

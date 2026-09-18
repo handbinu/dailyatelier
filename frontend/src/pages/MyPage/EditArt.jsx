@@ -139,7 +139,7 @@ export default function EditArt() {
   }
 
   const uploadImage = async () => {
-    if (!selectedFile) return form.imgPath
+    if (!selectedFile) return null
     const { data: signature } = await api.post('/api/uploads/cloudinary/signature', { folder: CLOUDINARY_FOLDER })
     const body = new FormData()
     body.append('file', selectedFile)
@@ -150,7 +150,7 @@ export default function EditArt() {
     const response = await fetch(signature.uploadUrl, { method: 'POST', mode: 'cors', body })
     const result = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(result?.error?.message || '이미지 업로드에 실패했습니다.')
-    return result.secure_url
+    return { imgPath: result.secure_url, publicId: result.public_id }
   }
 
   const handleSubmit = async (event) => {
@@ -159,10 +159,12 @@ export default function EditArt() {
     setSubmitting(true)
     setErrors({})
     try {
+      const uploadedImage = await uploadImage()
       const payload = {
         descript: form.descript.trim(), material: form.material.trim(), format: form.format,
-        category: form.category, wIntro: form.wIntro.trim(), imgPath: await uploadImage(),
+        category: form.category, wIntro: form.wIntro.trim(),
       }
+      if (uploadedImage) Object.assign(payload, uploadedImage)
       if (!priceAndPeriodLocked) Object.assign(payload, {
         startPrice: Number(form.startPrice), bidStartTime: form.bidStartTime, closingTime: form.closingTime,
       })

@@ -48,6 +48,7 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 @DataJpaTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:art-mutation-transaction-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -336,6 +337,11 @@ class ArtServiceMutationTransactionTest {
                     Instant.parse("2026-07-28T06:00:00Z"),
                     ZoneId.of("Asia/Seoul")
             );
+        }
+
+        @Bean
+        CloudinaryService cloudinaryService() {
+            return mock(CloudinaryService.class);
         }
     }
 }

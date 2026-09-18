@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 @DataJpaTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:art-mutation-concurrency-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -495,6 +496,11 @@ class ArtMutationConcurrencyTest {
                     OPEN_INSTANT,
                     ZoneId.of("Asia/Seoul")
             );
+        }
+
+        @Bean
+        CloudinaryService cloudinaryService() {
+            return mock(CloudinaryService.class);
         }
     }
 

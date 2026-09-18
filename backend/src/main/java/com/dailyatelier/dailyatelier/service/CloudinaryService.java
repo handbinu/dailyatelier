@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.CloudinarySignatureResponseDto;
+import com.dailyatelier.dailyatelier.dto.CloudinaryUploadResult;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +66,7 @@ public class CloudinaryService {
 
     public CloudinarySignatureResponseDto createUploadSignature(String userId, String folder) {
         validateArtist(userId);
-        String normalizedFolder = normalizeFolder(folder);
+        String normalizedFolder = normalizeArtFolder(userId, folder);
         long timestamp = System.currentTimeMillis() / 1000L;
         String signature = generateSignature(normalizedFolder, timestamp);
 
@@ -117,7 +119,7 @@ public class CloudinaryService {
         }
     }
 
-    public String uploadProfileImage(String userId, MultipartFile image) {
+    public CloudinaryUploadResult uploadProfileImage(String userId, MultipartFile image) {
         validateProfileImage(image);
         String folder = "profiles/" + userId;
         long timestamp = System.currentTimeMillis() / 1000L;
@@ -137,14 +139,17 @@ public class CloudinaryService {
                     .retrieve()
                     .body(Map.class);
             String secureUrl = response == null ? null : (String) response.get("secure_url");
-            if (isBlank(secureUrl)) {
+            String publicId = response == null ? null : (String) response.get("public_id");
+            if (isBlank(secureUrl)
+                    || isBlank(publicId)
+                    || !publicId.startsWith(folder + "/")) {
                 throw new DomainApiException(
                         HttpStatus.BAD_GATEWAY,
                         "PROFILE_IMAGE_UPLOAD_FAILED",
                         "프로필 이미지 업로드에 실패했습니다."
                 );
             }
-            return secureUrl;
+            return new CloudinaryUploadResult(secureUrl, publicId);
         } catch (RestClientException exception) {
             throw new DomainApiException(
                     HttpStatus.BAD_GATEWAY,
@@ -165,12 +170,71 @@ public class CloudinaryService {
         }
     }
 
-    private String normalizeFolder(String folder) {
+    public void validateArtImageReference(
+            String userId,
+            String secureUrl,
+            String publicId) {
+        String namespace = "arts/" + userId + "/";
+        if (isBlank(secureUrl)
+                || isBlank(publicId)
+                || !publicId.startsWith(namespace)) {
+            throw invalidArtImageReference();
+        }
+
+        try {
+            URI uri = URI.create(secureUrl);
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !"res.cloudinary.com".equalsIgnoreCase(uri.getHost())
+                    || uri.getPort() != -1
+                    || uri.getUserInfo() != null
+                    || uri.getQuery() != null
+                    || uri.getFragment() != null) {
+                throw invalidArtImageReference();
+            }
+
+            String prefix = "/" + cloudName + "/image/upload/";
+            String path = uri.getPath();
+            if (path == null || !path.startsWith(prefix)) {
+                throw invalidArtImageReference();
+            }
+
+            String versionAndAsset = path.substring(prefix.length());
+            int versionSeparator = versionAndAsset.indexOf('/');
+            if (versionSeparator < 0
+                    || !versionAndAsset.substring(0, versionSeparator).matches("v[0-9]+")) {
+                throw invalidArtImageReference();
+            }
+
+            String assetWithExtension = versionAndAsset.substring(versionSeparator + 1);
+            int lastSlash = assetWithExtension.lastIndexOf('/');
+            int extensionSeparator = assetWithExtension.lastIndexOf('.');
+            if (extensionSeparator <= lastSlash
+                    || extensionSeparator == assetWithExtension.length() - 1) {
+                throw invalidArtImageReference();
+            }
+            String urlPublicId = assetWithExtension.substring(0, extensionSeparator);
+            if (!publicId.equals(urlPublicId)) {
+                throw invalidArtImageReference();
+            }
+        } catch (IllegalArgumentException exception) {
+            throw invalidArtImageReference();
+        }
+    }
+
+    private DomainApiException invalidArtImageReference() {
+        return new DomainApiException(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_ART_IMAGE_REFERENCE",
+                "작품 이미지 정보를 확인해 주세요."
+        );
+    }
+
+    private String normalizeArtFolder(String userId, String folder) {
         String value = folder == null ? "" : folder.trim();
         if (!ALLOWED_FOLDER.equals(value)) {
             throw new DomainApiException(HttpStatus.BAD_REQUEST, "INVALID_UPLOAD_FOLDER", "허용되지 않은 업로드 폴더입니다.");
         }
-        return value;
+        return value + "/" + userId;
     }
 
     private void validateInquiryAttachment(MultipartFile attachment) {

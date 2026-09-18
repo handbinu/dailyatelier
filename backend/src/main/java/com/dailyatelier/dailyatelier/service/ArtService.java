@@ -60,6 +60,7 @@ public class ArtService {
     private final PointAccountRepository pointAccountRepository;
     private final PointHoldRepository pointHoldRepository;
     private final PointTransactionRepository pointTransactionRepository;
+    private final CloudinaryService cloudinaryService;
     private final Clock clock;
 
     public Page<ArtResponseDto> getActiveArts(int page, int size) {
@@ -172,6 +173,11 @@ public class ArtService {
         }
         validateClassification(dto.getFormat(), dto.getCategory());
         validateFirstBidPrice(dto.getStartPrice(), dto.getMinimumBidIncrement());
+        cloudinaryService.validateArtImageReference(
+                userId,
+                dto.getImgPath(),
+                dto.getPublicId()
+        );
 
         Art art = new Art();
         art.setArtist(artist);
@@ -187,6 +193,7 @@ public class ArtService {
         art.setBidStartTime(dto.getBidStartTime());
         art.setClosingTime(dto.getClosingTime());
         art.setImgPath(dto.getImgPath().trim());
+        art.setCloudinaryPublicId(dto.getPublicId().trim());
         art.setArtStatus(Art.STATUS_ACTIVE);
         art.setCreatedAt(LocalDateTime.now(clock));
 
@@ -237,6 +244,13 @@ public class ArtService {
         ArtFormat format = dto.isFormatProvided() ? dto.getFormat() : art.getFormat();
         ArtCategory category = dto.isCategoryProvided() ? dto.getCategory() : art.getCategory();
         validateClassification(format, category);
+        if (dto.isImgPathProvided()) {
+            cloudinaryService.validateArtImageReference(
+                    userId,
+                    dto.getImgPath(),
+                    dto.getPublicId()
+            );
+        }
 
         applyUpdate(art, dto);
         return toResponse(artRepository.save(art));
@@ -424,6 +438,7 @@ public class ArtService {
         }
         if (dto.isImgPathProvided()) {
             art.setImgPath(dto.getImgPath().trim());
+            art.setCloudinaryPublicId(dto.getPublicId().trim());
         }
     }
 

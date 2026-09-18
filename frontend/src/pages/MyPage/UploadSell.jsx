@@ -210,6 +210,7 @@ export default function UploadSell() {
         material: form.material.trim(),
         wIntro: form.wIntro.trim(),
         imgPath: uploaded.secure_url,
+        publicId: uploaded.public_id,
         startPrice: Number(form.startPrice),
         minimumBidIncrement: Number(form.minimumBidIncrement),
       }

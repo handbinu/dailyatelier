@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
+import com.dailyatelier.dailyatelier.dto.CloudinaryUploadResult;
 import com.dailyatelier.dailyatelier.dto.LoginRequestDto;
 import com.dailyatelier.dailyatelier.dto.LoginResponseDto;
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
@@ -141,8 +142,9 @@ public class UserService {
             throw userNotFound();
         }
 
-        String profileImageUrl = cloudinaryService.uploadProfileImage(userId, image);
-        user.setProfileImageUrl(profileImageUrl);
+        CloudinaryUploadResult uploaded = cloudinaryService.uploadProfileImage(userId, image);
+        user.setProfileImageUrl(uploaded.secureUrl());
+        user.setProfileImagePublicId(uploaded.publicId());
         userRepository.save(user);
         return getUserProfile(userId);
     }

@@ -79,6 +79,9 @@ class ArtServiceMutationTest {
     @Mock
     private PointTransactionRepository pointTransactionRepository;
 
+    @Mock
+    private CloudinaryService cloudinaryService;
+
     private ArtService artService;
 
     @BeforeEach
@@ -98,6 +101,7 @@ class ArtServiceMutationTest {
                 pointAccountRepository,
                 pointHoldRepository,
                 pointTransactionRepository,
+                cloudinaryService,
                 clock
         );
         lenient().when(artRepository.save(any(Art.class)))
@@ -126,6 +130,13 @@ class ArtServiceMutationTest {
         assertThat(saved.getValue().getFormat()).isEqualTo(ArtFormat.DIGITAL);
         assertThat(saved.getValue().getCategory()).isEqualTo(ArtCategory.DIGITAL_ART);
         assertThat(saved.getValue().getCreatedAt()).isEqualTo(NOW);
+        assertThat(saved.getValue().getImgPath()).isEqualTo(request.getImgPath());
+        assertThat(saved.getValue().getCloudinaryPublicId()).isEqualTo(request.getPublicId());
+        verify(cloudinaryService).validateArtImageReference(
+                "owner",
+                request.getImgPath(),
+                request.getPublicId()
+        );
     }
 
     @Test
@@ -167,7 +178,8 @@ class ArtServiceMutationTest {
         request.setDescript("  변경 설명  ");
         request.setMaterial("  종이  ");
         request.setWIntro("  소개  ");
-        request.setImgPath("  https://example.com/changed.jpg  ");
+        request.setImgPath("https://res.cloudinary.com/test/image/upload/v1/arts/owner/changed.jpg");
+        request.setPublicId("arts/owner/changed");
         stubLockedArt(art);
         when(bidRepository.existsByArt(art)).thenReturn(false);
 
@@ -181,7 +193,30 @@ class ArtServiceMutationTest {
         assertThat(response.getMaterial()).isEqualTo("종이");
         assertThat(response.getWIntro()).isEqualTo("소개");
         assertThat(response.getImgPath())
-                .isEqualTo("https://example.com/changed.jpg");
+                .isEqualTo("https://res.cloudinary.com/test/image/upload/v1/arts/owner/changed.jpg");
+        assertThat(art.getCloudinaryPublicId()).isEqualTo("arts/owner/changed");
+        verify(cloudinaryService).validateArtImageReference(
+                "owner",
+                request.getImgPath(),
+                request.getPublicId()
+        );
+    }
+
+    @Test
+    void preservesExistingImageReferenceWhenImageFieldsAreNotProvided() {
+        Art art = createActiveArt("owner");
+        art.setCloudinaryPublicId("arts/owner/original");
+        String existingUrl = art.getImgPath();
+        String existingPublicId = art.getCloudinaryPublicId();
+        ArtUpdateRequestDto request = descriptionRequest();
+        stubLockedArt(art);
+        when(bidRepository.existsByArt(art)).thenReturn(false);
+
+        artService.updateArt(1L, "owner", request);
+
+        assertThat(art.getImgPath()).isEqualTo(existingUrl);
+        assertThat(art.getCloudinaryPublicId()).isEqualTo(existingPublicId);
+        verify(cloudinaryService, never()).validateArtImageReference(any(), any(), any());
     }
 
     @Test
@@ -189,7 +224,8 @@ class ArtServiceMutationTest {
         Art art = createActiveArt("owner");
         ArtUpdateRequestDto request = new ArtUpdateRequestDto();
         request.setDescript(null);
-        request.setImgPath("https://example.com/changed.jpg");
+        request.setImgPath("https://res.cloudinary.com/test/image/upload/v1/arts/owner/changed.jpg");
+        request.setPublicId("arts/owner/changed");
         stubLockedArt(art);
         when(bidRepository.existsByArt(art)).thenReturn(true);
 
@@ -197,7 +233,8 @@ class ArtServiceMutationTest {
 
         assertThat(response.getDescript()).isNull();
         assertThat(response.getImgPath())
-                .isEqualTo("https://example.com/changed.jpg");
+                .isEqualTo("https://res.cloudinary.com/test/image/upload/v1/arts/owner/changed.jpg");
+        assertThat(art.getCloudinaryPublicId()).isEqualTo("arts/owner/changed");
         assertThat(response.getStartPrice()).isEqualTo(100_000);
         assertThat(response.getCurrentPrice()).isEqualTo(120_000);
     }
@@ -413,7 +450,8 @@ class ArtServiceMutationTest {
         request.setStartPrice(100_000);
         request.setBidStartTime(NOW.plusHours(1));
         request.setClosingTime(NOW.plusDays(1));
-        request.setImgPath("image.jpg");
+        request.setImgPath("https://res.cloudinary.com/test/image/upload/v1/arts/owner/image.jpg");
+        request.setPublicId("arts/owner/image");
         return request;
     }
 

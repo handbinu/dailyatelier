@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import api from '../api/authApi'
 import { deleteArt, getArt, updateArt } from '../api/artApi'
 import EditArt from '../pages/MyPage/EditArt'
 
@@ -37,6 +38,17 @@ describe('작품 편집·삭제 화면', () => {
     getArt.mockResolvedValue({ data: baseArt })
     updateArt.mockResolvedValue({ data: baseArt })
     deleteArt.mockResolvedValue({ data: { artId: 7, action: 'DELETED', artStatus: null } })
+    api.post.mockResolvedValue({ data: {
+      apiKey: 'key', timestamp: 1, signature: 'signature',
+      folder: 'arts/artist1', uploadUrl: '/cloudinary/upload',
+    } })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        secure_url: 'https://res.cloudinary.com/test/image/upload/v1/arts/artist1/new-art.jpg',
+        public_id: 'arts/artist1/new-art',
+      }),
+    }))
     vi.stubGlobal('confirm', vi.fn(() => true))
     vi.stubGlobal('scrollTo', vi.fn())
     Object.defineProperty(URL, 'createObjectURL', {
@@ -66,7 +78,24 @@ describe('작품 편집·삭제 화면', () => {
       descript: '새 설명', format: 'PHYSICAL', category: 'OTHER', startPrice: 100000,
       minimumBidIncrement: 1000,
     })))
+    expect(updateArt.mock.calls[0][1]).not.toHaveProperty('imgPath')
+    expect(updateArt.mock.calls[0][1]).not.toHaveProperty('publicId')
     expect(await screen.findByText('/mypage/manage-arts?state=ACTIVE&page=2|작품 정보를 수정했습니다.')).toBeVisible()
+  })
+
+  it('새 이미지의 URL과 publicId를 함께 전송한다', async () => {
+    const view = renderPage()
+    await screen.findByRole('button', { name: '수정 저장' })
+    const file = new File(['image'], 'new-art.png', { type: 'image/png' })
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: '수정 저장' }))
+
+    await waitFor(() => expect(updateArt).toHaveBeenCalledWith('7', expect.objectContaining({
+      imgPath: 'https://res.cloudinary.com/test/image/upload/v1/arts/artist1/new-art.jpg',
+      publicId: 'arts/artist1/new-art',
+    })))
   })
 
   it('입찰 후 가격·기간과 증분을 잠그고 비가격 필드만 전송한다', async () => {

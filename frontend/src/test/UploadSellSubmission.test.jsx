@@ -13,14 +13,17 @@ const signatureResponse = {
     apiKey: 'key',
     timestamp: 1,
     signature: 'signature',
-    folder: 'arts',
+    folder: 'arts/artist1',
     uploadUrl: '/cloudinary/upload',
   },
 }
 
 const uploadResponse = {
   ok: true,
-  json: async () => ({ secure_url: '/uploaded-art.jpg' }),
+  json: async () => ({
+    secure_url: 'https://res.cloudinary.com/test/image/upload/v1/arts/artist1/art.jpg',
+    public_id: 'arts/artist1/art',
+  }),
 }
 
 const createdArtResponse = {
@@ -111,6 +114,10 @@ describe('작품 등록 제출 제어', () => {
 
     cloudinaryRequest.resolve(uploadResponse)
     await waitFor(() => expect(createArt).toHaveBeenCalledTimes(1))
+    expect(createArt).toHaveBeenCalledWith(expect.objectContaining({
+      imgPath: 'https://res.cloudinary.com/test/image/upload/v1/arts/artist1/art.jpg',
+      publicId: 'arts/artist1/art',
+    }))
 
     artRequest.resolve(createdArtResponse)
     expect(await screen.findByRole('heading', { name: '새 작품' })).toBeVisible()

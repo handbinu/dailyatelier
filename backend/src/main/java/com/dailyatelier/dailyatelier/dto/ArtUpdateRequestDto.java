@@ -197,6 +197,13 @@ public class ArtUpdateRequestDto {
     }
 
     @JsonIgnore
+    @AssertTrue(message = "이미지 URL과 Cloudinary 식별자는 함께 입력해야 합니다.")
+    public boolean isImageReferencePairValid() {
+        return imgPathProvided == publicIdProvided
+                && (!publicIdProvided || publicId != null && !publicId.isBlank());
+    }
+
+    @JsonIgnore
     @AssertTrue(message = "작품 형태는 필수입니다.")
     public boolean isProvidedFormatValid() {
         return !formatProvided || format != null;

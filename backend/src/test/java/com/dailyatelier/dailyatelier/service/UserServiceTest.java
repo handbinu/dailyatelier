@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
+import com.dailyatelier.dailyatelier.dto.CloudinaryUploadResult;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
@@ -79,14 +80,17 @@ class UserServiceTest {
     @Test
     void uploadsAndStoresImageForAuthenticatedUser() {
         String uploadedUrl = "https://res.cloudinary.com/demo/new-profile.png";
+        String uploadedPublicId = "profiles/member/new-profile";
         when(userRepository.findByUserId("member")).thenReturn(user);
-        when(cloudinaryService.uploadProfileImage("member", image)).thenReturn(uploadedUrl);
+        when(cloudinaryService.uploadProfileImage("member", image))
+                .thenReturn(new CloudinaryUploadResult(uploadedUrl, uploadedPublicId));
         when(pointAccountService.getAccount("member"))
                 .thenReturn(PointAccount.open(user, 0L, LocalDateTime.now()));
 
         UserProfileDto response = userService.updateProfileImage("member", image);
 
         assertThat(user.getProfileImageUrl()).isEqualTo(uploadedUrl);
+        assertThat(user.getProfileImagePublicId()).isEqualTo(uploadedPublicId);
         assertThat(response.getProfileImageUrl()).isEqualTo(uploadedUrl);
         verify(userRepository).save(user);
     }

@@ -51,6 +51,7 @@ public class ArtCreateRequestDto {
     @NotBlank
     private String imgPath;
 
+    @NotBlank
     @Size(max = 320)
     private String publicId;
 
