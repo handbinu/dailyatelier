@@ -10,6 +10,10 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +54,7 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("point_hold", 12),
             Map.entry("point_charge", 18),
             Map.entry("payment_callback_event", 10),
-            Map.entry("cloudinary_cleanup", 10)
+            Map.entry("cloudinary_cleanup", 12)
     );
 
     private static final Set<String> EXPECTED_INDEXES = Set.of(
@@ -70,7 +74,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "idx_point_hold_art_created",
             "idx_point_hold_user_status_created",
             "idx_callback_status_received",
-            "idx_cloudinary_cleanup_pending"
+            "idx_cloudinary_cleanup_pending",
+            "idx_cloudinary_cleanup_processing"
     );
 
     private static final Map<String, String> EXPECTED_INDEX_COLUMNS = Map.ofEntries(
@@ -90,7 +95,8 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("idx_point_hold_art_created", "art_id,created_at"),
             Map.entry("idx_point_hold_user_status_created", "user_id,status,created_at"),
             Map.entry("idx_callback_status_received", "status,received_at,callback_event_id"),
-            Map.entry("idx_cloudinary_cleanup_pending", "status,next_attempt_at,cleanup_id")
+            Map.entry("idx_cloudinary_cleanup_pending", "status,next_attempt_at,cleanup_id"),
+            Map.entry("idx_cloudinary_cleanup_processing", "status,processing_deadline,cleanup_id")
     );
 
     private static final Set<String> EXPECTED_UNIQUE_CONSTRAINTS = Set.of(
@@ -183,7 +189,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "chk_art_minimum_bid_increment",
             "chk_review_star",
             "chk_cloudinary_cleanup_status",
-            "chk_cloudinary_cleanup_attempt_count"
+            "chk_cloudinary_cleanup_attempt_count",
+            "chk_cloudinary_cleanup_claim"
     );
 
     private static final Map<String, String> EXPECTED_CHECK_CLAUSES = Map.ofEntries(
@@ -201,6 +208,10 @@ class FlywayEmptyDatabaseMySqlTest {
                     "statusin'pending','processing','done','failed'"
             ),
             Map.entry("chk_cloudinary_cleanup_attempt_count", "attempt_count>=0"),
+            Map.entry(
+                    "chk_cloudinary_cleanup_claim",
+                    "status='processing'andprocessing_tokenisnotnullandprocessing_deadlineisnotnullorstatus<>'processing'andprocessing_tokenisnullandprocessing_deadlineisnull"
+            ),
             Map.entry("chk_review_star", "starbetween1and10"),
             Map.entry(
                     "chk_art_minimum_bid_increment",
@@ -214,9 +225,12 @@ class FlywayEmptyDatabaseMySqlTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private DataSource dataSource;
+
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(15);
@@ -244,6 +258,8 @@ class FlywayEmptyDatabaseMySqlTest {
         assertImportantColumn("art", "cloudinary_public_id", "varchar", true, null);
         assertImportantColumn("cloudinary_cleanup", "status", "varchar", false, null);
         assertImportantColumn("cloudinary_cleanup", "attempt_count", "int", false, "0");
+        assertImportantColumn("cloudinary_cleanup", "processing_token", "varchar", true, null);
+        assertImportantColumn("cloudinary_cleanup", "processing_deadline", "datetime", true, null);
         assertImportantColumn("cloudinary_cleanup", "active_public_id", "varchar", true, null);
         assertCloudinaryIdentifierColumn("art", "cloudinary_public_id", false);
         assertCloudinaryIdentifierColumn("users", "profile_image_public_id", false);
@@ -311,6 +327,22 @@ class FlywayEmptyDatabaseMySqlTest {
                 .isInstanceOf(DataAccessException.class);
         assertThatThrownBy(() -> jdbcTemplate.update("""
                 INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/member/missing-claim', 'image', 'PROCESSING', CURRENT_TIMESTAMP)
+                """))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, processing_token,
+                    processing_deadline, created_at
+                ) VALUES (
+                    'arts/member/stale-claim', 'image', 'PENDING', 'token',
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                )
+                """))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
                     public_id, resource_type, status, created_at, active_public_id
                 ) VALUES (
                     'arts/member/generated', 'image', 'DONE', CURRENT_TIMESTAMP,
@@ -331,6 +363,46 @@ class FlywayEmptyDatabaseMySqlTest {
                 "SELECT COUNT(*) FROM art WHERE cloudinary_public_id IS NULL",
                 Long.class
         )).isEqualTo(2L);
+    }
+
+    @Test
+    void skipLockedPreventsTwoMySqlConnectionsFromClaimingTheSameRow() throws Exception {
+        jdbcTemplate.update("""
+                INSERT INTO cloudinary_cleanup (
+                    public_id, resource_type, status, created_at
+                ) VALUES ('arts/mysql/skip-locked', 'image', 'PENDING', CURRENT_TIMESTAMP)
+                """);
+        String claimSql = """
+                SELECT cleanup_id
+                FROM cloudinary_cleanup
+                WHERE status = 'PENDING'
+                  AND (next_attempt_at IS NULL OR next_attempt_at <= CURRENT_TIMESTAMP)
+                ORDER BY cleanup_id
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+                """;
+
+        try (Connection first = dataSource.getConnection();
+             Connection second = dataSource.getConnection()) {
+            first.setAutoCommit(false);
+            second.setAutoCommit(false);
+            try (Statement firstStatement = first.createStatement();
+                 Statement secondStatement = second.createStatement();
+                 ResultSet firstResult = firstStatement.executeQuery(claimSql)) {
+                assertThat(firstResult.next()).isTrue();
+                try (ResultSet secondResult = secondStatement.executeQuery(claimSql)) {
+                    assertThat(secondResult.next()).isFalse();
+                }
+            } finally {
+                first.rollback();
+                second.rollback();
+            }
+        } finally {
+            jdbcTemplate.update(
+                    "DELETE FROM cloudinary_cleanup WHERE public_id = ?",
+                    "arts/mysql/skip-locked"
+            );
+        }
     }
 
     @Test

@@ -24,10 +24,16 @@ import java.time.LocalDateTime;
                 name = "uq_cloudinary_cleanup_active_public_id",
                 columnNames = "active_public_id"
         ),
-        indexes = @Index(
-                name = "idx_cloudinary_cleanup_pending",
-                columnList = "status, next_attempt_at, cleanup_id"
-        )
+        indexes = {
+                @Index(
+                        name = "idx_cloudinary_cleanup_pending",
+                        columnList = "status, next_attempt_at, cleanup_id"
+                ),
+                @Index(
+                        name = "idx_cloudinary_cleanup_processing",
+                        columnList = "status, processing_deadline, cleanup_id"
+                )
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -45,6 +51,11 @@ public class CloudinaryCleanup {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CloudinaryCleanupStatus status;
+
+    @Column(length = 36)
+    private String processingToken;
+
+    private LocalDateTime processingDeadline;
 
     @Column(nullable = false)
     private Integer attemptCount = 0;
@@ -75,28 +86,76 @@ public class CloudinaryCleanup {
         return cleanup;
     }
 
-    public void markProcessing() {
+    public void claim(String token, LocalDateTime deadline) {
+        if (status != CloudinaryCleanupStatus.PENDING
+                && status != CloudinaryCleanupStatus.PROCESSING) {
+            throw new IllegalStateException("Cloudinary cleanup is not claimable");
+        }
         status = CloudinaryCleanupStatus.PROCESSING;
+        processingToken = token;
+        processingDeadline = deadline;
+        nextAttemptAt = null;
+    }
+
+    public void recordAttempt() {
+        requireStatus(CloudinaryCleanupStatus.PROCESSING);
+        attemptCount++;
     }
 
     public void scheduleRetry(LocalDateTime retryAt, String error) {
+        requireStatus(CloudinaryCleanupStatus.PROCESSING);
         status = CloudinaryCleanupStatus.PENDING;
-        attemptCount++;
+        clearClaim();
         nextAttemptAt = retryAt;
         lastError = error;
     }
 
     public void markDone(LocalDateTime completedAt) {
+        requireStatus(CloudinaryCleanupStatus.PROCESSING);
         status = CloudinaryCleanupStatus.DONE;
+        clearClaim();
         this.completedAt = completedAt;
         nextAttemptAt = null;
         lastError = null;
     }
 
     public void markFailed(LocalDateTime completedAt, String error) {
+        requireStatus(CloudinaryCleanupStatus.PROCESSING);
         status = CloudinaryCleanupStatus.FAILED;
+        clearClaim();
         this.completedAt = completedAt;
         nextAttemptAt = null;
         lastError = error;
+    }
+
+    public void rejectReferenced(LocalDateTime completedAt, String error) {
+        if (status != CloudinaryCleanupStatus.PENDING
+                && status != CloudinaryCleanupStatus.PROCESSING) {
+            throw new IllegalStateException("Cloudinary cleanup is not active");
+        }
+        status = CloudinaryCleanupStatus.FAILED;
+        clearClaim();
+        this.completedAt = completedAt;
+        nextAttemptAt = null;
+        lastError = error;
+    }
+
+    public boolean isOwnedBy(String token) {
+        return status == CloudinaryCleanupStatus.PROCESSING
+                && token != null
+                && token.equals(processingToken);
+    }
+
+    private void clearClaim() {
+        processingToken = null;
+        processingDeadline = null;
+    }
+
+    private void requireStatus(CloudinaryCleanupStatus expected) {
+        if (status != expected) {
+            throw new IllegalStateException(
+                    "Cloudinary cleanup status must be " + expected
+            );
+        }
     }
 }

@@ -156,9 +156,9 @@ class UserServiceTest {
                         "profiles/member/new-profile"
                 ));
         when(cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
-                org.mockito.ArgumentMatchers.eq("profiles/member/old-profile"),
-                any()
-        )).thenReturn(true);
+                any(), any()
+        )).thenAnswer(invocation -> "profiles/member/old-profile"
+                .equals(invocation.getArgument(0)));
         when(pointAccountService.getAccount("member"))
                 .thenReturn(PointAccount.open(user, 0L, LocalDateTime.now()));
 
@@ -166,6 +166,29 @@ class UserServiceTest {
 
         assertThat(response.getProfileImageUrl())
                 .isEqualTo("https://res.cloudinary.com/demo/new-profile.png");
+        verify(cloudinaryCleanupRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsUploadedProfileImageThatIsPendingCleanup() {
+        String uploadedPublicId = "profiles/member/pending";
+        when(cloudinaryService.uploadProfileImage("member", image))
+                .thenReturn(new CloudinaryUploadResult(
+                        "https://res.cloudinary.com/demo/pending.png",
+                        uploadedPublicId
+                ));
+        when(cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                org.mockito.ArgumentMatchers.eq(uploadedPublicId),
+                any()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateProfileImage("member", image))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(exception -> assertThat(
+                        ((DomainApiException) exception).getCode()
+                ).isEqualTo("CLOUDINARY_IMAGE_PENDING_CLEANUP"));
+
+        verify(userRepository, never()).save(user);
         verify(cloudinaryCleanupRepository, never()).save(any());
     }
 

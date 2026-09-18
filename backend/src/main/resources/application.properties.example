@@ -19,6 +19,14 @@ jwt.expiration=86400000
 cloudinary.cloud-name=${CLOUDINARY_CLOUD_NAME}
 cloudinary.api-key=${CLOUDINARY_API_KEY}
 cloudinary.api-secret=${CLOUDINARY_API_SECRET}
+cloudinary.cleanup.interval-ms=${CLOUDINARY_CLEANUP_INTERVAL_MS:60000}
+cloudinary.cleanup.batch-size=${CLOUDINARY_CLEANUP_BATCH_SIZE:20}
+cloudinary.cleanup.max-attempts=${CLOUDINARY_CLEANUP_MAX_ATTEMPTS:5}
+cloudinary.cleanup.initial-backoff-ms=${CLOUDINARY_CLEANUP_INITIAL_BACKOFF_MS:60000}
+cloudinary.cleanup.max-backoff-ms=${CLOUDINARY_CLEANUP_MAX_BACKOFF_MS:3600000}
+cloudinary.cleanup.lease-ms=${CLOUDINARY_CLEANUP_LEASE_MS:120000}
+cloudinary.cleanup.connect-timeout-ms=${CLOUDINARY_CLEANUP_CONNECT_TIMEOUT_MS:5000}
+cloudinary.cleanup.read-timeout-ms=${CLOUDINARY_CLEANUP_READ_TIMEOUT_MS:30000}
 
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=11MB

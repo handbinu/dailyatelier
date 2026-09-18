@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByUserId(String userId);
     boolean existsByNickname(String nickname);
+    boolean existsByProfileImagePublicId(String profileImagePublicId);
     User findByUserId(String userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

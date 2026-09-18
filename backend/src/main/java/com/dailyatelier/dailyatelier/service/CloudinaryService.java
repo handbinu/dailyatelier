@@ -14,6 +14,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.MessageDigest;
@@ -43,9 +46,14 @@ public class CloudinaryService {
 
     public CloudinaryService(
             UserRepository userRepository,
-            RestClient.Builder restClientBuilder) {
+            RestClient.Builder restClientBuilder,
+            CloudinaryCleanupProperties cleanupProperties) {
         this.userRepository = userRepository;
-        this.restClientBuilder = restClientBuilder;
+        SimpleClientHttpRequestFactory requestFactory =
+                new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(cleanupProperties.getConnectTimeoutMs());
+        requestFactory.setReadTimeout(cleanupProperties.getReadTimeoutMs());
+        this.restClientBuilder = restClientBuilder.requestFactory(requestFactory);
     }
 
     @Value("${cloudinary.cloud-name:}")
@@ -221,6 +229,62 @@ public class CloudinaryService {
         }
     }
 
+    public void deleteOriginal(String publicId, String resourceType) {
+        if (isBlank(publicId) || !"image".equals(resourceType)) {
+            throw new CloudinaryDeleteException(
+                    "Unsupported Cloudinary cleanup target",
+                    false
+            );
+        }
+        long timestamp = System.currentTimeMillis() / 1000L;
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("public_id", publicId);
+        body.add("timestamp", String.valueOf(timestamp));
+        body.add("api_key", apiKey);
+        body.add("signature", generateDeleteSignature(publicId, timestamp));
+
+        try {
+            Map<?, ?> response = restClientBuilder.build()
+                    .post()
+                    .uri(buildDestroyUrl(resourceType))
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+            String result = response == null ? null : (String) response.get("result");
+            if (!"ok".equals(result) && !"not found".equals(result)) {
+                throw new CloudinaryDeleteException(
+                        "Cloudinary cleanup returned an unexpected result",
+                        false
+                );
+            }
+        } catch (CloudinaryDeleteException exception) {
+            throw exception;
+        } catch (RestClientResponseException exception) {
+            int status = exception.getStatusCode().value();
+            boolean retryable = status == 408
+                    || status == 429
+                    || exception.getStatusCode().is5xxServerError();
+            throw new CloudinaryDeleteException(
+                    "Cloudinary cleanup HTTP failure: " + status,
+                    retryable,
+                    exception
+            );
+        } catch (ResourceAccessException exception) {
+            throw new CloudinaryDeleteException(
+                    "Cloudinary cleanup network failure",
+                    true,
+                    exception
+            );
+        } catch (RestClientException exception) {
+            throw new CloudinaryDeleteException(
+                    "Cloudinary cleanup request failed",
+                    false,
+                    exception
+            );
+        }
+    }
+
     private DomainApiException invalidArtImageReference() {
         return new DomainApiException(
                 HttpStatus.BAD_REQUEST,
@@ -274,7 +338,14 @@ public class CloudinaryService {
     }
 
     private String generateSignature(String folder, long timestamp) {
-        String payload = "folder=" + folder + "&timestamp=" + timestamp;
+        return generateSignature("folder=" + folder + "&timestamp=" + timestamp);
+    }
+
+    private String generateDeleteSignature(String publicId, long timestamp) {
+        return generateSignature("public_id=" + publicId + "&timestamp=" + timestamp);
+    }
+
+    private String generateSignature(String payload) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
             byte[] hash = digest.digest((payload + apiSecret).getBytes(StandardCharsets.UTF_8));
@@ -291,6 +362,11 @@ public class CloudinaryService {
 
     private String buildUploadUrl() {
         return "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
+    }
+
+    private String buildDestroyUrl(String resourceType) {
+        return "https://api.cloudinary.com/v1_1/"
+                + cloudName + "/" + resourceType + "/destroy";
     }
 
     private boolean isBlank(String value) {

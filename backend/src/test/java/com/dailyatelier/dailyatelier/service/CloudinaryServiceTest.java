@@ -15,6 +15,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.io.IOException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -32,9 +34,13 @@ class CloudinaryServiceTest {
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
-        server = MockRestServiceServer.bindTo(builder).build();
         userRepository = mock(UserRepository.class);
-        cloudinaryService = new CloudinaryService(userRepository, builder);
+        cloudinaryService = new CloudinaryService(
+                userRepository,
+                builder,
+                validCleanupProperties()
+        );
+        server = MockRestServiceServer.bindTo(builder).build();
         ReflectionTestUtils.setField(cloudinaryService, "cloudName", "test-cloud");
         ReflectionTestUtils.setField(cloudinaryService, "apiKey", "test-key");
         ReflectionTestUtils.setField(cloudinaryService, "apiSecret", "test-secret");
@@ -185,6 +191,85 @@ class CloudinaryServiceTest {
                 });
 
         server.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ok", "not found"})
+    void treatsSuccessfulAndMissingDestroyResultsAsSuccess(String result) {
+        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/image/destroy"))
+                .andRespond(withSuccess(
+                        "{\"result\":\"" + result + "\"}",
+                        MediaType.APPLICATION_JSON
+                ));
+
+        cloudinaryService.deleteOriginal("arts/member/work", "image");
+
+        server.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {408, 429, 500, 503})
+    void reportsRetryableDestroyHttpFailure(int status) {
+        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/image/destroy"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(HttpStatus.valueOf(status)));
+
+        assertThatThrownBy(() -> cloudinaryService.deleteOriginal(
+                "arts/member/work",
+                "image"
+        )).isInstanceOf(CloudinaryDeleteException.class)
+                .satisfies(error -> assertThat(
+                        ((CloudinaryDeleteException) error).isRetryable()
+                ).isTrue());
+
+        server.verify();
+    }
+
+    @Test
+    void reportsNetworkDestroyFailureAsRetryable() {
+        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/image/destroy"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withException(new IOException("connection reset")));
+
+        assertThatThrownBy(() -> cloudinaryService.deleteOriginal(
+                "arts/member/work",
+                "image"
+        )).isInstanceOf(CloudinaryDeleteException.class)
+                .satisfies(error -> assertThat(
+                        ((CloudinaryDeleteException) error).isRetryable()
+                ).isTrue());
+
+        server.verify();
+    }
+
+    @Test
+    void classifiesNonRetryableDestroyClientFailure() {
+        server.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/image/destroy"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(HttpStatus.BAD_REQUEST));
+
+        assertThatThrownBy(() -> cloudinaryService.deleteOriginal(
+                "arts/member/work",
+                "image"
+        )).isInstanceOf(CloudinaryDeleteException.class)
+                .satisfies(error -> assertThat(
+                        ((CloudinaryDeleteException) error).isRetryable()
+                ).isFalse());
+
+        server.verify();
+    }
+
+    private CloudinaryCleanupProperties validCleanupProperties() {
+        return new CloudinaryCleanupProperties(
+                60_000L,
+                20,
+                5,
+                60_000L,
+                3_600_000L,
+                120_000L,
+                5_000,
+                30_000
+        );
     }
 
     private void assertInvalidArtImageReference(String secureUrl, String publicId) {

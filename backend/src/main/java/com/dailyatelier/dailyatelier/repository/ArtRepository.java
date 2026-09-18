@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchRepository {
+    boolean existsByCloudinaryPublicId(String cloudinaryPublicId);
+
     Page<Art> findByArtStatus(Integer artStatus, Pageable pageable);
 
     Page<Art> findByArtist(Artist artist, Pageable pageable);

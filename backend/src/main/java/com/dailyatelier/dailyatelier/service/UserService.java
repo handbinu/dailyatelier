@@ -154,6 +154,16 @@ public class UserService {
         CloudinaryUploadResult uploaded = cloudinaryService.uploadProfileImage(userId, image);
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(this::userNotFound);
+        if (cloudinaryCleanupRepository.existsByPublicIdAndStatusIn(
+                uploaded.publicId(),
+                ACTIVE_CLEANUP_STATUSES
+        )) {
+            throw new DomainApiException(
+                    HttpStatus.CONFLICT,
+                    "CLOUDINARY_IMAGE_PENDING_CLEANUP",
+                    "정리 대기 중인 이미지는 다시 사용할 수 없습니다."
+            );
+        }
         String previousPublicId = user.getProfileImagePublicId();
         user.setProfileImageUrl(uploaded.secureUrl());
         user.setProfileImagePublicId(uploaded.publicId());
