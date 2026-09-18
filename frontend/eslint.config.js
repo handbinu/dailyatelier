@@ -25,8 +25,8 @@ export default defineConfig([
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
       'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/purity': 'off',
-      'react-hooks/refs': 'off',
+      'react-hooks/purity': 'error',
+      'react-hooks/refs': 'error',
       'react-hooks/preserve-manual-memoization': 'off',
     },
   },

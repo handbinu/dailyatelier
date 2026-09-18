@@ -60,6 +60,7 @@ export default function EditArt() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
 
   const loadArt = useCallback(async ({ conflict = false } = {}) => {
     setLoading(!conflict)
@@ -80,10 +81,32 @@ export default function EditArt() {
 
   useEffect(() => { loadArt() }, [loadArt])
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
+  useEffect(() => {
+    if (!art) return undefined
+
+    let timeoutId
+    const updateForNextAuctionTime = () => {
+      const now = Date.now()
+      setCurrentTime(now)
+      const nextTime = [art.bidStartTime, art.closingTime]
+        .map((value) => new Date(value).getTime())
+        .filter((value) => value > now)
+        .sort((first, second) => first - second)[0]
+      if (nextTime) {
+        timeoutId = window.setTimeout(
+          updateForNextAuctionTime,
+          Math.min(nextTime - now, 2_147_483_647),
+        )
+      }
+    }
+
+    updateForNextAuctionTime()
+    return () => window.clearTimeout(timeoutId)
+  }, [art])
 
   const hasBid = Number(art?.currentPrice) > Number(art?.startPrice)
-  const auctionStarted = art ? Date.now() >= new Date(art.bidStartTime).getTime() : false
-  const mutationUnavailable = art && (!art.isOwner || art.artStatus !== 0 || Date.now() >= new Date(art.closingTime).getTime())
+  const auctionStarted = art ? currentTime >= new Date(art.bidStartTime).getTime() : false
+  const mutationUnavailable = art && (!art.isOwner || art.artStatus !== 0 || currentTime >= new Date(art.closingTime).getTime())
   const priceAndPeriodLocked = hasBid || mutationUnavailable
   const incrementLocked = auctionStarted || hasBid || mutationUnavailable
   const categoryOptions = useMemo(

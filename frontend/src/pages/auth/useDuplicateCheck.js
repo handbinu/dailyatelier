@@ -8,8 +8,6 @@ export default function useDuplicateCheck(values, checkers) {
   const [checking, setChecking] = useState(initialFieldState)
   const [messages, setMessages] = useState(initialMessages)
   const requestIds = useRef({ userId: 0, nickname: 0 })
-  const valuesRef = useRef(values)
-  valuesRef.current = values
 
   const invalidate = useCallback((field) => {
     requestIds.current[field] += 1
@@ -19,7 +17,7 @@ export default function useDuplicateCheck(values, checkers) {
   }, [])
 
   const check = useCallback(async (field) => {
-    const value = valuesRef.current[field].trim()
+    const value = values[field].trim()
     const requestId = requestIds.current[field] + 1
     requestIds.current[field] = requestId
 
@@ -35,7 +33,7 @@ export default function useDuplicateCheck(values, checkers) {
 
     const isCurrentRequest = () => (
       requestIds.current[field] === requestId
-      && valuesRef.current[field].trim() === value
+      && values[field].trim() === value
     )
 
     try {
@@ -60,7 +58,7 @@ export default function useDuplicateCheck(values, checkers) {
         setChecking((current) => ({ ...current, [field]: false }))
       }
     }
-  }, [checkers])
+  }, [checkers, values])
 
   return { checked, checking, messages, invalidate, check }
 }

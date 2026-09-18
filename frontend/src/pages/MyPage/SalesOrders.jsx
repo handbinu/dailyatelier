@@ -57,7 +57,6 @@ export default function SalesOrders() {
   const requestGuard = useRef(createOrderRequestGuard())
   const listRequest = useRef(null)
   const listParams = useRef({ filter, page })
-  listParams.current = { filter, page }
 
   const handleRequestError = useCallback((requestError, fallback) => {
     const orderError = getOrderError(requestError, fallback)
@@ -118,6 +117,10 @@ export default function SalesOrders() {
       if (listRequest.current === request) listRequest.current = null
     }
   }, [])
+
+  useEffect(() => {
+    listParams.current = { filter, page }
+  }, [filter, page])
 
   useEffect(() => {
     loadOrders()

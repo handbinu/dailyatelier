@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '../api/authApi'
 import { deleteArt, getArt, updateArt } from '../api/artApi'
 import EditArt from '../pages/MyPage/EditArt'
@@ -61,6 +61,10 @@ describe('작품 편집·삭제 화면', () => {
     })
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('상세 초기값과 수정할 수 없는 작품명을 표시한다', async () => {
     renderPage()
     expect(await screen.findByLabelText('작품명')).toHaveValue('여름의 정원')
@@ -81,6 +85,27 @@ describe('작품 편집·삭제 화면', () => {
     expect(updateArt.mock.calls[0][1]).not.toHaveProperty('imgPath')
     expect(updateArt.mock.calls[0][1]).not.toHaveProperty('publicId')
     expect(await screen.findByText('/mypage/manage-arts?state=ACTIVE&page=2|작품 정보를 수정했습니다.')).toBeVisible()
+  })
+
+  it('화면 재진입 없이 경매 시점 경과에 맞춰 잠금 상태를 갱신한다', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2098-07-01T09:59:00'))
+    getArt.mockResolvedValue({ data: {
+      ...baseArt,
+      bidStartTime: '2098-07-01T10:00:00',
+      closingTime: '2098-07-01T10:01:00',
+    } })
+    renderPage()
+
+    await act(async () => { await Promise.resolve() })
+    expect(screen.getByLabelText('최소 입찰 증분 *')).toBeEnabled()
+    await act(async () => { vi.advanceTimersByTime(60_000) })
+    expect(screen.getByLabelText('최소 입찰 증분 *')).toBeDisabled()
+    expect(screen.getByLabelText('시작가 *')).toBeEnabled()
+
+    await act(async () => { vi.advanceTimersByTime(60_000) })
+    expect(screen.getByLabelText('시작가 *')).toBeDisabled()
+    expect(screen.getByLabelText('입찰 종료 시간 *')).toBeDisabled()
   })
 
   it('새 이미지의 URL과 publicId를 함께 전송한다', async () => {
