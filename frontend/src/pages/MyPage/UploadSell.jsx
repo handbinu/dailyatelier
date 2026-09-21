@@ -256,13 +256,53 @@ export default function UploadSell() {
   const incrementError = getMinimumBidIncrementError(form.minimumBidIncrement)
   const firstBidPrice = startPrice !== null && startPrice >= 1 && startPrice <= MAX_BID_PRICE
     && !incrementError ? getNextMinimumBidPrice(startPrice, increment) : null
+  const errorEntries = Object.entries(errors).filter(([key, message]) => key !== 'submit' && message)
+  const errorLabels = {
+    imgFile: '작품 이미지', name: '작품명', format: '작품 형태', category: '카테고리',
+    material: '재료·기법', startPrice: '시작가', minimumBidIncrement: '최소 입찰 증분',
+    bidStartTime: '입찰 시작 시간', closingTime: '입찰 종료 시간',
+  }
+  const sectionStatus = [
+    ['image', '이미지', Boolean(selectedFile)],
+    ['basics', '기본 정보', Boolean(form.name.trim())],
+    ['details', '분류·설명', Boolean(form.format && form.category && form.material.trim())],
+    ['auction', '경매 조건', Boolean(form.startPrice && form.bidStartTime && form.closingTime)],
+  ]
 
   return (
     <PageWrap>
       <PageBanner title="작품 등록" crumb="작품 등록" />
       <div className={s.body}>
-        <form onSubmit={handleSubmit} className={s.form}>
-          <section className={s.card}>
+        <div className={s.layout}>
+          <aside className={s.sidePanel} aria-label="등록 진행 안내">
+            <p className={s.sideEyebrow}>작품 등록</p>
+            <h2 className={s.sideTitle}>입력 내용을 확인하며 등록해 주세요.</h2>
+            <nav className={s.sectionNav} aria-label="등록 섹션">
+              {sectionStatus.map(([id, label, complete]) => (
+                <a key={id} href={`#${id}`} className={s.sectionLink}>
+                  <span className={complete ? s.sectionStateComplete : s.sectionStateIncomplete} aria-hidden="true">
+                    {complete ? '✓' : '○'}
+                  </span>
+                  <span>{label}</span>
+                  <small>{complete ? '완료' : '미완료'}</small>
+                </a>
+              ))}
+              <a href="#confirm" className={s.sectionLink}><span className={s.sectionStateIncomplete} aria-hidden="true">○</span><span>최종 확인</span><small>미완료</small></a>
+            </nav>
+            <dl className={s.summary}>
+              <div><dt>작품명</dt><dd>{form.name.trim() || '미입력'}</dd></div>
+              <div><dt>시작가</dt><dd>{startPrice ? `${startPrice.toLocaleString()}원` : '미입력'}</dd></div>
+              <div><dt>첫 입찰가</dt><dd>{firstBidPrice ? `${firstBidPrice.toLocaleString()}원` : '조건 입력 필요'}</dd></div>
+            </dl>
+          </aside>
+          <form onSubmit={handleSubmit} className={s.form}>
+          {errorEntries.length > 0 && (
+            <div className={s.errorSummary} role="alert" tabIndex="-1">
+              <strong>입력 내용을 확인해 주세요.</strong>
+              <ul>{errorEntries.map(([key]) => <li key={key}>{errorLabels[key] || '입력 항목'}을(를) 확인해 주세요.</li>)}</ul>
+            </div>
+          )}
+          <section className={s.card} id="image">
             <h2 className={s.cardTitle}>작품 이미지</h2>
             <FormField label="이미지 파일 *" error={errors.imgFile}>
               <input
@@ -281,9 +321,9 @@ export default function UploadSell() {
             )}
           </section>
 
-          <section className={s.card}>
+          <section className={s.card} id="basics">
             <h2 className={s.cardTitle}>작품 정보</h2>
-            <p className={s.cardLead}>작품 설명은 분위기와 특징 위주로, 분류와 재료·기법은 구분해서 적어주세요.</p>
+            <p className={s.cardLead}>먼저 작품의 이름과 감상에 필요한 설명을 입력해 주세요.</p>
             <div className={s.fieldGrid}>
               <FormField label="작품명 *" error={errors.name}>
                 <input
@@ -307,7 +347,13 @@ export default function UploadSell() {
                   placeholder="예: 차분한 색감, 따뜻한 빛, 잔잔한 분위기"
                 />
               </FormField>
+            </div>
+          </section>
 
+          <section className={s.card} id="details">
+            <h2 className={s.cardTitle}>분류와 작가 소개</h2>
+            <p className={s.cardLead}>작품 형태와 분류를 선택하고, 재료·기법과 작가 소개를 구분해 적어주세요.</p>
+            <div className={s.fieldGrid}>
               <div className={s.classificationGrid}>
                 <FormField label="작품 형태 *" error={errors.format}>
                   <select className={s.input} value={form.format} onChange={handleFormatChange} disabled={submitting} required>
@@ -357,7 +403,7 @@ export default function UploadSell() {
             </div>
           </section>
 
-          <section className={s.card}>
+          <section className={s.card} id="auction">
             <h2 className={s.cardTitle}>경매 설정</h2>
             <p className={s.cardLead}>시작가와 기간을 입력하면 등록 즉시 진행 중 상태로 저장됩니다.</p>
             <div className={s.fieldGrid}>
@@ -433,16 +479,18 @@ export default function UploadSell() {
             </div>
           </section>
 
-          <div className={s.notice}>
-            이미지는 Cloudinary에 직접 업로드되고, 등록되면 작품 상태는 바로 진행 중으로 저장됩니다.
-          </div>
-
-          {errors.submit && <p className={s.submitError}>{errors.submit}</p>}
-
-          <button type="submit" className={s.submitBtn} disabled={submitting}>
-            {submitting ? '등록 중...' : '작품 등록하기'}
-          </button>
-        </form>
+          <section className={s.confirmCard} id="confirm">
+            <div>
+              <h2 className={s.confirmTitle}>최종 확인</h2>
+              <p className={s.notice}>이미지는 Cloudinary에 직접 업로드되고, 등록되면 작품 상태는 바로 진행 중으로 저장됩니다.</p>
+              {errors.submit && <p className={s.submitError}>{errors.submit}</p>}
+            </div>
+            <button type="submit" className={s.submitBtn} disabled={submitting}>
+              {submitting ? '등록 중...' : '작품 등록하기'}
+            </button>
+          </section>
+          </form>
+        </div>
       </div>
     </PageWrap>
   )

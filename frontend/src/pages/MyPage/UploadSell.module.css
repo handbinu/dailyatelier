@@ -1,5 +1,5 @@
 .body {
-  max-width: 920px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-16);
 }
@@ -8,7 +8,33 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
 }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: var(--space-8); align-items: start; }
+.sidePanel { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-6); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+.sideEyebrow { margin-bottom: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sideTitle { font-size: var(--font-size-lg); line-height: 1.45; color: var(--color-primary); }
+.sectionNav { display: flex; flex-direction: column; gap: 2px; margin: var(--space-6) 0; }
+.sectionLink { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); color: var(--color-text); font-size: var(--font-size-sm); text-decoration: none; }
+.sectionLink:hover { color: var(--color-accent-hover); }
+.sectionLink small { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.sectionStateComplete { color: var(--color-accent); font-weight: var(--font-weight-bold); }
+.sectionStateIncomplete { color: var(--color-text-muted); font-weight: var(--font-weight-bold); }
+.layout:has(#image:target) .sectionLink[href="#image"],
+.layout:has(#basics:target) .sectionLink[href="#basics"],
+.layout:has(#details:target) .sectionLink[href="#details"],
+.layout:has(#auction:target) .sectionLink[href="#auction"],
+.layout:has(#confirm:target) .sectionLink[href="#confirm"] { color: var(--color-primary); font-weight: var(--font-weight-bold); }
+.summary { display: flex; flex-direction: column; gap: var(--space-3); }
+.summary div { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--font-size-sm); }
+.summary dt { color: var(--color-text-muted); }
+.summary dd { margin: 0; color: var(--color-text); font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+.errorSummary { padding: var(--space-5) var(--space-6); border: 1px solid var(--color-error); border-left-width: 4px; border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm); line-height: 1.6; }
+.errorSummary strong { display: block; margin-bottom: var(--space-2); }
+.errorSummary ul { margin: 0; padding-left: var(--space-5); }
 
 .card {
   background: var(--color-surface);
@@ -198,8 +224,12 @@
   line-height: 1.7;
 }
 
+.confirmCard { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+.confirmTitle { margin-bottom: var(--space-3); color: var(--color-primary); font-size: var(--font-size-md); }
+.confirmCard .notice { padding: 0; border: 0; background: transparent; }
+
 .submitBtn {
-  width: 100%;
+  min-width: 200px;
   padding: var(--space-5);
   background: var(--color-primary);
   color: #fff;
@@ -289,6 +319,17 @@
   color: var(--color-text);
 }
 
+@media (max-width: 800px) {
+  .body { padding: var(--space-5) var(--space-4) var(--space-12); }
+  .layout { display: flex; flex-direction: column; gap: var(--space-5); }
+  .sidePanel { position: static; order: -1; width: 100%; padding: var(--space-5); box-sizing: border-box; }
+  .sideTitle, .summary { display: none; }
+  .sectionNav { flex-direction: row; flex-wrap: wrap; margin: var(--space-3) 0 0; gap: var(--space-2) var(--space-4); }
+  .sectionLink { display: flex; width: auto; padding: 0; border: 0; font-size: var(--font-size-xs); }
+  .sectionLink small { display: none; }
+  .form { width: 100%; }
+}
+
 @media (max-width: 560px) {
   .timeGrid,
   .classificationGrid {
@@ -298,6 +339,9 @@
   .card {
     padding: var(--space-5);
   }
+
+  .confirmCard { align-items: stretch; flex-direction: column; padding: var(--space-5); }
+  .submitBtn { width: 100%; min-width: 0; }
 
   .doneActions {
     width: 100%;
