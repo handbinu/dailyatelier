@@ -262,3 +262,9 @@ ORDER BY account.user_id;
 - 작품 spec은 `ONGOING`·`UPCOMING`·`SOLD`·`UNSOLD` 역할을 가지며, `SOLD` fixture만 최소 bid·hold·winning bid·order 관계를 구성한다.
 - 재실행은 거래가 없는 원래 `ONGOING`·`UPCOMING` 작품만 상대 시간 상태로 복구한다. 기존 `SOLD`·`UNSOLD`, 실제 QA 거래 작품, 비-demo 데이터는 보존한다.
 - 가변 `Clock`의 `+6일` 재실행으로 진행·예정 구성 복구, demo 수량 불변, SOLD·주문·hold 관계 보존을 검증했다.
+
+## 마이페이지 홈 사용성 개선
+
+- 데스크톱 sidebar의 독립 스크롤을 제거하고 sticky를 유지했으며, 중복 작가 `작품 등록` QuickAction을 제거했다.
+- 구매·판매와 리뷰 역할이 드러나도록 메뉴 명칭과 대비·세이지 accent를 정리하고, 작가 모바일 통계를 2×2로 배치하며 `24시간 내 마감` 명칭을 적용했다.
+- 관련 MyPage 테스트 16개를 통과했다.
