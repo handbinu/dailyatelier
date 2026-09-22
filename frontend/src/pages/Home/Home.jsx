@@ -179,33 +179,39 @@ export default function Home() {
     <div className={styles.page}>
       {/* ── 히어로 슬라이더 ─────────────────────────── */}
       <section className={styles.hero} aria-label="메인 슬라이더">
-        <div className={styles.slideTrack}>
-          {SLIDES.map((s, i) => (
-            <div
-              key={i}
-              className={`${styles.slide} ${i === slideIdx ? styles.slideActive : ''}`}
-              aria-hidden={i !== slideIdx}
-            >
-              <img src={s.src} alt={s.alt} draggable={false} />
-            </div>
-          ))}
-        </div>
+        <div className={styles.heroMedia}>
+          <div className={styles.slideTrack}>
+            {SLIDES.map((s, i) => (
+              <div
+                key={i}
+                className={`${styles.slide} ${i === slideIdx ? styles.slideActive : ''}`}
+                aria-hidden={i !== slideIdx}
+              >
+                <img src={s.src} alt={s.alt} draggable={false} />
+              </div>
+            ))}
+          </div>
 
-        {/* 이전/다음 버튼 */}
-        <button
-          className={`${styles.slideArrow} ${styles.slideArrowLeft}`}
-          onClick={() => goSlide((slideIdx - 1 + SLIDES.length) % SLIDES.length)}
-          aria-label="이전 슬라이드"
-        >
-          ‹
-        </button>
-        <button
-          className={`${styles.slideArrow} ${styles.slideArrowRight}`}
-          onClick={() => goSlide((slideIdx + 1) % SLIDES.length)}
-          aria-label="다음 슬라이드"
-        >
-          ›
-        </button>
+          {/* 이전/다음 버튼 */}
+          <button
+            className={`${styles.slideArrow} ${styles.slideArrowLeft}`}
+            onClick={() => goSlide((slideIdx - 1 + SLIDES.length) % SLIDES.length)}
+            aria-label="이전 슬라이드"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            className={`${styles.slideArrow} ${styles.slideArrowRight}`}
+            onClick={() => goSlide((slideIdx + 1) % SLIDES.length)}
+            aria-label="다음 슬라이드"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </div>
 
         {/* 페이징 */}
         <div className={styles.pageDots} role="tablist" aria-label="슬라이드 선택">
@@ -240,12 +246,12 @@ export default function Home() {
         </div>
         <div className={styles.introduceImages}>
           <img
-            src="/img/main_intro_1.jpg"
+            src="/img/home-intro-primary.jpg"
             alt="갤러리 소개 1"
             className={styles.introImg1}
           />
           <img
-            src="/img/main_intro_2.jpg"
+            src="/img/home-intro-secondary.jpg"
             alt="갤러리 소개 2"
             className={styles.introImg2}
           />
@@ -253,7 +259,7 @@ export default function Home() {
       </section>
 
       {/* ── Best Art ────────────────────────────────── */}
-      <section className={styles.section} aria-label="베스트 작품">
+      <section className={`${styles.section} ${!bestArtsLoading && !bestArtsError && bestArts.length === 1 ? styles.bestSectionSingle : ''}`} aria-label="베스트 작품">
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Best Art</h2>
           <p className={styles.sectionDesc}>
@@ -335,7 +341,7 @@ function BestArtGrid({ arts, loading, error, onRetry }) {
   }
 
   return (
-    <div className={styles.bestGrid}>
+    <div className={`${styles.bestGrid} ${arts.length <= 2 ? styles.compactGrid : ''}`}>
       {arts.map((art) => {
         const sold = art.result === 'SOLD'
         return (
@@ -414,7 +420,7 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
   }
 
   return (
-    <div className={styles.artGrid}>
+    <div className={`${styles.artGrid} ${arts.length <= 2 ? styles.compactGrid : ''}`}>
       {arts.map((art) => {
         const deadline = getDeadlineMeta(art.closingTime)
         return (
@@ -481,7 +487,7 @@ function EndedArtGrid({ arts, loading, error, from, onRetry }) {
   }
 
   return (
-    <div className={styles.artGrid}>
+    <div className={`${styles.artGrid} ${arts.length <= 2 ? styles.compactGrid : ''}`}>
       {arts.map((art) => {
         const sold = art.result === 'SOLD'
         const resultLabel = sold ? '낙찰' : art.result === 'UNSOLD' ? '유찰' : '종료'

@@ -186,9 +186,6 @@ export default function Header() {
                 aria-controls={`desktop-nav-menu-${idx}`}
               >
                 {item.label}
-                <span className={styles.chevron} aria-hidden="true">
-                  ▾
-                </span>
               </button>
 
               <div
