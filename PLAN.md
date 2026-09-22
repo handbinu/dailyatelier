@@ -89,6 +89,60 @@
 - 확인된 사용성·접근성 문제만 사용자 승인 후 개선하며, 구체적인 재배치나 전면 개편은 미리 확정하지 않는다.
 - 문제 확인 전에는 구현하지 않으며 기존 정보 구조와 행동을 유지한다.
 
+## 로컬 demo 작품 seed
+
+### 작업 목표
+
+- 포트폴리오 화면과 브라우저 QA에서 반복 사용할 고정 demo 계정·작가·작품 데이터를 로컬 DB에 멱등적으로 생성한다.
+- 홈 Best Art, 작품 목록·검색·상세·종료 작품 화면을 실제 서비스와 유사한 데이터 밀도로 검증할 수 있게 한다.
+- `frontend/public/img/demo-art/`의 로컬 이미지를 작품 `imgPath`로 연결하고, 원본 세로·가로·정사각형 비율을 그대로 검증한다.
+
+### 범위와 비목표
+
+- 작가 5~6명, 일반 사용자 2~3명, 작품 약 20개를 생성한다.
+- 진행 중 5~6개, 마감 임박 1~2개, 종료 작품 5~6개와 Best Art 후보 고가 작품 3~4개를 포함한다.
+- 디지털·실물과 여러 카테고리, 시작가·현재가·입찰 증분·마감일, 자연스러운 작품명·작가명·설명을 다양하게 구성한다.
+- `@Profile("local-demo")`와 명시적 opt-in 설정이 모두 있을 때만 실행한다.
+- Flyway migration, 운영 API, 운영 Cloudinary 검증 규칙, 기존 비-demo 데이터는 변경·삭제하지 않는다.
+- 전체 거래 fixture 시스템으로 확장하지 않는다. `SOLD`는 Best Art·상세 화면 검증에 필요한 최소 수만 bid·point hold·order까지 정합성 있게 구성하고, 진행·임박·유찰·종료 작품도 현재 엔터티·도메인 정합성을 우회하지 않는 최소 관계와 상태만 생성한다.
+
+### 구현 단계
+
+1. local-demo 실행 경계와 멱등성 키를 추가한다.
+   - 프로필과 opt-in property가 함께 활성화된 경우에만 실행되는 seed runner를 둔다.
+   - 고정 숫자 PK에 의존하지 않고 demo 전용 이메일·로그인 식별자처럼 DB PK와 무관한 고유 자연 키로 조회해 재실행 시 중복 생성을 막는다.
+   - 빈 DB 및 기존 비-demo 데이터가 섞인 DB에서 모두 안전하게 동작하게 한다.
+
+2. 계정·작가·작품의 기본 데이터를 생성한다.
+   - 기존 사용자·작가 생성 흐름과 point account 초기화 계약을 따른다.
+   - 각 작품의 `imgPath`는 `/img/demo-art/art-demo-01-*`부터 실제 파일명에 맞춰 1:1로 연결한다.
+   - 진행·임박·유찰 데이터는 현재 검색 상태 판정과 가격·카테고리 규칙에 맞는 시간·상태를 사용한다.
+
+3. 최소 낙찰 fixture와 검증을 추가한다.
+   - Best Art와 상세 화면용 고가 `SOLD` 작품에만 최고 bid, 낙찰가, point hold, order의 관계를 완성형으로 만든다.
+   - `currentPrice`, `winningBid`, `artStatus`, `closedAt`과 주문·예치 상태의 일관성을 검증한다.
+   - 반복 실행, 진행·임박·종료 검색, Best Art 가격 정렬, 로컬 이미지 경로 응답을 자동 테스트로 확인한다.
+
+### DB 초기화 후 재생성
+
+- DB 초기화 뒤 `local-demo` 프로필과 demo seed opt-in property를 설정해 백엔드를 실행한다.
+- Flyway는 스키마만 적용하고, 이후 demo runner가 누락된 demo 데이터만 생성한다.
+- 같은 설정으로 재실행해도 자연 키가 동일한 demo 계정·작가·작품을 추가 생성하지 않는다.
+
+### 예상 파일
+
+- `backend/src/main/java/com/dailyatelier/dailyatelier/support/LocalDemoDataSeeder.java`
+- `backend/src/main/java/com/dailyatelier/dailyatelier/support/LocalDemoSeedProperties.java`
+- `backend/src/main/resources/application-local-demo.properties`
+- `backend/src/test/java/com/dailyatelier/dailyatelier/support/LocalDemoDataSeederTest.java`
+- `frontend/public/img/demo-art/art-demo-01-*` ~ `art-demo-20-*`
+
+### 완료 기준
+
+- 빈 로컬 DB에서 약 20개의 demo 작품이 생성되고, 재실행 시 demo 데이터 수가 증가하지 않는다.
+- 홈 Best Art, 진행/임박/종료 작품, 작품 목록·검색·상세가 고정 demo 데이터로 충분히 표시된다.
+- Flyway, 운영 API·Cloudinary 검증, 기존 비-demo 데이터에 영향이 없다.
+
 ## 접근성 유지 기준
 
 - 모든 기능을 키보드만으로 사용할 수 있어야 하며, 기존 논리적 탭 순서와 포커스 복귀를 깨지 않는다.
