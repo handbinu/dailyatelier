@@ -116,12 +116,19 @@
 2. 계정·작가·작품의 기본 데이터를 생성한다.
    - 기존 사용자·작가 생성 흐름과 point account 초기화 계약을 따른다.
    - 각 작품의 `imgPath`는 `/img/demo-art/art-demo-01-*`부터 실제 파일명에 맞춰 1:1로 연결한다.
+   - demo 작품 spec에 `ONGOING`, `UPCOMING`, `SOLD`, `UNSOLD` 역할을 명시한다.
    - 진행·임박·유찰 데이터는 현재 검색 상태 판정과 가격·카테고리 규칙에 맞는 시간·상태를 사용한다.
 
-3. 최소 낙찰 fixture와 검증을 추가한다.
+3. 재실행 시 상대 시간 상태를 복구한다.
+   - 자연 키로 찾은 기존 demo 작품 중 `ONGOING`·`UPCOMING` 역할만 현재 시점 기준 상대 시간으로 갱신한다.
+   - 자동 마감으로 `UNSOLD`가 되었더라도 원래 역할이 `ONGOING`·`UPCOMING`이고 입찰·활성 hold·winning bid·order가 전혀 없는 경우에만 `ACTIVE`, `closedAt=null`, `currentPrice=startPrice`로 복구한다.
+   - QA 중 실제 거래가 발생한 demo 작품, 원래 `SOLD`·`UNSOLD` fixture 및 비-demo 데이터는 재실행으로 변경하지 않는다.
+
+4. 최소 낙찰 fixture와 검증을 추가한다.
    - Best Art와 상세 화면용 고가 `SOLD` 작품에만 최고 bid, 낙찰가, point hold, order의 관계를 완성형으로 만든다.
    - `currentPrice`, `winningBid`, `artStatus`, `closedAt`과 주문·예치 상태의 일관성을 검증한다.
    - 반복 실행, 진행·임박·종료 검색, Best Art 가격 정렬, 로컬 이미지 경로 응답을 자동 테스트로 확인한다.
+   - 가변 `Clock`으로 최초 seed 후 `+6일` 재실행을 검증해 `ONGOING`·`UPCOMING` 구성이 복구되고 demo 데이터 수, `SOLD`·주문·hold 관계가 유지되는지 확인한다.
 
 ### DB 초기화 후 재생성
 
@@ -141,6 +148,7 @@
 
 - 빈 로컬 DB에서 약 20개의 demo 작품이 생성되고, 재실행 시 demo 데이터 수가 증가하지 않는다.
 - 홈 Best Art, 진행/임박/종료 작품, 작품 목록·검색·상세가 고정 demo 데이터로 충분히 표시된다.
+- 오래된 DB에서 재실행해도 진행·예정 demo 화면 구성이 복구된다.
 - Flyway, 운영 API·Cloudinary 검증, 기존 비-demo 데이터에 영향이 없다.
 
 ## 접근성 유지 기준
