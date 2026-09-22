@@ -104,12 +104,14 @@ describe('마이페이지 낙찰 작품 요약', () => {
     expect(screen.queryByRole('link', { name: '주문 확인' })).not.toBeInTheDocument()
   })
 
-  it('일반 회원에게 회원 메뉴만 링크로 제공하고 현재 위치를 표시한다', async () => {
+  it('일반 회원에게 내 활동 메뉴만 링크로 제공하고 현재 위치를 표시한다', async () => {
     renderMyPage()
     await screen.findByText('테스트 사용자')
 
-    const userMenu = screen.getByRole('navigation', { name: '회원 메뉴' })
+    const userMenu = screen.getByRole('navigation', { name: '내 활동' })
     expect(within(userMenu).getByRole('link', { name: '홈' })).toHaveAttribute('aria-current', 'page')
+    expect(within(userMenu).getByRole('link', { name: '구매 주문' })).toHaveAttribute('href', '/mypage/order-status')
+    expect(within(userMenu).getByRole('link', { name: '작성한 리뷰' })).toHaveAttribute('href', '/mypage/my-review')
     expect(screen.queryByRole('navigation', { name: '작가 관리' })).not.toBeInTheDocument()
   })
 
@@ -122,8 +124,9 @@ describe('마이페이지 낙찰 작품 요약', () => {
     const artistMenu = screen.getByRole('navigation', { name: '작가 관리' })
     expect(within(artistMenu).getByRole('link', { name: '작품 등록' })).toHaveAttribute('href', '/upload')
     expect(within(artistMenu).getByRole('link', { name: '작품 관리' })).toHaveAttribute('href', '/mypage/manage-arts')
-    expect(within(artistMenu).getByRole('link', { name: '작품 리뷰' })).toHaveAttribute('href', '/mypage/artist-review')
-    expect(within(artistMenu).getByRole('link', { name: '판매 주문' })).toHaveAttribute('href', '/mypage/sales-orders')
+    expect(within(artistMenu).getByRole('link', { name: '판매 작품 리뷰' })).toHaveAttribute('href', '/mypage/artist-review')
+    expect(within(artistMenu).getByRole('link', { name: '판매 주문 관리' })).toHaveAttribute('href', '/mypage/sales-orders')
+    expect(screen.getAllByRole('link', { name: '작품 등록' })).toHaveLength(1)
   })
 
   it('관리자 회원에게 문의 관리 바로가기를 제공한다', async () => {
@@ -150,7 +153,7 @@ describe('마이페이지 낙찰 작품 요약', () => {
 
     renderMyPage()
 
-    const userMenu = await screen.findByRole('navigation', { name: '회원 메뉴' })
+    const userMenu = await screen.findByRole('navigation', { name: '내 활동' })
     const inquiryLink = within(userMenu).getByRole('link', { name: /문의 현황/ })
     expect(within(inquiryLink).getByText('-')).toBeVisible()
     expect(within(inquiryLink).queryByText('0')).not.toBeInTheDocument()
@@ -162,10 +165,10 @@ describe('마이페이지 낙찰 작품 요약', () => {
     renderMyPage()
 
     expect(await screen.findByText('입찰 현황을 불러오지 못했습니다.')).toBeVisible()
-    const userMenu = screen.getByRole('navigation', { name: '회원 메뉴' })
+    const userMenu = screen.getByRole('navigation', { name: '내 활동' })
     expect(within(within(userMenu).getByRole('link', { name: /입찰 현황/ })).getByText('-')).toBeVisible()
 
-    for (const label of ['진행 중 입찰', '종료 임박']) {
+    for (const label of ['진행 중 입찰', '24시간 내 마감']) {
       const card = screen.getByText(label).closest('div')
       expect(within(card).getByText('-')).toBeVisible()
     }

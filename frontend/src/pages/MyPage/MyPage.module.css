@@ -44,11 +44,11 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3);
-  background: rgba(119, 140, 134, 0.35);
+  background: rgba(119, 140, 134, 0.5);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  color: #b8d4cf;
+  color: #fff;
   letter-spacing: 0.04em;
   width: fit-content;
 }
@@ -83,10 +83,8 @@
   gap: var(--space-4);
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
-  max-height: calc(100dvh - var(--header-height) - var(--space-8));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  max-height: none;
+  overflow: visible;
   padding-right: var(--space-2);
 }
 
@@ -270,14 +268,14 @@
   display: block;
   text-align: center;
   padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
+  background: var(--color-accent);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 600;
   transition: background var(--transition-fast);
 }
-.chargeBtn:hover { background: var(--color-accent); color: #fff; }
+.chargeBtn:hover { background: var(--color-accent-hover); color: #fff; }
 
 /* 퀵 액션 */
 .quickActions {
@@ -287,6 +285,11 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
+}
+
+.quickActionsSingle {
+  background: transparent;
+  border: none;
 }
 
 .quickBtn {
@@ -321,6 +324,12 @@
   cursor: pointer;
   text-align: left;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quickActionsSingle .quickBtnLogout {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(217, 83, 79, 0.22);
+  border-radius: var(--radius-md);
 }
 
 .quickBtnLogout:hover {
@@ -371,7 +380,7 @@
   min-height: 42px;
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   border-radius: var(--radius-sm);
   white-space: nowrap;
   transition: color var(--transition-fast), background var(--transition-fast);
@@ -379,14 +388,18 @@
 .menuLink:hover { color: var(--color-text); background: var(--color-surface-alt); }
 
 .menuLinkActive {
-  color: var(--color-primary);
+  color: var(--color-accent-hover);
   font-weight: 700;
-  background: var(--color-surface-alt);
-  box-shadow: inset 0 -2px var(--color-primary);
+  background: var(--color-accent-light);
+  box-shadow: inset 0 -2px var(--color-accent);
 }
 
 /* 작가 전용 메뉴 */
-.menuLinkArtist { color: var(--color-accent); }
+.menuLinkArtist {
+  color: var(--color-accent-hover);
+  background: rgba(119, 140, 134, 0.12);
+}
+.menuLinkArtist:hover { color: var(--color-primary); background: rgba(119, 140, 134, 0.22); }
 .menuLinkArtist.menuLinkActive {
   color: var(--color-accent);
   box-shadow: inset 0 -2px var(--color-accent);
@@ -429,7 +442,7 @@
 .statCard {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--stat-color, var(--color-accent));
+  border-top: 3px solid var(--color-accent);
   border-radius: var(--radius-md);
   padding: var(--space-5) var(--space-4);
   display: flex;
@@ -1149,6 +1162,7 @@
     padding-right: 0;
   }
   .menuLink { flex: 1 1 130px; justify-content: center; white-space: normal; text-align: center; }
+  .statGridArtist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .artCardGrid { grid-template-columns: repeat(2, 1fr); }
   .orderHeader { display: none; }
   .orderRow { grid-template-columns: 1fr; gap: var(--space-3); }

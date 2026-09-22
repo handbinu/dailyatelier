@@ -11,7 +11,7 @@ import styles from './MyPage.module.css'
 
 const BID_STATUS_META = {
   ONGOING: { label: '진행 중', color: 'green' },
-  IMMINENT: { label: '종료 임박', color: 'orange' },
+  IMMINENT: { label: '24시간 내 마감', color: 'orange' },
   ENDED: { label: '종료', color: 'gray' },
 }
 
@@ -50,12 +50,12 @@ const T = {
     bid: '입찰 현황',
     likes: '찜한 작품',
     success: '낙찰 작품',
-    review: '리뷰 관리',
-    order: '주문 조회',
+    review: '작성한 리뷰',
+    order: '구매 주문',
     inquiry: '문의 현황',
     manage: '작품 관리',
-    artistReview: '작품 리뷰',
-    salesOrder: '판매 주문',
+    artistReview: '판매 작품 리뷰',
+    salesOrder: '판매 주문 관리',
   },
 }
 
@@ -231,13 +231,13 @@ export default function MyPage() {
               <PointCard user={user} />
             </>
           ) : null}
-          <QuickActions isArtist={isArtist} isAdmin={isAdmin} navigate={navigate} />
+          <QuickActions isAdmin={isAdmin} navigate={navigate} />
         </aside>
 
         <main className={styles.content}>
           <div className={styles.menuGroups}>
             <MyPageMenu
-              title="회원 메뉴"
+              title="내 활동"
               items={USER_TABS}
               pathname={location.pathname}
               bidsCount={bidsLoading || bidsError
@@ -356,7 +356,7 @@ function PointCard({ user }) {
   )
 }
 
-function QuickActions({ isArtist, isAdmin, navigate }) {
+function QuickActions({ isAdmin, navigate }) {
   const logout = () => {
     if (!window.confirm(T.logoutConfirm)) return
     ;['token', 'userId', 'nickname', 'userStatus'].forEach((k) => localStorage.removeItem(k))
@@ -364,10 +364,7 @@ function QuickActions({ isArtist, isAdmin, navigate }) {
   }
 
   return (
-    <div className={styles.quickActions}>
-      {isArtist && (
-        <Link to="/upload" className={styles.quickBtn}>{T.artUpload}</Link>
-      )}
+    <div className={`${styles.quickActions} ${!isAdmin ? styles.quickActionsSingle : ''}`}>
       {isAdmin && (
         <Link to="/admin/inquiries" className={styles.quickBtn}>관리자 문의 관리</Link>
       )}
@@ -392,27 +389,25 @@ function OverviewTab({
   const ongoing = bids.filter((bid) => bid.auctionStatus !== 'ENDED')
   const imminent = bids.filter((bid) => bid.auctionStatus === 'IMMINENT')
   const stats = [
-    { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: bidsLoading || bidsError ? '-' : ongoing.length, unit: '건', color: 'var(--color-accent)' },
-    { label: '\uC885\uB8CC \uC784\uBC15', value: bidsLoading || bidsError ? '-' : imminent.length, unit: '건', color: '#c0622a' },
+    { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: bidsLoading || bidsError ? '-' : ongoing.length, unit: '건' },
+    { label: '24시간 내 마감', value: bidsLoading || bidsError ? '-' : imminent.length, unit: '건' },
     {
       label: T.successful,
       value: winsLoading || winsError ? '-' : wins.length,
       unit: '건',
-      color: '#2a75c7',
     },
     ...(isArtist ? [{
       label: T.myArts,
       value: myArtsLoading ? '-' : myArtsError ? '-' : myArtsCount,
       unit: '건',
-      color: '#7b5ea7',
     }] : []),
   ]
 
   return (
     <div className={styles.overviewWrap}>
-      <div className={styles.statGrid}>
+      <div className={`${styles.statGrid} ${isArtist ? styles.statGridArtist : ''}`}>
         {stats.map((st) => (
-          <div key={st.label} className={styles.statCard} style={{ '--stat-color': st.color }}>
+          <div key={st.label} className={styles.statCard}>
             <span className={styles.statValue}>{st.value}<small>{st.unit}</small></span>
             <span className={styles.statLabel}>{st.label}</span>
           </div>
