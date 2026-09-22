@@ -248,3 +248,17 @@ ORDER BY account.user_id;
 
 - 작품 수정 화면은 경매 시작·종료 시각까지 다음 갱신을 예약해 재진입이나 입력 없이 잠금 상태를 최신화하며, `Date.now()`를 렌더에서 제거했다.
 - 판매 주문 목록과 중복 확인은 렌더 중 ref를 갱신하지 않고 최신 값·요청 판별 계약을 유지했다. `react-hooks/purity`, `react-hooks/refs`를 error로 재활성화했다.
+
+## 홈 1단계 사용성 개선
+
+- 기존 홈 섹션 순서·링크·데이터 조회 계약을 유지하면서 저개수 카드 밀도, 종료 작품 배치·간격, Header 탐색 영역을 조정했다.
+- 홈 작품 카드는 4:3 프레임의 `cover` 표시로 그리드 높이를 고정하고, 상세에서는 원본 전체를 확인하는 역할 분리를 유지한다.
+- 모바일 히어로는 16:9 `cover`로 중앙 콘텐츠를 보존하고, 슬라이드 버튼은 이미지 영역 기준 중앙에 배치하며 SVG chevron과 기존 버튼 접근성 계약을 유지한다.
+- Header dropdown은 문서 흐름에 높이를 추가하지 않는 overlay이며, Header 높이와 hover·focus·Escape·키보드 동작을 유지한다.
+
+## 로컬 demo 작품 seed
+
+- `local-demo` 프로필과 명시적 opt-in이 함께 있을 때만 자연키 기반으로 demo 계정·작가·20개 작품을 생성하고 로컬 정적 이미지를 연결한다. Flyway, 운영 API·Cloudinary 검증, 기존 비-demo 데이터는 변경하지 않는다.
+- 작품 spec은 `ONGOING`·`UPCOMING`·`SOLD`·`UNSOLD` 역할을 가지며, `SOLD` fixture만 최소 bid·hold·winning bid·order 관계를 구성한다.
+- 재실행은 거래가 없는 원래 `ONGOING`·`UPCOMING` 작품만 상대 시간 상태로 복구한다. 기존 `SOLD`·`UNSOLD`, 실제 QA 거래 작품, 비-demo 데이터는 보존한다.
+- 가변 `Clock`의 `+6일` 재실행으로 진행·예정 구성 복구, demo 수량 불변, SOLD·주문·hold 관계 보존을 검증했다.
