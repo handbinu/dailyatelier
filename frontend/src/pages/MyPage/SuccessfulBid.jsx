@@ -100,7 +100,7 @@ export default function SuccessfulBid() {
                       {item.orderId ? (
                         <ActionBtn
                           to={`/mypage/order-status?orderId=${item.orderId}`}
-                          variant="fill"
+                          variant="accent"
                         >
                           주문 확인
                         </ActionBtn>
