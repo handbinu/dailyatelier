@@ -37,13 +37,18 @@
 
 .summaryLabel {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
 }
 
 .list {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
+}
+
+.filters [role='group'] button[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .feedback {
@@ -57,8 +62,8 @@
 
 .card {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: var(--space-5);
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -74,16 +79,38 @@
 }
 
 .cardBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(240px, 1.2fr) minmax(156px, max-content);
+  grid-template-areas:
+    "info prices status"
+    "info prices actions";
+  column-gap: var(--space-4);
+  align-items: stretch;
 }
 
-.cardTop {
+.cardInfo {
+  grid-area: info;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
+}
+
+.statusGroup {
+  grid-area: status;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.statusGroup > span {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  line-height: 1;
 }
 
 .cardTitle {
@@ -94,13 +121,12 @@
 
 .cardArtist {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
 }
 
 .leading {
   font-size: var(--font-size-xs);
   font-weight: 700;
-  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
 }
 
@@ -121,7 +147,16 @@
 
 .resultLost {
   background: rgba(0, 0, 0, 0.06);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
+}
+
+.priceArea {
+  grid-area: prices;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
 }
 
 .priceGrid {
@@ -139,16 +174,16 @@
 
 .priceLabel {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
 }
 
 .priceValue {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: 800;
   color: var(--color-text);
 }
 
-.priceHighlight {
+.priceLeading {
   color: var(--color-accent);
 }
 
@@ -160,16 +195,48 @@
 
 .closingTime {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
+}
+
+.statusDetail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.resultMessage {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
 }
 
 .cardActions {
+  grid-area: actions;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
   gap: var(--space-2);
 }
 
+.cardActions:has(> a:nth-child(2)) > a:first-child {
+  background: var(--color-accent-hover);
+  color: #fff;
+  border-color: var(--color-accent-hover);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cardActions:has(> a:nth-child(2)) > a:first-child:hover,
+.cardActions:has(> a:nth-child(2)) > a:first-child:focus-visible,
+.cardActions:has(> a:nth-child(2)) > a:first-child:active {
+  background-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary));
+  color: #fff;
+}
+
+.cardActions:has(> a:nth-child(2)) > a:first-child:focus-visible {
+  outline-color: var(--color-primary);
+}
+
 .orderUnavailable {
-  align-self: center;
   font-size: var(--font-size-xs);
   color: var(--color-error);
 }
@@ -180,6 +247,59 @@
   }
 
   .card {
-    grid-template-columns: 1fr;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+    align-items: start;
+  }
+
+  .cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .statusGroup {
+    order: 2;
+    justify-content: flex-start;
+  }
+
+  .priceArea {
+    order: 3;
+    gap: var(--space-2);
+    padding: 0;
+    border: 0;
+  }
+
+  .priceValue {
+    font-size: var(--font-size-sm);
+  }
+
+  .cardActions {
+    order: 4;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .cardActions {
+    min-width: 0;
+  }
+
+  .cardActions > * {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .statusGroup {
+    gap: var(--space-1);
+  }
+
+  .cardTitle {
+    font-size: var(--font-size-sm);
   }
 }

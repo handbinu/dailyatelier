@@ -106,7 +106,9 @@ export default function BidStatus() {
           ))}
         </div>
 
-        <FilterBar options={FILTERS} value={filter} onChange={setFilter} />
+        <div className={s.filters}>
+          <FilterBar options={FILTERS} value={filter} onChange={setFilter} />
+        </div>
 
         {loading
           ? <Empty msg="입찰 현황을 불러오는 중입니다." />
@@ -137,15 +139,18 @@ function BidCard({ bid }) {
     <div className={`${s.card} ${isEnded ? s.cardEnded : ''}`}>
       <div className={s.cardImg}>
         <ArtThumb src={getArtImageSrc(bid.imgPath)} alt={bid.artName} ratio="1/1" />
-        <Badge label={meta.label} color={meta.color} />
       </div>
 
       <div className={s.cardBody}>
-        <div className={s.cardTop}>
+        <div className={s.cardInfo}>
           <div>
             <p className={s.cardTitle}>{bid.artName}</p>
             <p className={s.cardArtist}>by {bid.artistName || '작가 정보 없음'}</p>
           </div>
+        </div>
+
+        <div className={s.statusGroup}>
+          <Badge label={meta.label} color={meta.color} />
           <span
             className={`${s.leading} ${
               isEnded
@@ -153,35 +158,39 @@ function BidCard({ bid }) {
                 : bid.isLeading ? s.leadingYes : s.leadingNo
             }`}
           >
-            {isEnded ? resultMeta.label : bid.isLeading ? '최고가' : '경쟁 중'}
+            {isEnded ? resultMeta.label : bid.isLeading ? '현재 최고가' : '경쟁 중'}
           </span>
         </div>
 
-        <div className={s.priceGrid}>
-          <div className={s.priceItem}>
-            <span className={s.priceLabel}>내 입찰가</span>
-            <span className={s.priceValue}>{formatPrice(bid.myBidPrice)}원</span>
+        <div className={s.priceArea}>
+          <div className={s.priceGrid}>
+            <div className={s.priceItem}>
+              <span className={s.priceLabel}>내 입찰가</span>
+              <span className={s.priceValue}>{formatPrice(bid.myBidPrice)}원</span>
+            </div>
+            <div className={s.priceDivider} />
+            <div className={s.priceItem}>
+              <span className={s.priceLabel}>현재 최고가</span>
+              <span className={`${s.priceValue} ${bid.isLeading ? s.priceLeading : ''}`}>{formatPrice(bid.currentPrice)}원</span>
+            </div>
           </div>
-          <div className={s.priceDivider} />
-          <div className={s.priceItem}>
-            <span className={s.priceLabel}>현재 최고가</span>
-            <span className={`${s.priceValue} ${s.priceHighlight}`}>{formatPrice(bid.currentPrice)}원</span>
+
+          <div className={s.statusDetail}>
+            <p className={s.closingTime}>{formatClosingTime(bid.closingTime)} 마감</p>
+            {bid.bidResultMessage && <p className={s.resultMessage}>{bid.bidResultMessage}</p>}
           </div>
         </div>
 
-        <p className={s.closingTime}>{formatClosingTime(bid.closingTime)} 마감</p>
-        {bid.bidResultMessage && <p className={s.closingTime}>{bid.bidResultMessage}</p>}
-
         <div className={s.cardActions}>
-          <ActionBtn to={`/auction/${bid.artId}`} variant="outline">상세 보기</ActionBtn>
           {!isEnded && (
-            <ActionBtn to={`/auction/${bid.artId}`} variant="fill">가격 올리기</ActionBtn>
+            <ActionBtn to={`/auction/${bid.artId}`} variant="accent">가격 올리기</ActionBtn>
           )}
           {isEnded && bid.bidResult === 'WON' && bid.orderId && (
-            <ActionBtn to={`/mypage/order-status?orderId=${bid.orderId}`} variant="fill">
+              <ActionBtn to={`/mypage/order-status?orderId=${bid.orderId}`} variant="accent">
               낙찰 주문 확인
             </ActionBtn>
           )}
+          <ActionBtn to={`/auction/${bid.artId}`} variant="outline">상세 보기</ActionBtn>
           {isEnded && bid.bidResult === 'WON' && !bid.orderId && (
             <p className={s.orderUnavailable}>연결된 주문을 확인할 수 없습니다.</p>
           )}
