@@ -18,6 +18,7 @@ import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.service.AuctionCloseService;
+import com.dailyatelier.dailyatelier.service.ArtService;
 import com.dailyatelier.dailyatelier.service.BidService;
 import com.dailyatelier.dailyatelier.service.PointAccountService;
 import jakarta.transaction.Transactional;
@@ -56,6 +57,7 @@ public class LocalDemoDataSeeder {
     private final PasswordEncoder passwordEncoder;
     private final BidService bidService;
     private final AuctionCloseService auctionCloseService;
+    private final ArtService artService;
     private final Clock clock;
 
     @Transactional
@@ -71,9 +73,11 @@ public class LocalDemoDataSeeder {
         User buyerOne = user("demo-buyer-one", "도윤", "buyer1@demo.local", 0);
         User buyerTwo = user("demo-buyer-two", "유진", "buyer2@demo.local", 0);
         User buyerThree = user("demo-buyer-three", "서연", "buyer3@demo.local", 0);
+        User bidQaBuyer = user("demo-buyer-bid-qa", "입찰 QA", "bid-qa@demo.local", 0);
         fund(buyerOne, now);
         fund(buyerTwo, now);
         fund(buyerThree, now);
+        fund(bidQaBuyer, now);
 
         List<DemoArt> arts = List.of(
                 art(artists.get(0), "코랄 블루의 오후", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 180000, 10000, 72, DemoArtRole.ONGOING),
@@ -84,6 +88,12 @@ public class LocalDemoDataSeeder {
                 art(artists.get(0), "오렌지 코발트", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 430000, 10000, 4, DemoArtRole.ONGOING),
                 art(artists.get(1), "소프트 테이블", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 10000, 15, DemoArtRole.ONGOING),
                 art(artists.get(1), "세라믹 리듬", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 260000, 10000, 96, DemoArtRole.ONGOING),
+                art(artists.get(0), "QA 진행 중 입찰 작품", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 200000, 10000, 48, DemoArtRole.QA_ONGOING),
+                art(artists.get(0), "QA 경쟁 중 긴 작품명 모바일 줄바꿈 확인용", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 1980000, 10000, 36, DemoArtRole.QA_COMPETING),
+                art(artists.get(1), "QA 24시간 내 마감 작품", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 220000, 10000, 12, DemoArtRole.QA_IMMINENT),
+                art(artists.get(2), "QA 낙찰 주문 작품", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 300000, 10000, -48, DemoArtRole.QA_SOLD),
+                art(artists.get(3), "QA 패찰 작품", "art-demo-13-flower-editorial.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 280000, 10000, -48, DemoArtRole.QA_LOST),
+                art(artists.get(4), "QA 경매 취소 작품", "art-demo-20-sage.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 240000, 10000, -48, DemoArtRole.QA_CANCELED),
                 art(artists.get(2), "파스텔 모노리스", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 380000, 20000, -48, DemoArtRole.SOLD),
                 art(artists.get(2), "고요한 조각", "art-demo-10-modern-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 460000, 20000, -72, DemoArtRole.SOLD),
                 art(artists.get(2), "프리즘의 방", "art-demo-11-glass.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 340000, 10000, -96, DemoArtRole.SOLD),
@@ -101,8 +111,27 @@ public class LocalDemoDataSeeder {
             Art art = artRepository.findByArtistUserUserIdAndName(
                     spec.artist().getUser().getUserId(), spec.name()).orElseGet(() -> create(spec, now));
             refreshSafeAuctionWindow(art, spec, now);
-            if (spec.role() == DemoArtRole.SOLD && art.getArtStatus() == Art.STATUS_ACTIVE) {
-                closeSoldArt(art, spec.startPrice() + spec.increment(), buyerFor(art.getName(), buyerOne, buyerTwo, buyerThree));
+            if (isQaBidFixture(spec.role()) && !bidRepository.existsByArt(art)) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+            }
+            if (spec.role() == DemoArtRole.QA_COMPETING && !bidRepository.existsByArt(art)) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+                createBid(art, spec.startPrice() + (spec.increment() * 2), buyerOne);
+            }
+            if ((spec.role() == DemoArtRole.SOLD || spec.role() == DemoArtRole.QA_SOLD)
+                    && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                closeSoldArt(art, spec.startPrice() + spec.increment(),
+                        spec.role() == DemoArtRole.QA_SOLD
+                                ? bidQaBuyer
+                                : buyerFor(art.getName(), buyerOne, buyerTwo, buyerThree));
+            }
+            if (spec.role() == DemoArtRole.QA_LOST && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                closeLostArt(art, spec.startPrice() + spec.increment(), spec.startPrice() + (spec.increment() * 2),
+                        bidQaBuyer, buyerTwo);
+            }
+            if (spec.role() == DemoArtRole.QA_CANCELED && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+                artService.deleteArt(art.getArtId(), art.getArtist().getUser().getUserId());
             }
         }
         log.info("Local demo seed is ready: {} demo artworks", arts.size());
@@ -170,7 +199,9 @@ public class LocalDemoDataSeeder {
     }
 
     private void refreshSafeAuctionWindow(Art art, DemoArt spec, LocalDateTime now) {
-        if ((spec.role() != DemoArtRole.ONGOING && spec.role() != DemoArtRole.UPCOMING)
+        if ((spec.role() != DemoArtRole.ONGOING && spec.role() != DemoArtRole.UPCOMING
+                && spec.role() != DemoArtRole.QA_ONGOING && spec.role() != DemoArtRole.QA_COMPETING
+                && spec.role() != DemoArtRole.QA_IMMINENT)
                 || !isSafeToRefresh(art)) {
             return;
         }
@@ -190,7 +221,7 @@ public class LocalDemoDataSeeder {
 
     private void applyAuctionWindow(Art art, DemoArt spec, LocalDateTime now) {
         switch (spec.role()) {
-            case ONGOING -> {
+            case ONGOING, QA_ONGOING, QA_COMPETING, QA_IMMINENT -> {
                 art.setBidStartTime(now.minusDays(5));
                 art.setClosingTime(now.plusHours(spec.hoursToClose()));
             }
@@ -198,7 +229,7 @@ public class LocalDemoDataSeeder {
                 art.setBidStartTime(now.plusDays(2));
                 art.setClosingTime(now.plusDays(5));
             }
-            case SOLD -> {
+            case SOLD, QA_SOLD, QA_LOST, QA_CANCELED -> {
                 art.setBidStartTime(now.minusDays(5));
                 art.setClosingTime(now.plusHours(1));
             }
@@ -210,12 +241,28 @@ public class LocalDemoDataSeeder {
     }
 
     private void closeSoldArt(Art art, int bidPrice, User buyer) {
-        BidCreateRequestDto request = new BidCreateRequestDto();
-        request.setBidPrice(bidPrice);
-        bidService.createBid(art.getArtId(), buyer.getUserId(), request);
+        createBid(art, bidPrice, buyer);
         art.setClosingTime(LocalDateTime.now(clock).minusMinutes(1));
         artRepository.saveAndFlush(art);
         auctionCloseService.closeAuction(art.getArtId());
+    }
+
+    private void closeLostArt(Art art, int losingBidPrice, int winningBidPrice, User losingBuyer, User winningBuyer) {
+        createBid(art, losingBidPrice, losingBuyer);
+        createBid(art, winningBidPrice, winningBuyer);
+        art.setClosingTime(LocalDateTime.now(clock).minusMinutes(1));
+        artRepository.saveAndFlush(art);
+        auctionCloseService.closeAuction(art.getArtId());
+    }
+
+    private void createBid(Art art, int bidPrice, User buyer) {
+        BidCreateRequestDto request = new BidCreateRequestDto();
+        request.setBidPrice(bidPrice);
+        bidService.createBid(art.getArtId(), buyer.getUserId(), request);
+    }
+
+    private boolean isQaBidFixture(DemoArtRole role) {
+        return role == DemoArtRole.QA_ONGOING || role == DemoArtRole.QA_IMMINENT;
     }
 
     private User buyerFor(String name, User one, User two, User three) {
@@ -238,6 +285,12 @@ public class LocalDemoDataSeeder {
 
     private enum DemoArtRole {
         ONGOING,
+        QA_ONGOING,
+        QA_COMPETING,
+        QA_IMMINENT,
+        QA_SOLD,
+        QA_LOST,
+        QA_CANCELED,
         UPCOMING,
         SOLD,
         UNSOLD

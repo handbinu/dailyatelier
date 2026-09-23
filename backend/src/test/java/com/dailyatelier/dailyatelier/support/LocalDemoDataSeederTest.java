@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.support;
 
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.PointHoldStatus;
+import com.dailyatelier.dailyatelier.dto.BidStatusResponseDto;
 import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
@@ -71,14 +72,14 @@ class LocalDemoDataSeederTest {
 
         seeder.seed();
 
-        assertThat(artCount).isEqualTo(20);
-        assertThat(userCount).isEqualTo(8);
+        assertThat(artCount).isEqualTo(26);
+        assertThat(userCount).isEqualTo(9);
         assertThat(artRepository.count()).isEqualTo(artCount);
         assertThat(userRepository.count()).isEqualTo(userCount);
-        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(4);
+        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(6);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
-                .count()).isEqualTo(14);
+                .count()).isEqualTo(17);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_UNSOLD)
                 .count()).isEqualTo(2);
@@ -88,14 +89,58 @@ class LocalDemoDataSeederTest {
                         "/img/demo-art/art-demo-20-sage.jpg");
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_SOLD)
-                .toList()).hasSize(4)
+                .toList()).hasSize(6)
                 .allSatisfy(art -> {
                     assertThat(art.getWinningBid()).isNotNull();
                     assertThat(art.getClosedAt()).isNotNull();
                     assertThat(art.getCurrentPrice()).isEqualTo(art.getWinningBid().getBidPrice());
                     assertThat(art.getActivePointHold().getStatus()).isEqualTo(PointHoldStatus.HELD);
                 });
-        assertThat(pointHoldRepository.findAll()).hasSize(4);
+        assertThat(pointHoldRepository.findAll()).hasSize(12);
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .hasSize(6)
+                .extracting(BidStatusResponseDto::getAuctionStatus)
+                .containsExactlyInAnyOrder("ONGOING", "ONGOING", "IMMINENT", "ENDED", "ENDED", "ENDED");
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 진행 중 입찰 작품".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> {
+                    assertThat(bid.isLeading()).isTrue();
+                    assertThat(bid.getCurrentPrice()).isEqualTo(210000);
+                });
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 경쟁 중 긴 작품명 모바일 줄바꿈 확인용".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> {
+                    assertThat(bid.isLeading()).isFalse();
+                    assertThat(bid.getMyBidPrice()).isEqualTo(1990000);
+                    assertThat(bid.getCurrentPrice()).isEqualTo(2000000);
+                });
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 24시간 내 마감 작품".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> assertThat(bid.getAuctionStatus()).isEqualTo("IMMINENT"));
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 낙찰 주문 작품".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> {
+                    assertThat(bid.getBidResult()).isEqualTo("WON");
+                    assertThat(bid.getOrderId()).isNotNull();
+                });
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 패찰 작품".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> {
+                    assertThat(bid.getBidResult()).isEqualTo("LOST");
+                    assertThat(bid.getOrderId()).isNull();
+                });
+        assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
+                .filteredOn(bid -> "QA 경매 취소 작품".equals(bid.getArtName()))
+                .singleElement()
+                .satisfies(bid -> {
+                    assertThat(bid.getBidResult()).isEqualTo("CANCELED");
+                    assertThat(bid.getOrderId()).isNull();
+                });
     }
 
     @Test
@@ -109,9 +154,9 @@ class LocalDemoDataSeederTest {
         seeder.seed();
 
         LocalDateTime now = LocalDateTime.now(clock);
-        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(20);
-        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(4);
-        assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(4);
+        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(26);
+        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(6);
+        assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(12);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .filter(art -> !art.getBidStartTime().isAfter(now))
@@ -124,7 +169,7 @@ class LocalDemoDataSeederTest {
                 .count()).isEqualTo(6);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_SOLD)
-                .toList()).hasSize(4)
+                .toList()).hasSize(6)
                 .allSatisfy(art -> assertThat(art.getWinningBid()).isNotNull());
     }
 
