@@ -268,14 +268,20 @@
   display: block;
   text-align: center;
   padding: var(--space-2) var(--space-4);
-  background: var(--color-accent);
+  background: var(--color-accent-hover);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  transition: background var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
-.chargeBtn:hover { background: var(--color-accent-hover); color: #fff; }
+.chargeBtn:hover,
+.chargeBtn:focus-visible,
+.chargeBtn:active {
+  background-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary));
+  color: #fff;
+}
+.chargeBtn:focus-visible { outline-color: var(--color-primary); }
 
 /* 퀵 액션 */
 .quickActions {
