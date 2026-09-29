@@ -109,6 +109,15 @@ public class LocalDemoDataSeeder {
                 art(artists.get(3), "QA 주문 구매 확정", "art-demo-10-modern-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 140000, 1000, -48, DemoArtRole.QA_ORDER),
                 art(artists.get(4), "QA 주문 취소", "art-demo-11-glass.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 150000, 1000, -48, DemoArtRole.QA_ORDER),
                 art(artists.get(0), "QA 주문 환불 완료", "art-demo-12-glass-shadow.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송지 미확정", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 170000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 180000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 준비", "art-demo-03-acrylic-color.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 190000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료 환불 요청", "art-demo-04-geometric.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 200000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료 환불 거절", "art-demo-05-minimal.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 210000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 중", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 220000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 완료", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 230000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 구매 확정", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 240000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 취소", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 250000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
                 art(artists.get(3), "QA 패찰 작품", "art-demo-13-flower-editorial.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 280000, 10000, -48, DemoArtRole.QA_LOST),
                 art(artists.get(4), "QA 경매 취소 작품", "art-demo-20-sage.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 240000, 10000, -48, DemoArtRole.QA_CANCELED),
                 art(artists.get(2), "파스텔 모노리스", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 380000, 20000, -48, DemoArtRole.SOLD),
@@ -136,7 +145,7 @@ public class LocalDemoDataSeeder {
                 createBid(art, spec.startPrice() + (spec.increment() * 2), buyerOne);
             }
             if ((spec.role() == DemoArtRole.SOLD || spec.role() == DemoArtRole.QA_SOLD
-                    || spec.role() == DemoArtRole.QA_ORDER)
+                    || spec.role() == DemoArtRole.QA_ORDER || spec.role() == DemoArtRole.QA_SALES_ORDER)
                     && art.getArtStatus() == Art.STATUS_ACTIVE) {
                 closeSoldArt(art, spec.startPrice() + spec.increment(),
                         isQaOrderFixture(spec.role())
@@ -248,7 +257,7 @@ public class LocalDemoDataSeeder {
                 art.setBidStartTime(now.plusDays(2));
                 art.setClosingTime(now.plusDays(5));
             }
-            case SOLD, QA_SOLD, QA_ORDER, QA_LOST, QA_CANCELED -> {
+            case SOLD, QA_SOLD, QA_ORDER, QA_SALES_ORDER, QA_LOST, QA_CANCELED -> {
                 art.setBidStartTime(now.minusDays(5));
                 art.setClosingTime(now.plusHours(1));
             }
@@ -285,7 +294,7 @@ public class LocalDemoDataSeeder {
     }
 
     private boolean isQaOrderFixture(DemoArtRole role) {
-        return role == DemoArtRole.QA_SOLD || role == DemoArtRole.QA_ORDER;
+        return role == DemoArtRole.QA_SOLD || role == DemoArtRole.QA_ORDER || role == DemoArtRole.QA_SALES_ORDER;
     }
 
     private void seedOrderStatusFixtures(User buyer) {
@@ -300,7 +309,16 @@ public class LocalDemoDataSeeder {
                 new OrderStatusFixture("QA 주문 배송 완료 환불 요청", OrderFixtureState.DELIVERED_REFUND_REQUESTED),
                 new OrderStatusFixture("QA 주문 구매 확정", OrderFixtureState.CONFIRMED),
                 new OrderStatusFixture("QA 주문 취소", OrderFixtureState.CANCELED),
-                new OrderStatusFixture("QA 주문 환불 완료", OrderFixtureState.REFUNDED)
+                new OrderStatusFixture("QA 주문 환불 완료", OrderFixtureState.REFUNDED),
+                new OrderStatusFixture("판매 QA 주문 배송지 미확정", OrderFixtureState.PAYMENT_PENDING_UNCONFIRMED),
+                new OrderStatusFixture("판매 QA 주문 결제 완료", OrderFixtureState.PAID),
+                new OrderStatusFixture("판매 QA 주문 배송 준비", OrderFixtureState.PREPARING),
+                new OrderStatusFixture("판매 QA 주문 결제 완료 환불 요청", OrderFixtureState.PAID_REFUND_REQUESTED),
+                new OrderStatusFixture("판매 QA 주문 결제 완료 환불 거절", OrderFixtureState.PAID_REFUND_REJECTED),
+                new OrderStatusFixture("판매 QA 주문 배송 중", OrderFixtureState.SHIPPED),
+                new OrderStatusFixture("판매 QA 주문 배송 완료", OrderFixtureState.DELIVERED),
+                new OrderStatusFixture("판매 QA 주문 구매 확정", OrderFixtureState.CONFIRMED),
+                new OrderStatusFixture("판매 QA 주문 취소", OrderFixtureState.CANCELED)
         );
         for (OrderStatusFixture fixture : fixtures) {
             Order order = orderRepository.findByArtArtId(findArtId(fixture.artName())).orElseThrow();
@@ -323,12 +341,17 @@ public class LocalDemoDataSeeder {
             orderStateService.cancelPending(order.getOrderId(), buyer.getUserId());
             return;
         }
+        if (state == OrderFixtureState.PAYMENT_PENDING_UNCONFIRMED) return;
         confirmShippingAddress(order, buyer);
         if (state == OrderFixtureState.PAYMENT_PENDING_CONFIRMED) return;
 
         orderStateService.markPaid(order.getOrderId(), buyer.getUserId(),
                 "local-demo:order-payment:" + order.getOrderId());
         if (state == OrderFixtureState.PAID) return;
+        if (state == OrderFixtureState.PREPARING) {
+            orderStateService.startPreparing(order.getOrderId(), order.getSellerIdSnapshot());
+            return;
+        }
         if (state == OrderFixtureState.PAID_REFUND_REQUESTED) {
             requestRefund(order, buyer);
             return;
@@ -398,8 +421,10 @@ public class LocalDemoDataSeeder {
     private record OrderStatusFixture(String artName, OrderFixtureState state) { }
 
     private enum OrderFixtureState {
+        PAYMENT_PENDING_UNCONFIRMED,
         PAYMENT_PENDING_CONFIRMED,
         PAID,
+        PREPARING,
         PAID_REFUND_REQUESTED,
         PAID_REFUND_REJECTED,
         SHIPPED,
@@ -418,6 +443,7 @@ public class LocalDemoDataSeeder {
         QA_IMMINENT,
         QA_SOLD,
         QA_ORDER,
+        QA_SALES_ORDER,
         QA_LOST,
         QA_CANCELED,
         UPCOMING,

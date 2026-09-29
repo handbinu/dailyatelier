@@ -76,11 +76,11 @@ class LocalDemoDataSeederTest {
 
         seeder.seed();
 
-        assertThat(artCount).isEqualTo(37);
+        assertThat(artCount).isEqualTo(46);
         assertThat(userCount).isEqualTo(9);
         assertThat(artRepository.count()).isEqualTo(artCount);
         assertThat(userRepository.count()).isEqualTo(userCount);
-        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(17);
+        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .count()).isEqualTo(17);
@@ -93,16 +93,17 @@ class LocalDemoDataSeederTest {
                         "/img/demo-art/art-demo-20-sage.jpg");
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_SOLD)
-                .toList()).hasSize(17)
+                .toList()).hasSize(26)
                 .allSatisfy(art -> {
                     assertThat(art.getWinningBid()).isNotNull();
                     assertThat(art.getClosedAt()).isNotNull();
                     assertThat(art.getCurrentPrice()).isEqualTo(art.getWinningBid().getBidPrice());
                 });
-        assertThat(pointHoldRepository.findAll()).hasSize(23);
+        assertThat(pointHoldRepository.findAll()).hasSize(32);
         assertOrderStatusFixtures();
+        assertAriaSalesOrderFixtures();
         assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
-                .hasSize(17)
+                .hasSize(26)
                 .extracting(BidStatusResponseDto::getAuctionStatus)
                 .contains("ONGOING", "IMMINENT", "ENDED");
         assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
@@ -158,9 +159,9 @@ class LocalDemoDataSeederTest {
         seeder.seed();
 
         LocalDateTime now = LocalDateTime.now(clock);
-        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(37);
-        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(17);
-        assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(23);
+        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(46);
+        assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
+        assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(32);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .filter(art -> !art.getBidStartTime().isAfter(now))
@@ -173,9 +174,10 @@ class LocalDemoDataSeederTest {
                 .count()).isEqualTo(6);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_SOLD)
-                .toList()).hasSize(17)
+                .toList()).hasSize(26)
                 .allSatisfy(art -> assertThat(art.getWinningBid()).isNotNull());
         assertOrderStatusFixtures();
+        assertAriaSalesOrderFixtures();
     }
 
     @Test
@@ -202,6 +204,7 @@ class LocalDemoDataSeederTest {
     private void assertOrderStatusFixtures() {
         var qaOrders = orderRepository.findAll().stream()
                 .filter(order -> "demo-buyer-bid-qa".equals(order.getBuyerIdSnapshot()))
+                .filter(order -> !order.getArtNameSnapshot().startsWith("판매 QA "))
                 .toList();
 
         assertThat(qaOrders).hasSize(12);
@@ -254,6 +257,47 @@ class LocalDemoDataSeederTest {
         assertThat(actionsFor(refunded)).isEmpty();
     }
 
+    private void assertAriaSalesOrderFixtures() {
+        var salesOrders = orderRepository.findAll().stream()
+                .filter(order -> "demo-artist-aria".equals(order.getSellerIdSnapshot()))
+                .filter(order -> order.getArtNameSnapshot().startsWith("판매 QA "))
+                .toList();
+
+        assertThat(salesOrders).hasSize(9);
+        assertThat(salesOrders)
+                .extracting(Order::getStatus)
+                .containsExactlyInAnyOrder(
+                        OrderStatus.PAYMENT_PENDING,
+                        OrderStatus.PAID,
+                        OrderStatus.PREPARING,
+                        OrderStatus.PAID,
+                        OrderStatus.PAID,
+                        OrderStatus.SHIPPED,
+                        OrderStatus.DELIVERED,
+                        OrderStatus.CONFIRMED,
+                        OrderStatus.CANCELED
+                );
+
+        Order pending = findQaOrder(salesOrders, "판매 QA 주문 배송지 미확정");
+        assertThat(pending.isShippingAddressConfirmed()).isFalse();
+        assertThat(sellerActionsFor(findQaOrder(salesOrders, "판매 QA 주문 결제 완료")))
+                .containsExactly(OrderAction.START_PREPARING);
+        assertThat(sellerActionsFor(findQaOrder(salesOrders, "판매 QA 주문 배송 준비")))
+                .containsExactly(OrderAction.SHIP);
+
+        Order requested = findQaOrder(salesOrders, "판매 QA 주문 결제 완료 환불 요청");
+        assertThat(requested.getRefundRequestStatus()).isEqualTo(OrderRefundRequestStatus.REQUESTED);
+        assertThat(sellerActionsFor(requested))
+                .containsExactly(OrderAction.APPROVE_REFUND, OrderAction.REJECT_REFUND);
+        Order rejected = findQaOrder(salesOrders, "판매 QA 주문 결제 완료 환불 거절");
+        assertThat(rejected.getRefundRequestStatus()).isEqualTo(OrderRefundRequestStatus.REJECTED);
+        assertThat(sellerActionsFor(rejected)).containsExactly(OrderAction.START_PREPARING);
+        assertThat(findQaOrder(salesOrders, "판매 QA 주문 배송 중").getRefundRequestStatus()).isNull();
+        assertThat(findQaOrder(salesOrders, "판매 QA 주문 배송 완료").getRefundRequestStatus()).isNull();
+        assertThat(findQaOrder(salesOrders, "판매 QA 주문 구매 확정").getRefundRequestStatus()).isNull();
+        assertThat(findQaOrder(salesOrders, "판매 QA 주문 취소").getRefundRequestStatus()).isNull();
+    }
+
     private Order findQaOrder(java.util.List<Order> orders, String artName) {
         return orders.stream()
                 .filter(order -> artName.equals(order.getArtNameSnapshot()))
@@ -263,6 +307,10 @@ class LocalDemoDataSeederTest {
 
     private java.util.List<OrderAction> actionsFor(Order order) {
         return OrderSummaryResponseDto.forBuyer(order).getAvailableActions();
+    }
+
+    private java.util.List<OrderAction> sellerActionsFor(Order order) {
+        return OrderSummaryResponseDto.forSeller(order).getAvailableActions();
     }
 
     @TestConfiguration
