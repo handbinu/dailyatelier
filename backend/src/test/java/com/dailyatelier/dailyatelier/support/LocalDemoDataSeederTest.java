@@ -10,9 +10,11 @@ import com.dailyatelier.dailyatelier.dto.OrderAction;
 import com.dailyatelier.dailyatelier.dto.OrderSummaryResponseDto;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.service.BidService;
+import com.dailyatelier.dailyatelier.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +50,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(LocalDemoDataSeederTest.MutableClockConfiguration.class)
 class LocalDemoDataSeederTest {
     private static final Instant INITIAL_INSTANT = Instant.parse("2026-09-22T00:00:00Z");
+    private static final List<String> DEMO_ARTIST_IDS = List.of(
+            "demo-artist-aria",
+            "demo-artist-min",
+            "demo-artist-jun",
+            "demo-artist-soo",
+            "demo-artist-han"
+    );
     @Autowired
     private LocalDemoDataSeeder seeder;
     @Autowired
@@ -56,11 +66,15 @@ class LocalDemoDataSeederTest {
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
+    private PointAccountRepository pointAccountRepository;
+    @Autowired
     private PointHoldRepository pointHoldRepository;
     @Autowired
     private MutableClock clock;
     @Autowired
     private BidService bidService;
+    @Autowired
+    private UserService userService;
 
     @BeforeEach
     void resetClock() {
@@ -100,6 +114,7 @@ class LocalDemoDataSeederTest {
                     assertThat(art.getCurrentPrice()).isEqualTo(art.getWinningBid().getBidPrice());
                 });
         assertThat(pointHoldRepository.findAll()).hasSize(32);
+        assertArtistPointAccounts();
         assertOrderStatusFixtures();
         assertAriaSalesOrderFixtures();
         assertThat(bidService.getMyBids("demo-buyer-bid-qa", 0, 50).getContent())
@@ -162,6 +177,7 @@ class LocalDemoDataSeederTest {
         assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(46);
         assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
         assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(32);
+        assertArtistPointAccounts();
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .filter(art -> !art.getBidStartTime().isAfter(now))
@@ -199,6 +215,14 @@ class LocalDemoDataSeederTest {
         assertThat(reloaded.getClosingTime()).isEqualTo(originalClosingTime);
         assertThat(reloaded.getCurrentPrice()).isEqualTo(request.getBidPrice());
         assertThat(reloaded.getActivePointHold()).isNotNull();
+    }
+
+    private void assertArtistPointAccounts() {
+        assertThat(pointAccountRepository.count()).isEqualTo(9);
+        DEMO_ARTIST_IDS.forEach(userId -> {
+            assertThat(pointAccountRepository.existsById(userId)).isTrue();
+            assertThat(userService.getUserProfile(userId).getUserId()).isEqualTo(userId);
+        });
     }
 
     private void assertOrderStatusFixtures() {

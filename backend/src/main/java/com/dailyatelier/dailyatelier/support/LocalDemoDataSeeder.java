@@ -76,6 +76,7 @@ public class LocalDemoDataSeeder {
                 artist("demo-artist-soo", "수아", "soo@demo.local", "수아 이", "사진과 디지털 매체로 감각의 층을 만듭니다."),
                 artist("demo-artist-han", "하늘", "han@demo.local", "하늘 한", "느린 관찰에서 출발한 조형 언어를 작업합니다.")
         );
+        artists.forEach(artist -> pointAccountService.initializeAccount(artist.getUser().getUserId()));
         User buyerOne = user("demo-buyer-one", "도윤", "buyer1@demo.local", 0);
         User buyerTwo = user("demo-buyer-two", "유진", "buyer2@demo.local", 0);
         User buyerThree = user("demo-buyer-three", "서연", "buyer3@demo.local", 0);
