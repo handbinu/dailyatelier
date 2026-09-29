@@ -1,6 +1,7 @@
 package com.dailyatelier.dailyatelier.support;
 
 import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
+import com.dailyatelier.dailyatelier.dto.OrderShippingAddressRequestDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
@@ -9,6 +10,7 @@ import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PointReferenceType;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
+import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
@@ -21,6 +23,8 @@ import com.dailyatelier.dailyatelier.service.AuctionCloseService;
 import com.dailyatelier.dailyatelier.service.ArtService;
 import com.dailyatelier.dailyatelier.service.BidService;
 import com.dailyatelier.dailyatelier.service.PointAccountService;
+import com.dailyatelier.dailyatelier.service.OrderService;
+import com.dailyatelier.dailyatelier.service.OrderStateService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +62,8 @@ public class LocalDemoDataSeeder {
     private final BidService bidService;
     private final AuctionCloseService auctionCloseService;
     private final ArtService artService;
+    private final OrderService orderService;
+    private final OrderStateService orderStateService;
     private final Clock clock;
 
     @Transactional
@@ -92,6 +98,17 @@ public class LocalDemoDataSeeder {
                 art(artists.get(0), "QA 경쟁 중 긴 작품명 모바일 줄바꿈 확인용", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 1980000, 10000, 36, DemoArtRole.QA_COMPETING),
                 art(artists.get(1), "QA 24시간 내 마감 작품", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 220000, 10000, 12, DemoArtRole.QA_IMMINENT),
                 art(artists.get(2), "QA 낙찰 주문 작품", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 300000, 10000, -48, DemoArtRole.QA_SOLD),
+                art(artists.get(0), "QA 주문 배송지 확정", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 60000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(1), "QA 주문 결제 완료", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 70000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(2), "QA 주문 결제 완료 환불 요청", "art-demo-03-acrylic-color.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 80000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(3), "QA 주문 결제 완료 환불 거절", "art-demo-04-geometric.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 90000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(4), "QA 주문 배송 중", "art-demo-05-minimal.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 100000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "QA 주문 배송 중 환불 요청", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 110000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(1), "QA 주문 배송 완료", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 120000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(2), "QA 주문 배송 완료 환불 요청", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 130000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(3), "QA 주문 구매 확정", "art-demo-10-modern-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 140000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(4), "QA 주문 취소", "art-demo-11-glass.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 150000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "QA 주문 환불 완료", "art-demo-12-glass-shadow.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 1000, -48, DemoArtRole.QA_ORDER),
                 art(artists.get(3), "QA 패찰 작품", "art-demo-13-flower-editorial.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 280000, 10000, -48, DemoArtRole.QA_LOST),
                 art(artists.get(4), "QA 경매 취소 작품", "art-demo-20-sage.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 240000, 10000, -48, DemoArtRole.QA_CANCELED),
                 art(artists.get(2), "파스텔 모노리스", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 380000, 20000, -48, DemoArtRole.SOLD),
@@ -118,10 +135,11 @@ public class LocalDemoDataSeeder {
                 createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
                 createBid(art, spec.startPrice() + (spec.increment() * 2), buyerOne);
             }
-            if ((spec.role() == DemoArtRole.SOLD || spec.role() == DemoArtRole.QA_SOLD)
+            if ((spec.role() == DemoArtRole.SOLD || spec.role() == DemoArtRole.QA_SOLD
+                    || spec.role() == DemoArtRole.QA_ORDER)
                     && art.getArtStatus() == Art.STATUS_ACTIVE) {
                 closeSoldArt(art, spec.startPrice() + spec.increment(),
-                        spec.role() == DemoArtRole.QA_SOLD
+                        isQaOrderFixture(spec.role())
                                 ? bidQaBuyer
                                 : buyerFor(art.getName(), buyerOne, buyerTwo, buyerThree));
             }
@@ -134,6 +152,7 @@ public class LocalDemoDataSeeder {
                 artService.deleteArt(art.getArtId(), art.getArtist().getUser().getUserId());
             }
         }
+        seedOrderStatusFixtures(bidQaBuyer);
         log.info("Local demo seed is ready: {} demo artworks", arts.size());
     }
 
@@ -229,7 +248,7 @@ public class LocalDemoDataSeeder {
                 art.setBidStartTime(now.plusDays(2));
                 art.setClosingTime(now.plusDays(5));
             }
-            case SOLD, QA_SOLD, QA_LOST, QA_CANCELED -> {
+            case SOLD, QA_SOLD, QA_ORDER, QA_LOST, QA_CANCELED -> {
                 art.setBidStartTime(now.minusDays(5));
                 art.setClosingTime(now.plusHours(1));
             }
@@ -265,6 +284,99 @@ public class LocalDemoDataSeeder {
         return role == DemoArtRole.QA_ONGOING || role == DemoArtRole.QA_IMMINENT;
     }
 
+    private boolean isQaOrderFixture(DemoArtRole role) {
+        return role == DemoArtRole.QA_SOLD || role == DemoArtRole.QA_ORDER;
+    }
+
+    private void seedOrderStatusFixtures(User buyer) {
+        List<OrderStatusFixture> fixtures = List.of(
+                new OrderStatusFixture("QA 주문 배송지 확정", OrderFixtureState.PAYMENT_PENDING_CONFIRMED),
+                new OrderStatusFixture("QA 주문 결제 완료", OrderFixtureState.PAID),
+                new OrderStatusFixture("QA 주문 결제 완료 환불 요청", OrderFixtureState.PAID_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 결제 완료 환불 거절", OrderFixtureState.PAID_REFUND_REJECTED),
+                new OrderStatusFixture("QA 주문 배송 중", OrderFixtureState.SHIPPED),
+                new OrderStatusFixture("QA 주문 배송 중 환불 요청", OrderFixtureState.SHIPPED_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 배송 완료", OrderFixtureState.DELIVERED),
+                new OrderStatusFixture("QA 주문 배송 완료 환불 요청", OrderFixtureState.DELIVERED_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 구매 확정", OrderFixtureState.CONFIRMED),
+                new OrderStatusFixture("QA 주문 취소", OrderFixtureState.CANCELED),
+                new OrderStatusFixture("QA 주문 환불 완료", OrderFixtureState.REFUNDED)
+        );
+        for (OrderStatusFixture fixture : fixtures) {
+            Order order = orderRepository.findByArtArtId(findArtId(fixture.artName())).orElseThrow();
+            if (order.getStatus().name().equals("PAYMENT_PENDING")) {
+                applyOrderFixture(order, buyer, fixture.state());
+            }
+        }
+    }
+
+    private Long findArtId(String artName) {
+        return artRepository.findAll().stream()
+                .filter(art -> art.getName().equals(artName))
+                .findFirst()
+                .orElseThrow()
+                .getArtId();
+    }
+
+    private void applyOrderFixture(Order order, User buyer, OrderFixtureState state) {
+        if (state == OrderFixtureState.CANCELED) {
+            orderStateService.cancelPending(order.getOrderId(), buyer.getUserId());
+            return;
+        }
+        confirmShippingAddress(order, buyer);
+        if (state == OrderFixtureState.PAYMENT_PENDING_CONFIRMED) return;
+
+        orderStateService.markPaid(order.getOrderId(), buyer.getUserId(),
+                "local-demo:order-payment:" + order.getOrderId());
+        if (state == OrderFixtureState.PAID) return;
+        if (state == OrderFixtureState.PAID_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+        if (state == OrderFixtureState.PAID_REFUND_REJECTED) {
+            requestRefund(order, buyer);
+            orderStateService.rejectRefund(order.getOrderId(), order.getSellerIdSnapshot());
+            return;
+        }
+
+        orderStateService.startPreparing(order.getOrderId(), order.getSellerIdSnapshot());
+        orderStateService.ship(order.getOrderId(), order.getSellerIdSnapshot(),
+                "데모택배", "DEMO-" + order.getOrderId());
+        if (state == OrderFixtureState.SHIPPED) return;
+        if (state == OrderFixtureState.SHIPPED_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+
+        orderStateService.markDelivered(order.getOrderId(), buyer.getUserId());
+        if (state == OrderFixtureState.DELIVERED) return;
+        if (state == OrderFixtureState.DELIVERED_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+        if (state == OrderFixtureState.CONFIRMED) {
+            orderStateService.confirm(order.getOrderId(), buyer.getUserId());
+            return;
+        }
+        requestRefund(order, buyer);
+        orderStateService.approveRefund(order.getOrderId(), order.getSellerIdSnapshot(),
+                "local-demo:order-refund:" + order.getOrderId());
+    }
+
+    private void confirmShippingAddress(Order order, User buyer) {
+        OrderShippingAddressRequestDto request = new OrderShippingAddressRequestDto();
+        request.setRecipientName("주문 QA 수령인");
+        request.setRecipientPhone(buyer.getPhoneNumber());
+        request.setZipCode("04524");
+        request.setAddress1("서울특별시 중구 세종대로 110");
+        request.setAddress2("로컬 데모 주문 QA");
+        orderService.confirmShippingAddress(order.getOrderId(), buyer.getUserId(), request);
+    }
+
+    private void requestRefund(Order order, User buyer) {
+        orderStateService.requestRefund(order.getOrderId(), buyer.getUserId(), "로컬 데모 환불 요청");
+    }
+
     private User buyerFor(String name, User one, User two, User three) {
         return switch (Math.floorMod(name.hashCode(), 3)) {
             case 0 -> one;
@@ -283,12 +395,29 @@ public class LocalDemoDataSeeder {
                            ArtCategory category, int startPrice, int increment, int hoursToClose,
                            DemoArtRole role) { }
 
+    private record OrderStatusFixture(String artName, OrderFixtureState state) { }
+
+    private enum OrderFixtureState {
+        PAYMENT_PENDING_CONFIRMED,
+        PAID,
+        PAID_REFUND_REQUESTED,
+        PAID_REFUND_REJECTED,
+        SHIPPED,
+        SHIPPED_REFUND_REQUESTED,
+        DELIVERED,
+        DELIVERED_REFUND_REQUESTED,
+        CONFIRMED,
+        CANCELED,
+        REFUNDED
+    }
+
     private enum DemoArtRole {
         ONGOING,
         QA_ONGOING,
         QA_COMPETING,
         QA_IMMINENT,
         QA_SOLD,
+        QA_ORDER,
         QA_LOST,
         QA_CANCELED,
         UPCOMING,
