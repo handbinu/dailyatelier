@@ -1,11 +1,21 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  formatOrderCancelReason,
   formatShippingAddress,
   getOrderError,
   getOrderStatusView,
   getRefundRequestStatusView,
 } from './orderView.js'
+
+test('취소 사유를 사용자 문구로 변환하고 알 수 없는 값은 유지한다', () => {
+  assert.equal(formatOrderCancelReason('BUYER_FORFEIT'), '구매자가 낙찰을 포기했습니다.')
+  assert.equal(
+    formatOrderCancelReason('PAYMENT_DEADLINE_EXPIRED'),
+    '결제 기한이 지나 자동 취소되었습니다.',
+  )
+  assert.equal(formatOrderCancelReason('UNKNOWN_REASON'), 'UNKNOWN_REASON')
+})
 
 test('전체 주문 상태를 화면 표시 정보로 변환한다', () => {
   const statuses = [

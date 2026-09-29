@@ -15,6 +15,7 @@ import { getPointSummary } from '../../api/pointApi'
 import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
 import {
   formatOrderDate,
+  formatOrderCancelReason,
   formatOrderPrice,
   formatShippingAddress,
   getOrderError,
@@ -82,7 +83,7 @@ export default function OrderStatus() {
   const [page, setPage] = useState(0)
   const [result, setResult] = useState(null)
   const [details, setDetails] = useState({})
-  const [openOrderId, setOpenOrderId] = useState(null)
+  const [openOrderIds, setOpenOrderIds] = useState({})
   const [editingOrderId, setEditingOrderId] = useState(null)
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS)
   const [loading, setLoading] = useState(true)
@@ -205,7 +206,7 @@ export default function OrderStatus() {
       const detail = await loadDetail(orderId)
       if (!detail) return
 
-      setOpenOrderId(orderId)
+      setOpenOrderIds((current) => ({ ...current, [orderId]: true }))
       const addressConfirmed = Boolean(detail.addressConfirmedAt && detail.shippingAddress)
       if (detail.status === 'PAYMENT_PENDING' && addressConfirmed) {
         loadPoints()
@@ -232,21 +233,26 @@ export default function OrderStatus() {
       0,
     )
     return [
-      { label: '전체 주문', value: total, color: '#555' },
+      { label: '전체 주문', value: total, tone: 'Neutral', icon: 'orders' },
       {
-        label: '결제 대기',
+        label: '결제 필요',
         value: counts.PAYMENT_PENDING ?? 0,
-        color: '#c0622a',
+        tone: 'Attention',
+        icon: 'payment',
       },
       {
-        label: '배송 중',
-        value: counts.SHIPPED ?? 0,
-        color: '#c0622a',
+        label: '배송 진행',
+        value: Number(counts.PAID ?? 0)
+          + Number(counts.PREPARING ?? 0)
+          + Number(counts.SHIPPED ?? 0),
+        tone: 'Progress',
+        icon: 'shipping',
       },
       {
-        label: '배송 완료',
+        label: '구매 확정 필요',
         value: counts.DELIVERED ?? 0,
-        color: '#1e8c4f',
+        tone: 'Confirm',
+        icon: 'confirm',
       },
     ]
   }, [result])
@@ -254,18 +260,18 @@ export default function OrderStatus() {
   const handleFilterChange = (nextFilter) => {
     setFilter(nextFilter)
     setPage(0)
-    setOpenOrderId(null)
+    setOpenOrderIds({})
     setEditingOrderId(null)
     setNotice('')
   }
 
   const toggleDetail = async (orderId) => {
-    if (openOrderId === orderId) {
-      setOpenOrderId(null)
-      setEditingOrderId(null)
+    if (openOrderIds[orderId]) {
+      setOpenOrderIds((current) => ({ ...current, [orderId]: false }))
+      if (editingOrderId === orderId) setEditingOrderId(null)
       return
     }
-    setOpenOrderId(orderId)
+    setOpenOrderIds((current) => ({ ...current, [orderId]: true }))
     setEditingOrderId(null)
     const detail = await loadDetail(orderId)
     const addressConfirmed = Boolean(detail?.addressConfirmedAt && detail?.shippingAddress)
@@ -275,7 +281,7 @@ export default function OrderStatus() {
   }
 
   const startAddressEdit = async (orderId) => {
-    setOpenOrderId(orderId)
+    setOpenOrderIds((current) => ({ ...current, [orderId]: true }))
     const detail = await loadDetail(orderId)
     if (!detail) return
 
@@ -470,26 +476,48 @@ export default function OrderStatus() {
         />
 
         <div className={s.summary}>
-          {summaryItems.map(({ label, value, color }) => (
-            <div key={label} className={s.summaryItem} style={{ '--c': color }}>
+          {summaryItems.map(({ label, value, tone, icon }) => (
+            <div key={label} className={`${s.summaryItem} ${s[`summary${tone}`]}`}>
+              <span className={s.summaryHeader}>
+                <SummaryIcon type={icon} />
+                <span className={s.summaryLabel}>{label}</span>
+              </span>
               <span className={s.summaryValue}>{value}</span>
-              <span className={s.summaryLabel}>{label}</span>
             </div>
           ))}
         </div>
 
         <div className={s.filterBar} role="group" aria-label="주문 상태 필터">
-          {ORDER_FILTERS.map((option) => (
-            <button
-              type="button"
-              key={option.value}
-              className={filter === option.value ? s.filterActive : ''}
-              onClick={() => handleFilterChange(option.value)}
-              aria-pressed={filter === option.value}
+          <button
+            type="button"
+            className={filter === '' ? s.filterActive : ''}
+            onClick={() => handleFilterChange('')}
+            aria-pressed={filter === ''}
+          >
+            전체
+          </button>
+          <button
+            type="button"
+            className={filter === 'PAYMENT_PENDING' ? s.filterActive : ''}
+            onClick={() => handleFilterChange('PAYMENT_PENDING')}
+            aria-pressed={filter === 'PAYMENT_PENDING'}
+          >
+            결제 대기
+          </button>
+          <label className={s.statusSelectLabel}>
+            <span className="sr-only">상태 선택</span>
+            <select
+              value={filter === 'PAYMENT_PENDING' ? '' : filter}
+              onChange={(event) => handleFilterChange(event.target.value)}
+              aria-label="상태 선택"
             >
-              {option.label}
-            </button>
-          ))}
+              <option value="">상태 선택</option>
+              {ORDER_FILTERS.filter((option) => option.value && option.value !== 'PAYMENT_PENDING')
+                .map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+            </select>
+          </label>
         </div>
 
         <OrderListState
@@ -500,10 +528,9 @@ export default function OrderStatus() {
         >
           <>
             <div className={s.tableHead}>
-              <span className={s.colInfo}>주문 정보</span>
-              <span className={s.colPrice}>금액</span>
-              <span className={s.colStatus}>상태</span>
-              <span className={s.colAction}>관리</span>
+              <span>작품</span>
+              <span>상태·금액</span>
+              <span>주문 관리</span>
             </div>
             <div className={s.list}>
               {items.map((order) => (
@@ -511,7 +538,7 @@ export default function OrderStatus() {
                   key={order.orderId}
                   order={order}
                   detail={details[order.orderId]}
-                  isOpen={openOrderId === order.orderId}
+                  isOpen={Boolean(openOrderIds[order.orderId])}
                   isEditing={editingOrderId === order.orderId}
                   isDetailLoading={detailLoadingId === order.orderId}
                   isProcessing={processingId === order.orderId}
@@ -570,6 +597,21 @@ export default function OrderStatus() {
   )
 }
 
+function SummaryIcon({ type }) {
+  const paths = {
+    orders: <><rect x="5" y="4" width="14" height="16" rx="2" /><path d="M8 9h8M8 13h8M8 17h5" /></>,
+    payment: <><path d="M4 7h16v11H4z" /><path d="M4 10h16M15 15h2" /></>,
+    shipping: <><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z" /><circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
+    confirm: <><circle cx="12" cy="12" r="8" /><path d="m8.5 12 2.3 2.3 4.7-4.8" /></>,
+  }
+
+  return (
+    <svg className={s.summaryIcon} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {paths[type]}
+    </svg>
+  )
+}
+
 function OrderItem({
   order,
   detail,
@@ -588,69 +630,58 @@ function OrderItem({
   onAction,
 }) {
   const actions = detail?.availableActions ?? order.availableActions ?? []
+  const canUpdateAddress = actions.includes('UPDATE_SHIPPING_ADDRESS')
+  const requiresAddress = canUpdateAddress && !order.shippingAddressConfirmed
+  const canPay = order.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed
   const detailId = `buyer-order-detail-${order.orderId}`
   const toggleLabel = `${order.artName} 주문 상세 ${isOpen ? '접기' : '보기'}`
 
   return (
     <article className={s.orderGroup}>
       <div className={s.orderRow}>
-        <div className={s.orderMain}>
-          <Link
-            to={`/auction/${order.artId}`}
-            className={`${s.colInfo} ${s.artLink}`}
-            aria-label={`${order.artName} 작품 상세 보기`}
-          >
-            <img
-              src={getArtImageSrc(order.artImage)}
-              alt={order.artName}
-              className={s.thumb}
-              onError={applyArtImageFallback}
-            />
-            <span className={s.orderInfo}>
-              <strong className={s.artName}>{order.artName}</strong>
-              <span className={s.artist}>by {order.counterpartyName}</span>
-              <span className={s.orderNo}>{order.orderNumber}</span>
-              <span className={s.orderDate}>
-                {formatOrderDate(order.createdAt)}
-              </span>
-            </span>
-          </Link>
-          <span className={`${s.colPrice} ${s.price}`}>
-            {formatOrderPrice(order.winningPrice)}
+        <Link
+          to={`/auction/${order.artId}`}
+          className={s.artBlock}
+          aria-label={`${order.artName} 작품 상세 보기`}
+        >
+          <img
+            src={getArtImageSrc(order.artImage)}
+            alt={order.artName}
+            className={s.thumb}
+            onError={applyArtImageFallback}
+          />
+          <span className={s.orderInfo}>
+            <strong className={s.artName}>{order.artName}</strong>
+            <span className={s.artist}>by {order.counterpartyName}</span>
           </span>
+        </Link>
+        <div className={s.coreInfo}>
           <span className={s.colStatus}>
             <OrderStatusBadge status={order.status} />
           </span>
+          <span className={s.price}>
+            {formatOrderPrice(order.winningPrice)}
+          </span>
         </div>
         <div
-          className={`${s.colAction} ${s.actions}`}
+          className={s.actions}
           role="group"
           aria-label={`${order.artName} 주문 작업`}
         >
-          {actions.includes('UPDATE_SHIPPING_ADDRESS') && (
+          {requiresAddress && (
             <button
               type="button"
-              className={s.primaryBtn}
+              className={s.mainAction}
               onClick={onAddressEdit}
               disabled={isProcessing}
             >
-              배송지 {order.shippingAddressConfirmed ? '변경' : '확정'}
+              배송지 확정
             </button>
           )}
-          {actions.includes('CANCEL') && (
+          {canPay && (
             <button
               type="button"
-              className={s.dangerBtn}
-              onClick={() => onAction('CANCEL')}
-              disabled={isProcessing}
-            >
-              낙찰 포기
-            </button>
-          )}
-          {order.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed && (
-            <button
-              type="button"
-              className={s.primaryBtn}
+              className={s.mainAction}
               onClick={() => pointSummary.loaded ? onAction('PAY') : onPointRetry()}
               disabled={isProcessing || pointSummary.loading || Boolean(pointSummary.error)}
             >
@@ -661,64 +692,85 @@ function OrderItem({
                   : pointSummary.error ? '포인트 확인 필요' : '포인트 확인'}
             </button>
           )}
-          {actions.includes('CONFIRM') && (
-            <button
-              type="button"
-              className={s.primaryBtn}
-              onClick={() => onAction('CONFIRM')}
-              disabled={isProcessing}
-            >
-              구매 확정
-            </button>
-          )}
           {actions.includes('MARK_DELIVERED') && (
             <button
               type="button"
-              className={s.primaryBtn}
+              className={s.mainAction}
               onClick={() => onAction('MARK_DELIVERED')}
               disabled={isProcessing}
             >
               배송 완료
             </button>
           )}
+          {actions.includes('CONFIRM') && (
+            <button
+              type="button"
+              className={s.mainAction}
+              onClick={() => onAction('CONFIRM')}
+              disabled={isProcessing}
+            >
+              구매 확정
+            </button>
+          )}
+          {order.status === 'CONFIRMED' && (
+            <Link
+              to={`/write-review/${order.orderId}`}
+              className={s.mainAction}
+            >
+              리뷰 쓰기·수정
+            </Link>
+          )}
+          {canUpdateAddress && !requiresAddress && (
+            <button
+              type="button"
+              className={s.secondaryAction}
+              onClick={onAddressEdit}
+              disabled={isProcessing}
+            >
+              배송지 변경
+            </button>
+          )}
+          {actions.includes('CANCEL') && (
+            <button
+              type="button"
+              className={s.dangerAction}
+              onClick={() => onAction('CANCEL')}
+              disabled={isProcessing}
+            >
+              낙찰 포기
+            </button>
+          )}
           {actions.includes('REQUEST_REFUND') && (
             <button
               type="button"
-              className={s.dangerBtn}
+              className={s.dangerAction}
               onClick={() => onAction('REQUEST_REFUND')}
               disabled={isProcessing}
             >
               환불 요청
             </button>
           )}
-          {order.status === 'CONFIRMED' && (
-            <Link
-              to={`/write-review/${order.orderId}`}
-              className={s.reviewBtn}
-            >
-              리뷰 쓰기·수정
-            </Link>
-          )}
-          <button
-            type="button"
-            className={s.detailToggle}
-            aria-expanded={isOpen}
-            aria-controls={detailId}
-            onClick={onToggle}
-            aria-label={toggleLabel}
-          >
-            {isOpen ? '상세 접기' : '상세 보기'}
-          </button>
         </div>
       </div>
 
-      {order.status === 'PAYMENT_PENDING' && order.shippingAddressConfirmed && (
-        <PaymentPointSummary
-          order={order}
-          summary={pointSummary}
-          onRetry={onPointRetry}
-        />
-      )}
+      <button
+        type="button"
+        className={s.detailToggle}
+        aria-expanded={isOpen}
+        aria-controls={detailId}
+        onClick={onToggle}
+        aria-label={toggleLabel}
+      >
+        <span>주문 상세 정보</span>
+        <svg
+          className={`${s.detailChevron} ${isOpen ? s.detailChevronOpen : ''}`}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
 
       {isOpen && (
         <div
@@ -731,8 +783,18 @@ function OrderItem({
           ) : detail ? (
             <>
               <OrderProgress status={detail.status} />
+              <OrderExceptionNotice detail={detail} />
               <BuyerRefundStatus detail={detail} />
-              <OrderMeta detail={detail} />
+              <OrderShippingInfo detail={detail} />
+              <OrderPaymentAndOrderInfo detail={detail} />
+              {detail.status === 'PAYMENT_PENDING' && detail.shippingAddress && (
+                <PaymentPointSummary
+                  order={order}
+                  summary={pointSummary}
+                  onRetry={onPointRetry}
+                />
+              )}
+              <OrderHistory detail={detail} />
 
               {isEditing && (
                 <ShippingAddressForm
@@ -744,19 +806,6 @@ function OrderItem({
                 />
               )}
 
-              <div className={s.detailActions}>
-                <Link to={`/auction/${detail.artId}`} className={s.linkBtn}>
-                  작품 페이지
-                </Link>
-                {detail.status === 'CONFIRMED' && (
-                  <Link
-                    to={`/write-review/${detail.orderId}`}
-                    className={`${s.linkBtn} ${s.linkBtnAccent}`}
-                  >
-                    {detail.reviewId == null ? '리뷰 쓰기' : '리뷰 수정'}
-                  </Link>
-                )}
-              </div>
             </>
           ) : null}
         </div>
@@ -767,12 +816,7 @@ function OrderItem({
 
 function OrderProgress({ status }) {
   const current = getOrderStatusView(status).step
-  if (current === null) {
-    const message = status === 'REFUNDED'
-      ? '환불된 주문입니다.'
-      : '취소된 주문입니다.'
-    return <div className={s.canceledNote}>{message}</div>
-  }
+  if (current === null) return null
 
   return (
     <div
@@ -839,7 +883,65 @@ function PaymentPointSummary({ order, summary, onRetry }) {
   )
 }
 
-function OrderMeta({ detail }) {
+function OrderExceptionNotice({ detail }) {
+  if (detail.status === 'CANCELED') {
+    return (
+      <section className={s.exceptionNotice} aria-label="취소 안내">
+        <strong>취소된 주문입니다.</strong>
+        {detail.cancelReason && <p>취소 사유: {formatOrderCancelReason(detail.cancelReason)}</p>}
+      </section>
+    )
+  }
+  if (detail.status === 'REFUNDED') {
+    return <section className={s.exceptionNotice} aria-label="환불 안내">환불된 주문입니다.</section>
+  }
+  return null
+}
+
+function DetailSection({ title, children }) {
+  return (
+    <section className={s.detailSection}>
+      <h3>{title}</h3>
+      <div className={s.detailMeta}>{children}</div>
+    </section>
+  )
+}
+
+function OrderShippingInfo({ detail }) {
+  return (
+    <DetailSection title="배송 정보">
+      {detail.shippingAddress ? (
+        <>
+          <MetaRow
+            label="받는 분"
+            value={`${detail.shippingAddress.recipientName} · ${detail.shippingAddress.recipientPhone}`}
+          />
+          <MetaRow label="배송 주소" value={formatShippingAddress(detail.shippingAddress)} />
+        </>
+      ) : (
+        <MetaRow label="배송지" value="미확정" />
+      )}
+      {detail.trackingNumber && (
+        <MetaRow label="배송 추적" value={`${detail.shippingCarrier} · ${detail.trackingNumber}`} />
+      )}
+    </DetailSection>
+  )
+}
+
+function OrderPaymentAndOrderInfo({ detail }) {
+  return (
+    <DetailSection title="결제·주문 정보">
+      <MetaRow label="결제 금액" value={formatOrderPrice(detail.winningPrice)} accent />
+      {detail.status === 'PAYMENT_PENDING' && (
+        <MetaRow label="결제 기한" value={formatOrderDate(detail.paymentDueAt)} />
+      )}
+      <MetaRow label="주문 번호" value={detail.orderNumber} />
+      <MetaRow label="주문 일자" value={formatOrderDate(detail.createdAt)} />
+    </DetailSection>
+  )
+}
+
+function OrderHistory({ detail }) {
   const statusTimes = [
     ['결제 완료', detail.paidAt],
     ['배송 준비', detail.preparingAt],
@@ -849,40 +951,10 @@ function OrderMeta({ detail }) {
     ['취소', detail.canceledAt],
   ].filter(([, value]) => value)
 
+  if (statusTimes.length === 0) return null
+
   return (
-    <div className={s.detailMeta}>
-      <MetaRow label="주문 번호" value={detail.orderNumber} />
-      <MetaRow label="주문 일자" value={formatOrderDate(detail.createdAt)} />
-      <MetaRow
-        label="결제 금액"
-        value={formatOrderPrice(detail.winningPrice)}
-        accent
-      />
-      {detail.status === 'PAYMENT_PENDING' && (
-        <MetaRow
-          label="결제 기한"
-          value={formatOrderDate(detail.paymentDueAt)}
-        />
-      )}
-      <MetaRow
-        label="받는 분"
-        value={detail.shippingAddress
-          ? `${detail.shippingAddress.recipientName} · ${detail.shippingAddress.recipientPhone}`
-          : '배송지 미확정'}
-      />
-      <MetaRow
-        label="배송 주소"
-        value={formatShippingAddress(detail.shippingAddress)}
-      />
-      {detail.trackingNumber && (
-        <MetaRow
-          label="배송 정보"
-          value={`${detail.shippingCarrier} · ${detail.trackingNumber}`}
-        />
-      )}
-      {detail.cancelReason && (
-        <MetaRow label="취소 사유" value={detail.cancelReason} />
-      )}
+    <DetailSection title="처리 이력">
       {statusTimes.map(([label, value]) => (
         <MetaRow
           key={label}
@@ -890,7 +962,7 @@ function OrderMeta({ detail }) {
           value={formatOrderDate(value)}
         />
       ))}
-    </div>
+    </DetailSection>
   )
 }
 

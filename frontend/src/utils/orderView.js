@@ -84,6 +84,14 @@ export const getOrderStatusView = (status) =>
 export const getRefundRequestStatusView = (status) =>
   REFUND_REQUEST_STATUS[status] ?? null
 
+const CANCEL_REASON_LABELS = {
+  BUYER_FORFEIT: '구매자가 낙찰을 포기했습니다.',
+  PAYMENT_DEADLINE_EXPIRED: '결제 기한이 지나 자동 취소되었습니다.',
+}
+
+export const formatOrderCancelReason = (reason) =>
+  CANCEL_REASON_LABELS[reason] ?? reason
+
 export const getOrderError = (error, fallback) => {
   const status = error?.response?.status
   const code = error?.response?.data?.code

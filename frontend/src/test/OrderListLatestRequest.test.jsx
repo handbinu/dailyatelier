@@ -93,9 +93,9 @@ describe('주문 목록 최신 요청 적용', () => {
       data: page(order(2, '최신 주문', { status: 'PAYMENT_PENDING' })),
     })
     expect(await screen.findByText('최신 주문')).toBeInTheDocument()
-    const totalSummary = screen.getByText('전체 주문').parentElement
-    expect(totalSummary.firstElementChild).toHaveTextContent('1')
-    expect(totalSummary.nextElementSibling.firstElementChild).toHaveTextContent('1')
+    const totalSummary = screen.getByText('전체 주문').parentElement?.parentElement
+    expect(totalSummary.lastElementChild).toHaveTextContent('1')
+    expect(totalSummary.nextElementSibling.lastElementChild).toHaveTextContent('1')
 
     settlePrevious(previous)
     await waitFor(() => expect(screen.getByText('최신 주문')).toBeInTheDocument())
@@ -113,8 +113,11 @@ describe('주문 목록 최신 요청 적용', () => {
 
     renderPage(<OrderStatus />)
     await waitFor(() => expect(getBuyerOrders).toHaveBeenCalledTimes(1))
-    fireEvent.click(screen.getByRole('button', { name: '결제 완료' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '상태 선택' }), {
+      target: { value: 'PAID' },
+    })
     await waitFor(() => expect(getBuyerOrders).toHaveBeenCalledTimes(2))
+    expect(getBuyerOrders.mock.calls[1][0]).toMatchObject({ status: 'PAID' })
 
     current.reject(new Error('최신 요청 실패'))
     expect(await screen.findByRole('alert')).toHaveTextContent(
