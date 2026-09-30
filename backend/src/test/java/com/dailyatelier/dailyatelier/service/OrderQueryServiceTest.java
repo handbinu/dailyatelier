@@ -182,6 +182,20 @@ class OrderQueryServiceTest {
     }
 
     @Test
+    void sellerRefundRequestedCountIsGlobalAndIndependentOfStatusFilter() {
+        newerPaidOrder.requestRefund("작품 상태 문제", BASE_TIME.plusMinutes(3));
+        orderRepository.saveAndFlush(newerPaidOrder);
+
+        OrderPageResponseDto paid = orderQueryService.getSellerOrders(
+                seller.getUserId(), OrderStatus.PAID, 0, 12);
+        OrderPageResponseDto pending = orderQueryService.getSellerOrders(
+                seller.getUserId(), OrderStatus.PAYMENT_PENDING, 0, 12);
+
+        assertThat(paid.getRefundRequestedCount()).isEqualTo(1L);
+        assertThat(pending.getRefundRequestedCount()).isEqualTo(1L);
+    }
+
+    @Test
     void detailsExposeSnapshotsAndRoleSpecificActionsWithoutRawUserIds() {
         OrderDetailResponseDto buyerDetail = orderQueryService.getBuyerOrder(
                 buyer.getUserId(),

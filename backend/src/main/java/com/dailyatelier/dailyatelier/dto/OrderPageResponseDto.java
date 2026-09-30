@@ -16,4 +16,5 @@ public class OrderPageResponseDto {
     private long totalElements;
     private int totalPages;
     private Map<OrderStatus, Long> statusCounts;
+    private long refundRequestedCount;
 }

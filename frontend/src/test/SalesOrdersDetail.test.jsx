@@ -57,6 +57,7 @@ const detail = {
 const page = {
   content: [order],
   statusCounts: { PAID: 1 },
+  refundRequestedCount: 3,
   totalElements: 1,
   totalPages: 1,
 }
@@ -69,7 +70,7 @@ const openDetail = async () => {
   fireEvent.click(await screen.findByRole('button', {
     name: `${order.artName} 주문 상세 보기`,
   }))
-  return screen.findByRole('heading', { name: '현재 주문 상태' })
+  return screen.findByRole('heading', { name: '주문 정보' })
 }
 
 describe('판매 주문 상세 정보 구조', () => {
@@ -79,37 +80,56 @@ describe('판매 주문 상세 정보 구조', () => {
     getSellerOrder.mockResolvedValue({ data: detail })
   })
 
-  it('현재 상태와 다음 작업 뒤에 의미별 정보 section을 제공한다', async () => {
+  it('전체 통계와 핵심 빠른 필터, 상태 선택을 제공한다', async () => {
+    renderPage()
+
+    expect(await screen.findByText('전체 판매')).toBeInTheDocument()
+    expect(screen.getAllByText('배송 준비').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('발송 필요')).toHaveLength(2)
+    expect(screen.getByText('환불 요청')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '전체' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '배송 준비 필요' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '발송 필요' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '상태 선택' })).toBeInTheDocument()
+    expect(screen.queryByText(order.orderNumber)).not.toBeInTheDocument()
+  })
+
+  it('중복 상태 요약 없이 판매자용 상세 정보를 묶어 제공한다', async () => {
     renderPage()
     await openDetail()
 
-    expect(screen.getByText('배송 준비, 발송 처리, 환불 승인, 환불 거절')).toBeInTheDocument()
     for (const heading of [
-      '주문·결제',
-      '구매자 연락처',
-      '배송지',
-      '발송 정보',
-      '환불 요청 상태',
+      '주문 정보',
+      '구매자·배송 정보',
+      '환불 정보',
     ]) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
     }
 
-    const buyerSection = screen.getByRole('heading', { name: '구매자 연락처' }).closest('section')
-    expect(within(buyerSection).getByText(detail.buyerName)).toBeInTheDocument()
-    expect(within(buyerSection).getByText(detail.buyerNickname)).toBeInTheDocument()
-    expect(within(buyerSection).getByText(detail.buyerPhone)).toBeInTheDocument()
+    expect(screen.queryByText('현재 주문 상태')).not.toBeInTheDocument()
+    expect(screen.queryByText('다음 가능한 작업')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '발송 정보' })).not.toBeInTheDocument()
+    expect(screen.getByText('구매자가 환불을 요청했습니다. 승인 또는 거절을 선택해 처리해 주세요.')).toBeInTheDocument()
+    expect(screen.queryByText('환불 요청됨')).not.toBeInTheDocument()
 
-    const addressSection = screen.getByRole('heading', { name: '배송지' }).closest('section')
-    expect(within(addressSection).getByText(detail.shippingAddress.address1)).toBeInTheDocument()
-    expect(within(addressSection).getByText(detail.shippingAddress.address2)).toBeInTheDocument()
+    const buyerSection = screen.getByRole('heading', { name: '구매자·배송 정보' }).closest('section')
+    expect(within(buyerSection).getByText(detail.buyerName)).toBeInTheDocument()
+    expect(within(buyerSection).getByText(detail.buyerPhone)).toBeInTheDocument()
+    expect(within(buyerSection).queryByText(detail.buyerNickname)).not.toBeInTheDocument()
+
+    expect(within(buyerSection).getByText(
+      `(12345) ${detail.shippingAddress.address1} ${detail.shippingAddress.address2}`,
+    )).toBeInTheDocument()
     expect(screen.getByRole('group', { name: '환불 결정' })).toBeInTheDocument()
+    expect(screen.getByText(detail.orderNumber)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '작품 페이지로 이동' })).toHaveAttribute(
       'href',
       `/auction/${detail.artId}`,
     )
   })
 
-  it('배송지와 상태별 정보가 비어도 section과 대체값을 유지한다', async () => {
+  it('값이 없는 주문·발송 정보는 노출하지 않는다', async () => {
     getSellerOrder.mockResolvedValue({
       data: {
         ...detail,
@@ -124,10 +144,36 @@ describe('판매 주문 상세 정보 구조', () => {
     renderPage()
     await openDetail()
 
-    expect(screen.getByText('현재 가능한 작업이 없습니다.')).toBeInTheDocument()
-    expect(screen.getByText('배송지 미확정')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '발송 정보' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: '환불 요청 상태' })).not.toBeInTheDocument()
+    expect(screen.getByText('구매자가 아직 배송지를 확정하지 않았습니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '발송 정보' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '환불 정보' })).not.toBeInTheDocument()
+    expect(screen.queryByText('-')).not.toBeInTheDocument()
+  })
+
+  it('취소 사유 enum을 사용자 문구로 표시한다', async () => {
+    getSellerOrder.mockResolvedValue({
+      data: { ...detail, status: 'CANCELED', cancelReason: 'BUYER_FORFEIT' },
+    })
+    renderPage()
+    await openDetail()
+
+    expect(screen.getByText('취소 사유: 구매자가 낙찰을 포기했습니다.')).toBeInTheDocument()
+    expect(screen.queryByText('BUYER_FORFEIT')).not.toBeInTheDocument()
+  })
+
+  it('구매자와 배송 연락처가 같으면 배송 연락처만 표시한다', async () => {
+    getSellerOrder.mockResolvedValue({
+      data: {
+        ...detail,
+        buyerPhone: detail.shippingAddress.recipientPhone,
+      },
+    })
+    renderPage()
+    await openDetail()
+
+    const buyerSection = screen.getByRole('heading', { name: '구매자·배송 정보' }).closest('section')
+    expect(within(buyerSection).queryByText('구매자 연락처')).not.toBeInTheDocument()
+    expect(within(buyerSection).getByText('연락처')).toBeInTheDocument()
   })
 
   it('발송 입력에 도움말·오류·제출 상태를 연결한다', async () => {

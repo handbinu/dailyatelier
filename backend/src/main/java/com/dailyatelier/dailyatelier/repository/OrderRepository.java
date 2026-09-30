@@ -69,6 +69,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<OrderStatusCountProjection> countBySellerUserIdGrouped(
             @Param("userId") String userId);
 
+    @Query("""
+            select count(orders)
+            from Order orders
+            where orders.seller.userId = :userId
+              and orders.refundRequestStatus = :refundRequestStatus
+            """)
+    long countBySellerUserIdAndRefundRequestStatus(
+            @Param("userId") String userId,
+            @Param("refundRequestStatus") com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus refundRequestStatus);
+
     interface OrderStatusCountProjection {
         com.dailyatelier.dailyatelier.entity.OrderStatus getStatus();
 

@@ -5,6 +5,7 @@ import com.dailyatelier.dailyatelier.dto.OrderPageResponseDto;
 import com.dailyatelier.dailyatelier.dto.OrderSummaryResponseDto;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
+import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.ReviewRepository;
@@ -55,7 +56,8 @@ public class OrderQueryService {
                 content,
                 statusCounts(
                         orderRepository.countByBuyerUserIdGrouped(userId)
-                )
+                ),
+                0L
         );
     }
 
@@ -93,6 +95,10 @@ public class OrderQueryService {
                 content,
                 statusCounts(
                         orderRepository.countBySellerUserIdGrouped(userId)
+                ),
+                orderRepository.countBySellerUserIdAndRefundRequestStatus(
+                        userId,
+                        OrderRefundRequestStatus.REQUESTED
                 )
         );
     }
@@ -130,14 +136,16 @@ public class OrderQueryService {
     private OrderPageResponseDto pageResponse(
             Page<Order> orders,
             List<OrderSummaryResponseDto> content,
-            Map<OrderStatus, Long> counts) {
+            Map<OrderStatus, Long> counts,
+            long refundRequestedCount) {
         return new OrderPageResponseDto(
                 content,
                 orders.getNumber(),
                 orders.getSize(),
                 orders.getTotalElements(),
                 orders.getTotalPages(),
-                counts
+                counts,
+                refundRequestedCount
         );
     }
 

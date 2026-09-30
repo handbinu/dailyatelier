@@ -441,7 +441,8 @@ class OrderManagementApiTest {
                 12,
                 0,
                 0,
-                counts
+                counts,
+                0L
         );
     }
 
