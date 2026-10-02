@@ -4,6 +4,11 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Order;
 import com.dailyatelier.dailyatelier.entity.OrderRefundRequestStatus;
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
+import com.dailyatelier.dailyatelier.entity.PointCharge;
+import com.dailyatelier.dailyatelier.entity.PointChargeStatus;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.dto.BidStatusResponseDto;
 import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.OrderAction;
@@ -11,7 +16,9 @@ import com.dailyatelier.dailyatelier.dto.OrderSummaryResponseDto;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.service.BidService;
 import com.dailyatelier.dailyatelier.service.UserService;
@@ -23,6 +30,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,7 +76,11 @@ class LocalDemoDataSeederTest {
     @Autowired
     private PointAccountRepository pointAccountRepository;
     @Autowired
+    private PointChargeRepository pointChargeRepository;
+    @Autowired
     private PointHoldRepository pointHoldRepository;
+    @Autowired
+    private PointTransactionRepository pointTransactionRepository;
     @Autowired
     private MutableClock clock;
     @Autowired
@@ -194,6 +206,69 @@ class LocalDemoDataSeederTest {
                 .allSatisfy(art -> assertThat(art.getWinningBid()).isNotNull());
         assertOrderStatusFixtures();
         assertAriaSalesOrderFixtures();
+    }
+
+    @Test
+    @Transactional
+    void createsIdempotentChargeHistoryFixturesWithoutChangingBidQaBalance() {
+        String buyerId = "demo-buyer-bid-qa";
+        long availableBalance = pointAccountRepository.findById(buyerId).orElseThrow().getAvailableBalance();
+        long heldBalance = pointAccountRepository.findById(buyerId).orElseThrow().getHeldBalance();
+
+        var charges = pointChargeRepository
+                .findByUserIdOrderByCreatedAtDescChargeIdDesc(buyerId, PageRequest.of(0, 10))
+                .getContent();
+
+        assertThat(charges).hasSize(5)
+                .extracting(PointCharge::getStatus)
+                .containsExactly(
+                        PointChargeStatus.REFUNDED,
+                        PointChargeStatus.CANCELED,
+                        PointChargeStatus.FAILED,
+                        PointChargeStatus.PAID,
+                        PointChargeStatus.PENDING);
+        assertThat(charges).extracting(PointCharge::getRequestedAmount)
+                .containsExactly(30_000L, 100_000L, 50_000L, 30_000L, 10_000L);
+        assertThat(charges).extracting(PointCharge::getCreatedAt).doesNotHaveDuplicates();
+        assertThat(charges).allSatisfy(charge -> assertThat(charge.getCreatedAt())
+                .isBefore(LocalDateTime.now(clock).minusDays(29)));
+
+        PointCharge paid = charges.stream()
+                .filter(charge -> charge.getStatus() == PointChargeStatus.PAID)
+                .findFirst().orElseThrow();
+        PointCharge refunded = charges.stream()
+                .filter(charge -> charge.getStatus() == PointChargeStatus.REFUNDED)
+                .findFirst().orElseThrow();
+        assertThat(paid.getChargeTransactionId()).isNotNull();
+        assertThat(refunded.getChargeTransactionId()).isNotNull();
+        assertThat(refunded.getRefundTransactionId()).isNotNull();
+        PointTransaction paidTransaction = pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                PointReferenceType.CHARGE, paid.getChargeId().toString(), PointTransactionType.DEMO_CHARGE)
+                .orElseThrow();
+        PointTransaction refundTransaction = pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                PointReferenceType.CHARGE, refunded.getChargeId().toString(), PointTransactionType.REFUND)
+                .orElseThrow();
+        assertThat(pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                PointReferenceType.CHARGE, paid.getChargeId().toString(), PointTransactionType.ADJUSTMENT_DEBIT))
+                .isEmpty();
+        assertThat(paidTransaction.getDescription()).isEqualTo("데모 포인트 충전");
+        assertThat(refundTransaction.getDescription()).isEqualTo("포인트 충전 환불");
+        assertThat(paidTransaction.getCreatedAt()).isBefore(LocalDateTime.now(clock).minusDays(29));
+        assertThat(refundTransaction.getCreatedAt()).isBefore(LocalDateTime.now(clock).minusDays(29));
+        assertThat(pointTransactionRepository.sumAvailableDeltaByUserId(buyerId))
+                .isEqualTo(availableBalance);
+        assertThat(pointTransactionRepository.sumHeldDeltaByUserId(buyerId))
+                .isEqualTo(heldBalance);
+
+        seeder.seed();
+
+        assertThat(pointChargeRepository
+                .findByUserIdOrderByCreatedAtDescChargeIdDesc(buyerId, PageRequest.of(0, 10))
+                .getContent()).hasSize(5);
+        assertThat(pointAccountRepository.findById(buyerId).orElseThrow().getAvailableBalance())
+                .isEqualTo(availableBalance);
+        assertThat(pointAccountRepository.findById(buyerId).orElseThrow().getHeldBalance())
+                .isEqualTo(heldBalance);
     }
 
     @Test

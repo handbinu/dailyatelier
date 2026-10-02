@@ -7,6 +7,8 @@ import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PaymentProvider;
+import com.dailyatelier.dailyatelier.entity.PointCharge;
 import com.dailyatelier.dailyatelier.entity.PointReferenceType;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
@@ -17,6 +19,7 @@ import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.service.AuctionCloseService;
@@ -39,6 +42,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -57,6 +61,7 @@ public class LocalDemoDataSeeder {
     private final OrderRepository orderRepository;
     private final PointAccountService pointAccountService;
     private final PointAccountRepository pointAccountRepository;
+    private final PointChargeRepository pointChargeRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final BidService bidService;
@@ -163,6 +168,7 @@ public class LocalDemoDataSeeder {
             }
         }
         seedOrderStatusFixtures(bidQaBuyer);
+        seedChargeHistoryFixtures(bidQaBuyer, now);
         log.info("Local demo seed is ready: {} demo artworks", arts.size());
     }
 
@@ -202,6 +208,111 @@ public class LocalDemoDataSeeder {
         pointTransactionRepository.save(PointTransaction.record(user.getUserId(), PointTransactionType.DEMO_CHARGE,
                 BUYER_POINTS, BUYER_POINTS, 0, account.getAvailableBalance(), account.getHeldBalance(),
                 PointReferenceType.USER, user.getUserId(), key, null, "LOCAL_DEMO_SEED", "로컬 demo 입찰 포인트", now));
+    }
+
+    private void seedChargeHistoryFixtures(User buyer, LocalDateTime now) {
+        List<PointCharge> existing = chargeHistoryFixtures(buyer);
+        if (!existing.isEmpty()) {
+            if (requiresChargeHistoryFixtureMigration(existing, now)) {
+                removeLegacyChargeHistoryFixtures(existing);
+            } else {
+                return;
+            }
+        }
+
+        LocalDateTime fixtureBaseTime = now.minusDays(30);
+        LocalDateTime pendingAt = fixtureBaseTime.minusMinutes(50);
+        createCharge(buyer, "pending", 10_000L, pendingAt);
+
+        PointCharge paid = createCharge(buyer, "paid", 30_000L, fixtureBaseTime.minusMinutes(40));
+        approveCharge(buyer, paid, fixtureBaseTime.minusMinutes(39));
+
+        PointCharge failed = createCharge(buyer, "failed", 50_000L, fixtureBaseTime.minusMinutes(30));
+        failed.fail("LOCAL_DEMO_DECLINED", "로컬 demo 충전 실패 QA fixture", fixtureBaseTime.minusMinutes(29));
+
+        PointCharge canceled = createCharge(buyer, "canceled", 100_000L, fixtureBaseTime.minusMinutes(20));
+        canceled.cancel(fixtureBaseTime.minusMinutes(19));
+
+        PointCharge refunded = createCharge(buyer, "refunded", 30_000L, fixtureBaseTime.minusMinutes(10));
+        approveCharge(buyer, refunded, fixtureBaseTime.minusMinutes(9));
+        refundCharge(buyer, refunded, fixtureBaseTime.minusMinutes(8));
+    }
+
+    private List<PointCharge> chargeHistoryFixtures(User buyer) {
+        List<PointCharge> charges = new ArrayList<>();
+        for (String fixtureName : List.of("pending", "paid", "failed", "canceled", "refunded")) {
+            pointChargeRepository.findByUserIdAndIdempotencyKey(
+                    buyer.getUserId(), "local-demo:charge-history:" + buyer.getUserId() + ":" + fixtureName)
+                    .ifPresent(charges::add);
+        }
+        return charges;
+    }
+
+    private boolean requiresChargeHistoryFixtureMigration(List<PointCharge> charges, LocalDateTime now) {
+        PointCharge paid = charges.stream()
+                .filter(charge -> charge.getIdempotencyKey().endsWith(":paid"))
+                .findFirst().orElse(null);
+        PointCharge refunded = charges.stream()
+                .filter(charge -> charge.getIdempotencyKey().endsWith(":refunded"))
+                .findFirst().orElse(null);
+        return paid != null && refunded != null
+                && (paid.getRequestedAmount() != refunded.getRequestedAmount()
+                || paid.getCreatedAt().isAfter(now.minusDays(1)));
+    }
+
+    private void removeLegacyChargeHistoryFixtures(List<PointCharge> charges) {
+        for (PointCharge charge : charges) {
+            removeChargeTransactions(charge);
+        }
+        pointChargeRepository.deleteAll(charges);
+        pointChargeRepository.flush();
+    }
+
+    private void removeChargeTransactions(PointCharge charge) {
+        for (PointTransactionType type : List.of(
+                PointTransactionType.DEMO_CHARGE,
+                PointTransactionType.REFUND,
+                PointTransactionType.ADJUSTMENT_DEBIT)) {
+            pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                    PointReferenceType.CHARGE, charge.getChargeId().toString(), type)
+                    .ifPresent(pointTransactionRepository::delete);
+        }
+        pointTransactionRepository.flush();
+    }
+
+    private PointCharge createCharge(User buyer, String fixtureName, long amount, LocalDateTime createdAt) {
+        String key = "local-demo:charge-history:" + buyer.getUserId() + ":" + fixtureName;
+        return pointChargeRepository.saveAndFlush(PointCharge.pending(
+                buyer.getUserId(), PaymentProvider.INTERNAL,
+                "LOCAL-DEMO-CHARGE-" + fixtureName.toUpperCase(), amount, key, createdAt));
+    }
+
+    private void approveCharge(User buyer, PointCharge charge, LocalDateTime paidAt) {
+        PointAccount account = pointAccountService.initializeAccount(buyer.getUserId());
+        account.credit(charge.getRequestedAmount(), paidAt);
+        pointAccountRepository.save(account);
+        PointTransaction transaction = pointTransactionRepository.saveAndFlush(PointTransaction.record(
+                buyer.getUserId(), PointTransactionType.DEMO_CHARGE,
+                charge.getRequestedAmount(), charge.getRequestedAmount(), 0L,
+                account.getAvailableBalance(), account.getHeldBalance(),
+                PointReferenceType.CHARGE, charge.getChargeId().toString(),
+                "charge:" + charge.getChargeId(), null, "DEMO_CHARGE_APPROVED",
+                "데모 포인트 충전", paidAt));
+        charge.approve(null, charge.getRequestedAmount(), transaction.getTransactionId(), paidAt);
+    }
+
+    private void refundCharge(User buyer, PointCharge charge, LocalDateTime refundedAt) {
+        PointAccount account = pointAccountService.initializeAccount(buyer.getUserId());
+        account.debit(charge.getPaidAmount(), refundedAt);
+        pointAccountRepository.save(account);
+        PointTransaction transaction = pointTransactionRepository.saveAndFlush(PointTransaction.record(
+                buyer.getUserId(), PointTransactionType.REFUND,
+                charge.getPaidAmount(), -charge.getPaidAmount(), 0L,
+                account.getAvailableBalance(), account.getHeldBalance(),
+                PointReferenceType.CHARGE, charge.getChargeId().toString(),
+                "charge-refund:" + charge.getChargeId(), charge.getChargeTransactionId(),
+                "CHARGE_REFUNDED", "포인트 충전 환불", refundedAt));
+        charge.refund(transaction.getTransactionId(), refundedAt);
     }
 
     private Art create(DemoArt spec, LocalDateTime now) {
