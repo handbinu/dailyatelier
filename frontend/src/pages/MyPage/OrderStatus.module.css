@@ -180,8 +180,8 @@
   white-space: nowrap;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.mainAction { display: inline-flex; align-items: center; justify-content: center; color: #fff; border-color: var(--color-accent); background: var(--color-accent); text-decoration: none; }
-.mainAction:hover { border-color: var(--color-accent-hover); background: var(--color-accent-hover); }
+.mainAction { display: inline-flex; align-items: center; justify-content: center; color: #fff; border-color: var(--color-accent-hover); background: var(--color-accent-hover); text-decoration: none; }
+.mainAction:hover { border-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); }
 .secondaryAction { color: var(--color-text-sub); background: var(--color-surface); }
 .secondaryAction:hover { background: var(--color-surface-alt); border-color: var(--color-text-muted); }
 .dangerAction { color: #8d5f59; border-color: #d8c4c0; background: #fcf8f7; }

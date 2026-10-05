@@ -27,12 +27,13 @@
 .detailToggle { display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: space-between; padding: 0 var(--space-6); border: 0; border-top: 1px solid var(--color-border); color: var(--color-text-sub); background: transparent; cursor: pointer; font-size: var(--font-size-sm); font-weight: 600; }
 .detailChevron { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform: rotate(90deg); transition: transform var(--transition-fast); }
 .detailChevronOpen { transform: rotate(-90deg); }
-.actions .primaryAction { color: #fff; border-color: var(--color-primary); background: var(--color-primary); }
+.actions .primaryAction { color: #fff; border-color: var(--color-accent-hover); background: var(--color-accent-hover); }
+.actions .primaryAction:hover { border-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); }
 .actions button:disabled { opacity: .5; cursor: default; }
 .refundActions { display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); border-left: 3px solid var(--color-error); }
 .refundActions > span { color: var(--color-error); font-size: var(--font-size-xs); font-weight: 700; white-space: nowrap; }
 .refundActions button { color: var(--color-error); border-color: var(--color-error); }
-.refundActions .refundApprove { color: #fff; background: var(--color-error); }
+.refundActions .refundApprove { color: var(--color-error); border-color: #d8c4c0; background: #fcf8f7; }
 .refundActions .refundReject { color: var(--color-text-sub); border-color: var(--color-border); }
 .detail { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-top: 1px solid var(--color-border); background: var(--color-bg); }
 .meta { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); background: #f6f5f1; }
