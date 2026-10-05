@@ -223,10 +223,10 @@ hr {
 .btn--primary:hover { background: #3d3840; }
 
 .btn--accent {
-  background: var(--color-accent);
+  background: var(--color-accent-hover);
   color: #fff;
 }
-.btn--accent:hover { background: var(--color-accent-hover); }
+.btn--accent:hover { background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); }
 
 .btn--outline {
   background: transparent;
