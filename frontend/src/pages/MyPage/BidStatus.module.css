@@ -242,6 +242,7 @@
 }
 
 @media (max-width: 768px) {
+  .body { padding-inline: 16px; }
   .summary {
     grid-template-columns: 1fr;
   }

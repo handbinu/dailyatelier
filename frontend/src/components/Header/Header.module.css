@@ -372,6 +372,7 @@
 }
 
 @media (max-width: 900px) {
+  .inner { padding-inline: 16px; }
   .gnb,
   .searchWrap,
   .userMenu {
@@ -390,8 +391,12 @@
   .mobileSearch {
     display: flex;
     flex-shrink: 0;
-    margin: 0 var(--space-6) var(--space-4);
+    margin: 0 16px var(--space-4);
   }
+
+  .mobileSectionLabel,
+  .mobileLink { padding-inline: 16px; }
+  .mobileDivider { margin-inline: 16px; }
 
   .mobileSearch .searchInput {
     flex: 1;

@@ -115,6 +115,7 @@
 }
 
 @media (max-width: 640px) {
+  .body { padding-inline: 16px; }
   .thumb {
     aspect-ratio: 4 / 3;
   }

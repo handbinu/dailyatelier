@@ -150,7 +150,10 @@
     gap: var(--space-5);
   }
   @media (max-width: 1024px) { .cardGrid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px)  { .cardGrid { grid-template-columns: 1fr; } }
+  @media (max-width: 560px)  {
+    .bannerInner { padding-inline: 16px; }
+    .cardGrid { grid-template-columns: 1fr; }
+  }
   
   /* ── ActionBtn ──────────────────────────────────────────────── */
   .actionBtn {
