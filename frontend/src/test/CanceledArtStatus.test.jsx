@@ -46,9 +46,12 @@ describe('삭제·취소 작품 상태 표시', () => {
     expect(screen.getByText('1,000원')).toBeVisible()
     expect(screen.getByText('현재가')).toBeVisible()
     expect(screen.getByText('2,500원')).toBeVisible()
-    expect(screen.getByText('입찰 2건')).toBeVisible()
+    expect(screen.getAllByText('입찰 2건')).toHaveLength(2)
     expect(screen.getByRole('link', { name: '진행 작품 작품 상세 보기' })).toHaveAttribute('href', '/auction/4')
-    expect(screen.getByRole('link', { name: '수정·삭제' })).toHaveAttribute('href', '/mypage/manage-arts/4/edit')
+    expect(screen.getAllByRole('link', { name: '수정·삭제' }))
+      .toHaveLength(2)
+    screen.getAllByRole('link', { name: '수정·삭제' })
+      .forEach((link) => expect(link).toHaveAttribute('href', '/mypage/manage-arts/4/edit'))
   })
 
   it('종료 작품은 결과 가격을 우선하고 유찰 작품의 현재가를 반복하지 않는다', async () => {
@@ -67,7 +70,7 @@ describe('삭제·취소 작품 상태 표시', () => {
     expect(await screen.findByText('낙찰가')).toBeVisible()
     expect(screen.getByText('3,000원')).toBeVisible()
     expect(screen.getAllByText('낙찰')).toHaveLength(1)
-    expect(screen.getByText('입찰 0건')).toBeVisible()
+    expect(screen.getAllByText('입찰 0건')).toHaveLength(2)
     expect(screen.getAllByText('유찰')).toHaveLength(2)
     expect(screen.queryByText('현재가 3,000원')).not.toBeInTheDocument()
     expect(screen.queryByText('현재가 2,000원')).not.toBeInTheDocument()

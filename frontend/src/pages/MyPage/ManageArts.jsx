@@ -246,6 +246,23 @@ export default function ManageArts() {
                         </Link>
                       </div>
                     )}
+                    {isActive && (
+                      <div className={styles.manageMobileCardActions}>
+                        <Link
+                          to={`/mypage/manage-arts/${art.artId}/edit`}
+                          state={{ from: listLocation }}
+                          className={styles.manageEditLink}
+                        >
+                          수정·삭제
+                        </Link>
+                      </div>
+                    )}
+                    <div className={styles.manageMobileBottomRow}>
+                      <p className={styles.manageBidCount}>입찰 {Number(art.bidCount ?? 0).toLocaleString('ko-KR')}건</p>
+                      <p className={styles.manageCloseTime}>
+                        마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
+                      </p>
+                    </div>
                   </article>
                 )
               })}
