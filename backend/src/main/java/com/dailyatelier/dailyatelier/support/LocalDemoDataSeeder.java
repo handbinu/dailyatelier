@@ -214,7 +214,7 @@ public class LocalDemoDataSeeder {
         List<PointCharge> existing = chargeHistoryFixtures(buyer);
         if (!existing.isEmpty()) {
             if (requiresChargeHistoryFixtureMigration(existing, now)) {
-                removeLegacyChargeHistoryFixtures(existing);
+                removeLegacyChargeHistoryFixtures(existing, now);
             } else {
                 return;
             }
@@ -260,23 +260,60 @@ public class LocalDemoDataSeeder {
                 || paid.getCreatedAt().isAfter(now.minusDays(1)));
     }
 
-    private void removeLegacyChargeHistoryFixtures(List<PointCharge> charges) {
-        for (PointCharge charge : charges) {
-            removeChargeTransactions(charge);
-        }
+    private void removeLegacyChargeHistoryFixtures(List<PointCharge> charges, LocalDateTime now) {
+        List<PointTransaction> transactions = chargeTransactions(charges);
+        reverseChargeTransactionBalance(charges.get(0).getUserId(), transactions, now);
+
         pointChargeRepository.deleteAll(charges);
         pointChargeRepository.flush();
+
+        removeChargeTransactions(transactions, List.of(
+                PointTransactionType.REFUND,
+                PointTransactionType.ADJUSTMENT_DEBIT));
+        removeChargeTransactions(transactions, List.of(PointTransactionType.DEMO_CHARGE));
     }
 
-    private void removeChargeTransactions(PointCharge charge) {
-        for (PointTransactionType type : List.of(
-                PointTransactionType.DEMO_CHARGE,
-                PointTransactionType.REFUND,
-                PointTransactionType.ADJUSTMENT_DEBIT)) {
-            pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
-                    PointReferenceType.CHARGE, charge.getChargeId().toString(), type)
-                    .ifPresent(pointTransactionRepository::delete);
+    private List<PointTransaction> chargeTransactions(List<PointCharge> charges) {
+        List<PointTransaction> transactions = new ArrayList<>();
+        for (PointCharge charge : charges) {
+            for (PointTransactionType type : List.of(
+                    PointTransactionType.DEMO_CHARGE,
+                    PointTransactionType.REFUND,
+                    PointTransactionType.ADJUSTMENT_DEBIT)) {
+                pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                        PointReferenceType.CHARGE, charge.getChargeId().toString(), type)
+                        .ifPresent(transactions::add);
+            }
         }
+        return transactions;
+    }
+
+    private void reverseChargeTransactionBalance(
+            String userId,
+            List<PointTransaction> transactions,
+            LocalDateTime now) {
+        long availableDelta = transactions.stream()
+                .mapToLong(PointTransaction::getAvailableDelta)
+                .reduce(0L, Math::addExact);
+        if (availableDelta == 0L) {
+            return;
+        }
+
+        PointAccount account = pointAccountRepository.findByUserIdForUpdate(userId).orElseThrow();
+        if (availableDelta > 0L) {
+            account.debit(availableDelta, now);
+        } else {
+            account.credit(Math.negateExact(availableDelta), now);
+        }
+        pointAccountRepository.save(account);
+    }
+
+    private void removeChargeTransactions(
+            List<PointTransaction> transactions,
+            List<PointTransactionType> types) {
+        transactions.stream()
+                .filter(transaction -> types.contains(transaction.getType()))
+                .forEach(pointTransactionRepository::delete);
         pointTransactionRepository.flush();
     }
 

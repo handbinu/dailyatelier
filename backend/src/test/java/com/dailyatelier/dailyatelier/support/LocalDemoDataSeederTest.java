@@ -273,6 +273,32 @@ class LocalDemoDataSeederTest {
 
     @Test
     @Transactional
+    void migratesLegacyChargeHistoryFixturesWithoutChangingBidQaBalance() {
+        String buyerId = "demo-buyer-bid-qa";
+        long availableBalance = pointAccountRepository.findById(buyerId).orElseThrow().getAvailableBalance();
+        long heldBalance = pointAccountRepository.findById(buyerId).orElseThrow().getHeldBalance();
+
+        clock.set(INITIAL_INSTANT.minus(java.time.Duration.ofDays(31)));
+        seeder.seed();
+
+        var charges = pointChargeRepository
+                .findByUserIdOrderByCreatedAtDescChargeIdDesc(buyerId, PageRequest.of(0, 10))
+                .getContent();
+        assertThat(charges).hasSize(5);
+        assertThat(charges).allSatisfy(charge -> assertThat(charge.getCreatedAt())
+                .isBefore(LocalDateTime.now(clock).minusDays(29)));
+        assertThat(pointAccountRepository.findById(buyerId).orElseThrow().getAvailableBalance())
+                .isEqualTo(availableBalance);
+        assertThat(pointAccountRepository.findById(buyerId).orElseThrow().getHeldBalance())
+                .isEqualTo(heldBalance);
+        assertThat(pointTransactionRepository.sumAvailableDeltaByUserId(buyerId))
+                .isEqualTo(availableBalance);
+        assertThat(pointTransactionRepository.sumHeldDeltaByUserId(buyerId))
+                .isEqualTo(heldBalance);
+    }
+
+    @Test
+    @Transactional
     void doesNotRefreshQaArtworkWithAnActualBid() {
         Art art = artRepository.findAll().stream()
                 .filter(candidate -> candidate.getName().equals("코랄 블루의 오후"))
