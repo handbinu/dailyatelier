@@ -38,6 +38,52 @@ describe('판매 등록 최소 입찰 증분', () => {
     expect(screen.getByText('첫 입찰 가능 금액은 32,000원부터입니다.')).toBeVisible()
   })
 
+  it('datetime-local 값을 timezone 변환 없이 읽기 쉬운 형식으로 표시한다', () => {
+    const { container } = renderPage()
+    const [bidStartTime] = container.querySelectorAll('input[type="datetime-local"]')
+
+    fireEvent.change(bidStartTime, { target: { value: '2026-10-07T17:28' } })
+
+    expect(screen.getByText('2026. 10. 07. · 오후 5:28')).toBeVisible()
+  })
+
+  it('datetime shell 클릭 시 지원되는 native picker를 연다', () => {
+    const original = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'showPicker')
+    const showPicker = vi.fn()
+    Object.defineProperty(HTMLInputElement.prototype, 'showPicker', { configurable: true, value: showPicker })
+
+    try {
+      const { container } = renderPage()
+      const [bidStartTime] = container.querySelectorAll('input[type="datetime-local"]')
+      fireEvent.click(bidStartTime)
+      expect(showPicker).toHaveBeenCalledTimes(1)
+    } finally {
+      if (original) Object.defineProperty(HTMLInputElement.prototype, 'showPicker', original)
+      else delete HTMLInputElement.prototype.showPicker
+    }
+  })
+
+  it('showPicker가 없어도 datetime input에 focus를 둔다', () => {
+    const original = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'showPicker')
+    delete HTMLInputElement.prototype.showPicker
+
+    try {
+      const { container } = renderPage()
+      const [bidStartTime] = container.querySelectorAll('input[type="datetime-local"]')
+      fireEvent.click(bidStartTime)
+      expect(bidStartTime).toHaveFocus()
+    } finally {
+      if (original) Object.defineProperty(HTMLInputElement.prototype, 'showPicker', original)
+    }
+  })
+
+  it('시작과 종료 일시의 미입력 문구를 구분한다', () => {
+    renderPage()
+
+    expect(screen.getByText('시작 일시 선택')).toBeVisible()
+    expect(screen.getByText('종료 일시 선택')).toBeVisible()
+  })
+
   it.each([
     ['99', '최소 입찰 증분은 100원 이상 1,000만원 이하로 입력해 주세요.'],
     ['150', '최소 입찰 증분은 100원 단위로 입력해 주세요.'],

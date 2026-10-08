@@ -26,6 +26,8 @@ const DEFAULT_FORM = {
   closingTime: '',
 }
 
+const PROGRESS_SECTION_IDS = ['image', 'basics', 'details', 'auction', 'confirm']
+
 const CATEGORY_OPTIONS = [
   ['OIL_PAINTING', '유화'],
   ['WATERCOLOR', '수채화'],
@@ -49,6 +51,16 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const CLOUDINARY_FOLDER = 'arts'
 
+const formatDateTimeDisplay = (value) => {
+  if (!value) return '날짜와 시간을 선택해 주세요'
+  const [date, time] = value.split('T')
+  const [year, month, day] = date.split('-')
+  const [hourText, minute] = time.split(':')
+  const hour = Number(hourText)
+  const period = hour < 12 ? '오전' : '오후'
+  return `${year}. ${month}. ${day}. · ${period} ${hour % 12 || 12}:${minute}`
+}
+
 export default function UploadSell() {
   const navigate = useNavigate()
   const [form, setForm] = useState(DEFAULT_FORM)
@@ -57,6 +69,7 @@ export default function UploadSell() {
   const [createdArt, setCreatedArt] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
+  const [activeSectionId, setActiveSectionId] = useState('image')
   const submitGuard = useRef(false)
 
   useEffect(() => {
@@ -64,6 +77,23 @@ export default function UploadSell() {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
   }, [previewUrl])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return undefined
+
+    const sections = PROGRESS_SECTION_IDS
+      .map((id) => document.getElementById(id))
+      .filter(Boolean)
+    const observer = new IntersectionObserver((entries) => {
+      const activeEntry = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top))[0]
+      if (activeEntry) setActiveSectionId(activeEntry.target.id)
+    }, { rootMargin: '-28% 0px -58% 0px', threshold: 0 })
+
+    sections.forEach((section) => observer.observe(section))
+    return () => observer.disconnect()
+  }, [createdArt])
 
   const setValue = (key) => (e) => {
     if (submitGuard.current) return
@@ -268,26 +298,33 @@ export default function UploadSell() {
     ['details', '분류·설명', Boolean(form.format && form.category && form.material.trim())],
     ['auction', '경매 조건', Boolean(form.startPrice && form.bidStartTime && form.closingTime)],
   ]
+  const progressSections = [...sectionStatus, ['confirm', '최종 확인', false]]
+  const currentSectionIndex = progressSections.findIndex(([, , complete]) => !complete)
+  const activeSectionIndex = Math.max(0, progressSections.findIndex(([id]) => id === activeSectionId))
+  const [activeSectionIdForDisplay, activeSectionLabel] = progressSections[activeSectionIndex]
 
   return (
     <PageWrap>
-      <PageBanner title="작품 등록" crumb="작품 등록" />
+      <UploadBanner />
       <div className={s.body}>
         <div className={s.layout}>
           <aside className={s.sidePanel} aria-label="등록 진행 안내">
             <p className={s.sideEyebrow}>작품 등록</p>
             <h2 className={s.sideTitle}>입력 내용을 확인하며 등록해 주세요.</h2>
             <nav className={s.sectionNav} aria-label="등록 섹션">
-              {sectionStatus.map(([id, label, complete]) => (
-                <a key={id} href={`#${id}`} className={s.sectionLink}>
-                  <span className={complete ? s.sectionStateComplete : s.sectionStateIncomplete} aria-hidden="true">
-                    {complete ? '✓' : '○'}
-                  </span>
+              {progressSections.map(([id, label, complete], index) => {
+                const state = complete ? 'complete' : index === currentSectionIndex ? 'current' : 'incomplete'
+                const numberClass = state === 'complete' ? s.sectionNumberComplete
+                  : state === 'current' ? s.sectionNumberCurrent : s.sectionNumberIncomplete
+                return (
+                <a key={id} href={`#${id}`} className={`${s.sectionLink} ${state === 'current' ? s.sectionCurrent : ''}`}>
+                  <span className={`${s.sectionNumber} ${numberClass}`} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                  <span className={s.stepIcon} aria-hidden="true"><StepIcon step={id} /></span>
                   <span>{label}</span>
-                  <small>{complete ? '완료' : '미완료'}</small>
+                  <small className={state === 'complete' ? s.sectionStateComplete : state === 'current' ? s.sectionStateCurrent : s.sectionStateIncomplete}>{state === 'complete' ? '완료' : state === 'current' ? '입력 중' : '미완료'}</small>
                 </a>
-              ))}
-              <a href="#confirm" className={s.sectionLink}><span className={s.sectionStateIncomplete} aria-hidden="true">○</span><span>최종 확인</span><small>미완료</small></a>
+                )
+              })}
             </nav>
             <dl className={s.summary}>
               <div><dt>작품명</dt><dd>{form.name.trim() || '미입력'}</dd></div>
@@ -295,6 +332,14 @@ export default function UploadSell() {
               <div><dt>첫 입찰가</dt><dd>{firstBidPrice ? `${firstBidPrice.toLocaleString()}원` : '조건 입력 필요'}</dd></div>
             </dl>
           </aside>
+          <div className={s.compactProgress} role="group" aria-label={`현재 섹션: ${activeSectionLabel}, ${activeSectionIndex + 1} / ${progressSections.length}`}>
+            <div className={s.compactProgressContent} key={activeSectionIdForDisplay}>
+              <span className={`${s.sectionNumber} ${s.sectionNumberCurrent}`} aria-hidden="true">{String(activeSectionIndex + 1).padStart(2, '0')}</span>
+              <span className={s.stepIcon} aria-hidden="true"><StepIcon step={activeSectionIdForDisplay} /></span>
+              <strong>{activeSectionLabel}</strong>
+              <span className={s.compactProgressCount}>{activeSectionIndex + 1} / {progressSections.length}</span>
+            </div>
+          </div>
           <form onSubmit={handleSubmit} className={s.form}>
           {errorEntries.length > 0 && (
             <div className={s.errorSummary} role="alert" tabIndex="-1">
@@ -303,17 +348,26 @@ export default function UploadSell() {
             </div>
           )}
           <section className={s.card} id="image">
-            <h2 className={s.cardTitle}>작품 이미지</h2>
-            <FormField label="이미지 파일 *" error={errors.imgFile}>
-              <input
-                className={s.fileInput}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
-                disabled={submitting}
-              />
-              <p className={s.fileHint}>jpg, jpeg, png, webp / 5MB 이하</p>
-            </FormField>
+            <h2 className={s.cardTitle}><span className={s.cardNumber} aria-hidden="true">01</span>작품 이미지</h2>
+            <div className={s.field}>
+              <label className={s.fieldLabel} htmlFor="art-image-file">이미지 파일 *</label>
+              <div className={s.uploadArea}>
+                <input
+                  id="art-image-file"
+                  className={s.fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageChange}
+                  disabled={submitting}
+                />
+                <label className={s.uploadTrigger} htmlFor="art-image-file">
+                  <span className={s.uploadIcon} aria-hidden="true">+</span>
+                  <span className={s.uploadCopy}>이미지를 선택하거나 파일을 끌어놓으세요</span>
+                  <span className={s.fileHint}>JPG · PNG · WEBP / 최대 5MB</span>
+                </label>
+              </div>
+              {errors.imgFile && <p className={s.errMsg}>{errors.imgFile}</p>}
+            </div>
             {previewUrl && (
               <div className={s.previewBox}>
                 <img src={previewUrl} alt="작품 미리보기" className={s.preview} />
@@ -322,7 +376,7 @@ export default function UploadSell() {
           </section>
 
           <section className={s.card} id="basics">
-            <h2 className={s.cardTitle}>작품 정보</h2>
+            <h2 className={s.cardTitle}><span className={s.cardNumber} aria-hidden="true">02</span>작품 정보</h2>
             <p className={s.cardLead}>먼저 작품의 이름과 감상에 필요한 설명을 입력해 주세요.</p>
             <div className={s.fieldGrid}>
               <FormField label="작품명 *" error={errors.name}>
@@ -351,7 +405,7 @@ export default function UploadSell() {
           </section>
 
           <section className={s.card} id="details">
-            <h2 className={s.cardTitle}>분류와 작가 소개</h2>
+            <h2 className={s.cardTitle}><span className={s.cardNumber} aria-hidden="true">03</span>분류와 작가 소개</h2>
             <p className={s.cardLead}>작품 형태와 분류를 선택하고, 재료·기법과 작가 소개를 구분해 적어주세요.</p>
             <div className={s.fieldGrid}>
               <div className={s.classificationGrid}>
@@ -404,7 +458,7 @@ export default function UploadSell() {
           </section>
 
           <section className={s.card} id="auction">
-            <h2 className={s.cardTitle}>경매 설정</h2>
+            <h2 className={s.cardTitle}><span className={s.cardNumber} aria-hidden="true">04</span>경매 설정</h2>
             <p className={s.cardLead}>시작가와 기간을 입력하면 등록 즉시 진행 중 상태로 저장됩니다.</p>
             <div className={s.fieldGrid}>
               <FormField label="시작가 *" error={errors.startPrice}>
@@ -458,22 +512,10 @@ export default function UploadSell() {
 
               <div className={s.timeGrid}>
                 <FormField label="입찰 시작 시간 *" error={errors.bidStartTime}>
-                  <input
-                    className={s.input}
-                    type="datetime-local"
-                    value={form.bidStartTime}
-                    onChange={setValue('bidStartTime')}
-                    disabled={submitting}
-                  />
+                  <DateTimeInput emptyLabel="시작 일시 선택" value={form.bidStartTime} onChange={setValue('bidStartTime')} disabled={submitting} />
                 </FormField>
                 <FormField label="입찰 종료 시간 *" error={errors.closingTime}>
-                  <input
-                    className={s.input}
-                    type="datetime-local"
-                    value={form.closingTime}
-                    onChange={setValue('closingTime')}
-                    disabled={submitting}
-                  />
+                  <DateTimeInput emptyLabel="종료 일시 선택" value={form.closingTime} onChange={setValue('closingTime')} disabled={submitting} />
                 </FormField>
               </div>
             </div>
@@ -504,4 +546,60 @@ function FormField({ label, error, children }) {
       {error && <p className={s.errMsg}>{error}</p>}
     </label>
   )
+}
+
+function UploadBanner() {
+  return (
+    <header className={s.uploadBanner}>
+      <div className={s.uploadBannerHeading}>
+        <span className={s.uploadBreadcrumb}>홈 · 마이페이지 · 작품 등록</span>
+        <h1 className={s.uploadBannerTitle}>작품 등록</h1>
+      </div>
+      <div className={s.uploadBannerBlock} aria-hidden="true" />
+    </header>
+  )
+}
+
+function DateTimeInput({ emptyLabel, value, onChange, disabled }) {
+  const inputRef = useRef(null)
+
+  const openPicker = () => {
+    const input = inputRef.current
+    if (!input || input.disabled) return
+
+    input.focus()
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+      } catch {
+        // 지원하지 않는 브라우저나 native picker 제약에서는 기본 클릭 동작으로 fallback한다.
+      }
+    }
+  }
+
+  return (
+    <div className={s.dateTimeShell}>
+      <span className={`${s.dateTimeDisplay} ${value ? s.dateTimeValue : ''}`} aria-hidden="true">{value ? formatDateTimeDisplay(value) : emptyLabel}</span>
+      <input
+        ref={inputRef}
+        className={`${s.input} ${s.dateTimeInput}`}
+        type="datetime-local"
+        value={value}
+        onChange={onChange}
+        onClick={openPicker}
+        disabled={disabled}
+      />
+    </div>
+  )
+}
+
+function StepIcon({ step }) {
+  const paths = {
+    image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8" cy="9" r="1.5" /><path d="m4 17 5-5 3 3 3-3 5 5" /></>,
+    basics: <><circle cx="12" cy="8" r="3" /><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6" /></>,
+    details: <><path d="M5 5h14v14H5z" /><path d="M8 9h8M8 13h8M8 17h5" /></>,
+    auction: <><path d="M4 19 10 13l3 3 7-8" /><path d="M16 8h4v4" /></>,
+    confirm: <><circle cx="12" cy="12" r="8" /><path d="m8.5 12 2.3 2.3 4.7-4.7" /></>,
+  }
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[step]}</svg>
 }
