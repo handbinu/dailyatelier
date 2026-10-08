@@ -111,10 +111,13 @@ describe('작품 편집·삭제 화면', () => {
   it('새 이미지의 URL과 publicId를 함께 전송한다', async () => {
     const view = renderPage()
     await screen.findByRole('button', { name: '수정 저장' })
+    expect(screen.getByText('현재 이미지')).toBeVisible()
+    expect(screen.getByText('이미지 교체')).toHaveAttribute('for', 'edit-art-image-file')
     const file = new File(['image'], 'new-art.png', { type: 'image/png' })
     fireEvent.change(view.container.querySelector('input[type="file"]'), {
       target: { files: [file] },
     })
+    expect(screen.getByText('새 이미지 선택됨')).toBeVisible()
     fireEvent.click(await screen.findByRole('button', { name: '수정 저장' }))
 
     await waitFor(() => expect(updateArt).toHaveBeenCalledWith('7', expect.objectContaining({

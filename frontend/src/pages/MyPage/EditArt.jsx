@@ -233,38 +233,53 @@ export default function EditArt() {
         <form className={formStyles.form} onSubmit={handleSubmit}>
           <section className={formStyles.card}>
             <h2 className={formStyles.cardTitle}>작품 정보</h2>
-            <Field label="작품명"><input className={formStyles.input} aria-label="작품명" value={art.name} readOnly /><span className={styles.help}>작품명은 등록 후 수정할 수 없습니다.</span></Field>
-            <Field label="작품 설명"><textarea className={formStyles.textarea} value={form.descript} onChange={setValue('descript')} maxLength={300} rows={4} /></Field>
-            <div className={formStyles.classificationGrid}>
-              <Field label="작품 형태 *" error={errors.format}><select className={formStyles.input} value={form.format} onChange={handleFormatChange} disabled={mutationUnavailable}><option value="">형태 선택</option><option value="DIGITAL">디지털</option><option value="PHYSICAL">실물</option></select></Field>
-              <Field label="카테고리 *" error={errors.category}><select className={formStyles.input} value={form.category} onChange={setValue('category')} disabled={mutationUnavailable || !form.format}><option value="">카테고리 선택</option>{categoryOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
+            <div className={styles.fieldStack}>
+              <Field label="작품명"><input className={formStyles.input} aria-label="작품명" value={art.name} readOnly /><span className={styles.help}>작품명은 등록 후 수정할 수 없습니다.</span></Field>
+              <Field label="작품 설명"><textarea className={formStyles.textarea} value={form.descript} onChange={setValue('descript')} maxLength={300} rows={4} /></Field>
+              <div className={formStyles.classificationGrid}>
+                <Field label="작품 형태 *" error={errors.format}><select className={formStyles.input} value={form.format} onChange={handleFormatChange} disabled={mutationUnavailable}><option value="">형태 선택</option><option value="DIGITAL">디지털</option><option value="PHYSICAL">실물</option></select></Field>
+                <Field label="카테고리 *" error={errors.category}><select className={formStyles.input} value={form.category} onChange={setValue('category')} disabled={mutationUnavailable || !form.format}><option value="">카테고리 선택</option>{categoryOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
+              </div>
+              <Field label="재료·기법 *" error={errors.material}><input className={formStyles.input} value={form.material} onChange={setValue('material')} maxLength={120} disabled={mutationUnavailable} /></Field>
+              <Field label="작가 소개"><textarea className={formStyles.textarea} value={form.wIntro} onChange={setValue('wIntro')} maxLength={500} rows={4} disabled={mutationUnavailable} /></Field>
             </div>
-            <Field label="재료·기법 *" error={errors.material}><input className={formStyles.input} value={form.material} onChange={setValue('material')} maxLength={120} disabled={mutationUnavailable} /></Field>
-            <Field label="작가 소개"><textarea className={formStyles.textarea} value={form.wIntro} onChange={setValue('wIntro')} maxLength={500} rows={4} disabled={mutationUnavailable} /></Field>
           </section>
 
           <section className={formStyles.card}>
             <h2 className={formStyles.cardTitle}>작품 이미지</h2>
-            <img className={formStyles.preview} src={previewUrl || getArtImageSrc(form.imgPath)} alt={`${art.name} 미리보기`} />
-            <Field label="새 이미지 선택" error={errors.imgFile}><input className={formStyles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} disabled={mutationUnavailable} /><span className={styles.help}>선택하지 않으면 기존 이미지를 유지합니다.</span></Field>
+            <div className={styles.fieldStack}>
+              <div className={`${formStyles.previewBox} ${styles.imagePreview}`}>
+                <img className={formStyles.preview} src={previewUrl || getArtImageSrc(form.imgPath)} alt={`${art.name} 미리보기`} />
+                <span className={styles.imageStatus}>{selectedFile ? '새 이미지 선택됨' : '현재 이미지'}</span>
+              </div>
+              <div className={formStyles.field}>
+                <span className={formStyles.fieldLabel}>새 이미지 선택</span>
+                <input id="edit-art-image-file" className={`${formStyles.fileInput} ${styles.imageFileInput}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} disabled={mutationUnavailable} />
+                <label className={styles.imageReplaceTrigger} htmlFor="edit-art-image-file">이미지 교체</label>
+                <span className={styles.help}>선택하지 않으면 기존 이미지를 유지합니다.</span>
+                {errors.imgFile && <span className={formStyles.errMsg}>{errors.imgFile}</span>}
+              </div>
+            </div>
           </section>
 
           <section className={formStyles.card}>
             <h2 className={formStyles.cardTitle}>경매 설정</h2>
-            {hasBid && <p className={styles.lockNotice}>입찰 후에는 가격과 경매 기간을 수정할 수 없습니다.</p>}
-            {!hasBid && auctionStarted && <p className={styles.lockNotice}>경매 시작 후에는 최소 입찰 증분을 수정할 수 없습니다.</p>}
-            <Field label="시작가 *" error={errors.startPrice}><input className={formStyles.input} type="number" value={form.startPrice} onChange={setValue('startPrice')} disabled={priceAndPeriodLocked} /></Field>
-            <Field label="최소 입찰 증분 *" error={errors.minimumBidIncrement}><input className={formStyles.input} type="number" step="100" value={form.minimumBidIncrement} onChange={setValue('minimumBidIncrement')} disabled={incrementLocked} /></Field>
-            <div className={formStyles.timeGrid}>
-              <Field label="입찰 시작 시간 *"><input className={formStyles.input} type="datetime-local" value={form.bidStartTime} onChange={setValue('bidStartTime')} disabled={priceAndPeriodLocked} /></Field>
-              <Field label="입찰 종료 시간 *" error={errors.closingTime}><input className={formStyles.input} type="datetime-local" value={form.closingTime} onChange={setValue('closingTime')} disabled={priceAndPeriodLocked} /></Field>
+            <div className={styles.fieldStack}>
+              {hasBid && <p className={styles.lockNotice}>입찰 후에는 가격과 경매 기간을 수정할 수 없습니다.</p>}
+              {!hasBid && auctionStarted && <p className={styles.lockNotice}>경매 시작 후에는 최소 입찰 증분을 수정할 수 없습니다.</p>}
+              <Field label="시작가 *" error={errors.startPrice}><input className={formStyles.input} type="number" value={form.startPrice} onChange={setValue('startPrice')} disabled={priceAndPeriodLocked} /></Field>
+              <Field label="최소 입찰 증분 *" error={errors.minimumBidIncrement}><input className={formStyles.input} type="number" step="100" value={form.minimumBidIncrement} onChange={setValue('minimumBidIncrement')} disabled={incrementLocked} /></Field>
+              <div className={formStyles.timeGrid}>
+                <Field label="입찰 시작 시간 *"><input className={formStyles.input} type="datetime-local" value={form.bidStartTime} onChange={setValue('bidStartTime')} disabled={priceAndPeriodLocked} /></Field>
+                <Field label="입찰 종료 시간 *" error={errors.closingTime}><input className={formStyles.input} type="datetime-local" value={form.closingTime} onChange={setValue('closingTime')} disabled={priceAndPeriodLocked} /></Field>
+              </div>
             </div>
           </section>
 
           {mutationUnavailable && <p className={styles.unavailable} role="alert">종료되거나 취소된 작품은 수정하거나 삭제할 수 없습니다.</p>}
           {errors.submit && <p className={formStyles.submitError} role="alert">{errors.submit}</p>}
           <div className={styles.actions}>
-            <button className={formStyles.submitBtn} type="submit" disabled={submitting || deleting || mutationUnavailable}>{submitting ? '저장 중...' : '수정 저장'}</button>
+            <button className={styles.saveButton} type="submit" disabled={submitting || deleting || mutationUnavailable}>{submitting ? '저장 중...' : '수정 저장'}</button>
             <button className={styles.deleteButton} type="button" onClick={handleDelete} disabled={submitting || deleting || mutationUnavailable}>{deleting ? '삭제 중...' : '작품 삭제'}</button>
           </div>
         </form>
