@@ -44,32 +44,6 @@
 - 핵심 금액·상태·제목·label은 charcoal 중심으로 읽히게 하며, 정책·제한·다음 행동을 바꾸는 helper는 작은 muted caption으로 숨기지 않는다.
 - `PageBanner`, Header, 공통 action/filter/pagination은 실제 사용처와 영향 범위를 확인한 뒤 최소 변경한다. 공통 PageBanner는 sage gradient + drawing-paper texture를 기본으로 하며 `/upload`는 이를 더 강하게 활용하는 전용 사례로 유지한다.
 
-### 3단계 — 탐색·작품·작가 계열의 메타·거래 위계 정합화
-
-#### 대상
-
-- `/`, `/search`
-- `/auction/total`, `/auction/digital`, `/auction/analog`, `/auction/:id`
-- `/artists`, `/artists/:artistId`
-
-#### 구현 순서
-
-1. 목록 카드의 제목, 작가, 가격, 마감, 상태, 다음 행동을 역할 순서대로 점검하고 의미 없는 gray section surface·status chip만 선별 축소한다.
-2. 검색·초기화·재시도 등 일반 보조 행동은 `da-button-secondary`로, active filter와 current pagination 등 현재/선택 상태는 `da-button-state`로 정리한다. 작품 구매·입찰 확정처럼 최종 결정 CTA는 butter를 검토하며, 상태의 텍스트 단서는 유지한다.
-3. 검색·경매 목록과 작가 hero는 화면 성격을 보존하되, 공통 brand role에 맞춰 탐색 영역이 불필요하게 dark/gray-heavy가 되지 않도록 surface와 설명 대비를 조정한다.
-4. 작품 상세에서는 현재가·최소 입찰 정보·마감·입찰 가능 상태·입찰 행동을 하나의 거래 위계로 정리한다. 계산/진행 정보만 light sage를 사용하고 gray bid panel 중첩을 줄인다.
-5. mobile에서 목록과 상세의 정보 순서를 가격·마감·상태·다음 행동 중심으로 확인한다. 별도 구조 작업이 필요한 경우 보고 후 결정한다.
-
-#### desktop / mobile 확인
-
-- Desktop: card 중첩과 shadow/radius가 과하지 않은지, 가격·거래 상태가 날짜·보조 메타보다 먼저 읽히는지, 입찰 CTA가 명확한지 확인한다.
-- Mobile: 320px에서도 card grid, filter, pagination이 overflow 없이 읽히는지와 상세의 거래 핵심 정보·입찰 CTA 우선순위를 확인한다.
-
-#### 자동 테스트
-
-- 검색 query/filter/sort/pagination, 작품·작가 목록 상태와 pagination 테스트를 유지한다.
-- 작품 상세의 입찰 단위·로그인 복귀·찜·dialog·disabled state 계약과 상태 label/CTA accessible name을 검증한다.
-
 ### 4단계 — 마이페이지·거래 화면의 남은 시각 불일치 정합화
 
 #### 대상
@@ -80,11 +54,11 @@
 
 #### 구현 순서
 
-1. 완료된 거래/목록 UX와 API 상태를 먼저 확인한다. 레이아웃 재작성 없이 nested gray/tinted panel, 중복 card, 의미 없는 chip만 최소한으로 줄인다.
-2. 금액, 주문/입찰/판매 상태, 다음 행동, helper의 대비를 재정렬한다. 진행·계산·중요 안내일 때만 light sage surface를 쓴다.
-3. 최종 등록·저장·확정 CTA는 butter로 맞추고, sage/deep sage 보조 행동과 취소·환불·삭제 danger outline/text 역할을 유지한다.
-4. 리뷰·문의·충전의 작은 muted 정책/상태 문구를 읽을 수 있는 hierarchy로 올린다. 충전 계산 결과와 선택 상태는 의미 있는 sage surface로 보존한다.
-5. mobile은 이미 개선된 card/list/detail 구조를 뜯지 않고, gray panel, CTA 순서, 작은 메타, overflow만 화면별로 수정한다.
+1. 완료된 거래/목록 UX와 API 상태를 먼저 확인한다. 레이아웃 재작성 없이 판매 주문 상세의 nested gray/tinted panel, 중복 card, 의미 없는 label box만 최소한으로 줄인다.
+2. 충전·구매 주문·작품 관리의 행동을 final / secondary / danger로 구분한다. 충전·결제·구매 확정은 butter final로, 수정·조회·재시도는 secondary로 두며, 발송 준비·발송 같은 상태 전이형 주요 행동은 기존 sage primary 역할을 유지한다.
+3. 취소·환불 요청은 danger outline/text 역할을 유지하고, 입찰 현황의 가격 비교·현재 최고 입찰·낙찰/패찰 상태 pill처럼 의미 있는 상태 단서는 보존한다.
+4. 리뷰·문의 화면은 이미 가이드에 맞으므로 유지 대상으로 둔다. 충전과 거래 화면에서 행동 결정에 필요한 정책·상태 문구만 선별해 가독성을 조정하며, 충전 계산 결과와 선택 상태의 의미 있는 sage surface는 보존한다.
+5. mobile은 이미 개선된 주문·판매 화면의 단일 열 전환과 버튼 wrapping을 유지한다. 입찰 현황의 상태 pill, action row, 작은 메타의 줄바꿈·overflow만 화면별로 보완한다.
 
 #### desktop / mobile 확인
 
