@@ -55,8 +55,8 @@
 #### 구현 순서
 
 1. 목록 카드의 제목, 작가, 가격, 마감, 상태, 다음 행동을 역할 순서대로 점검하고 의미 없는 gray section surface·status chip만 선별 축소한다.
-2. charcoal active filter, pagination, retry, 보조 CTA를 sage/deep-sage secondary 역할로 정리하고, 작품 구매·입찰 확정처럼 최종 결정 CTA는 butter를 검토한다. 상태의 텍스트 단서는 유지한다.
-3. 검색·작가 hero는 화면 성격을 보존하되, 탐색 영역이 불필요하게 dark/gray-heavy가 되지 않도록 surface와 설명 대비를 조정한다.
+2. 검색·초기화·재시도 등 일반 보조 행동은 `da-button-secondary`로, active filter와 current pagination 등 현재/선택 상태는 `da-button-state`로 정리한다. 작품 구매·입찰 확정처럼 최종 결정 CTA는 butter를 검토하며, 상태의 텍스트 단서는 유지한다.
+3. 검색·경매 목록과 작가 hero는 화면 성격을 보존하되, 공통 brand role에 맞춰 탐색 영역이 불필요하게 dark/gray-heavy가 되지 않도록 surface와 설명 대비를 조정한다.
 4. 작품 상세에서는 현재가·최소 입찰 정보·마감·입찰 가능 상태·입찰 행동을 하나의 거래 위계로 정리한다. 계산/진행 정보만 light sage를 사용하고 gray bid panel 중첩을 줄인다.
 5. mobile에서 목록과 상세의 정보 순서를 가격·마감·상태·다음 행동 중심으로 확인한다. 별도 구조 작업이 필요한 경우 보고 후 결정한다.
 
