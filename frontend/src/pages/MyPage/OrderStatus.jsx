@@ -490,7 +490,7 @@ export default function OrderStatus() {
         <div className={s.filterBar} role="group" aria-label="주문 상태 필터">
           <button
             type="button"
-            className={filter === '' ? s.filterActive : ''}
+            className={filter === '' ? `${s.filterActive} da-button-state` : ''}
             onClick={() => handleFilterChange('')}
             aria-pressed={filter === ''}
           >
@@ -498,7 +498,7 @@ export default function OrderStatus() {
           </button>
           <button
             type="button"
-            className={filter === 'PAYMENT_PENDING' ? s.filterActive : ''}
+            className={filter === 'PAYMENT_PENDING' ? `${s.filterActive} da-button-state` : ''}
             onClick={() => handleFilterChange('PAYMENT_PENDING')}
             aria-pressed={filter === 'PAYMENT_PENDING'}
           >

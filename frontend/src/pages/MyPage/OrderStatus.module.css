@@ -53,9 +53,7 @@
   white-space: nowrap;
 }
 .filterBar button.filterActive {
-  color: #fff;
-  border-color: var(--color-primary);
-  background: var(--color-primary);
+  font-weight: 700;
 }
 .statusSelectLabel select {
   min-height: 44px;

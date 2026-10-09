@@ -9,7 +9,7 @@
 .summaryAttention .summaryValue, .summaryConfirm .summaryValue { color: var(--color-accent-hover); }
 .filterBar { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); }
 .filterBar button { min-height: 44px; padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-full); color: var(--color-text-muted); background: var(--color-surface); cursor: pointer; }
-.filterBar .filterActive { color: #fff; border-color: var(--color-primary); background: var(--color-primary); }
+.filterBar .filterActive { font-weight: 700; }
 .statusSelectLabel select { min-height: 44px; appearance: none; padding: var(--space-2) 3rem var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-full); color: var(--color-text-sub); background-color: var(--color-surface); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' fill='none' stroke='%235a6e69' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-position: right var(--space-4) center; background-repeat: no-repeat; background-size: 18px 18px; font: inherit; cursor: pointer; }
 .tableHead { display: grid; grid-template-columns: minmax(300px, 1.05fr) minmax(190px, .72fr) minmax(280px, 1.03fr); gap: var(--space-3); margin-bottom: var(--space-2); padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm); color: var(--color-text-muted); background: var(--color-surface-alt); font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .06em; }
 .tableHead span:last-child { text-align: right; }

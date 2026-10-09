@@ -12,7 +12,7 @@ import s from './atoms.module.css'
 // 각 서브페이지 최상단 타이틀 배너 (다크 배경 + 브레드크럼)
 export function PageBanner({ title, crumb }) {
   return (
-    <div className={s.banner}>
+    <div className={`${s.banner} da-brand-banner`}>
       <div className={s.bannerInner}>
         <span className={s.breadcrumb}>홈 · 마이페이지 · {crumb}</span>
         <h1 className={s.title}>{title}</h1>
@@ -62,7 +62,7 @@ export function FilterBar({ options, value, onChange }) {
       {options.map((opt) => (
         <button
           key={opt}
-          className={`${s.filterBtn} ${value === opt ? s.filterBtnActive : ''}`}
+          className={`${s.filterBtn} ${value === opt ? `${s.filterBtnActive} da-button-state` : ''}`}
           onClick={() => onChange(opt)}
           aria-pressed={value === opt}
         >
@@ -101,8 +101,8 @@ export function ArtThumb({ src, alt, ratio = '1/1' }) {
 
 // ── PageWrap ─────────────────────────────────────────────────────
 // 각 서브페이지 루트 컨테이너. Layout 의 Header/Footer 와 중복되지 않음.
-export function PageWrap({ children }) {
-  return <div className={s.pageWrap}>{children}</div>
+export function PageWrap({ children, tone = 'default' }) {
+  return <div className={`${s.pageWrap} ${tone === 'warm' ? s.pageWrapWarm : ''}`}>{children}</div>
 }
 
 // ── CardGrid ─────────────────────────────────────────────────────
@@ -117,7 +117,8 @@ export function CardGrid({ children, cols = 3 }) {
 // ── ActionBtn ────────────────────────────────────────────────────
 // variant: 'outline' | 'fill' | 'accent' | 'danger'
 export function ActionBtn({ children, to, onClick, variant = 'outline', disabled }) {
-  const cls = `${s.actionBtn} ${s[`actionBtn_${variant}`]}`
+  const role = variant === 'final' ? 'da-button-final' : variant === 'outline' ? 'da-button-secondary' : variant === 'danger' ? 'da-button-danger' : 'da-button-state'
+  const cls = `${s.actionBtn} ${s[`actionBtn_${variant}`]} ${role}`
   if (to) return <Link to={to} className={cls}>{children}</Link>
   return (
     <button className={cls} onClick={onClick} disabled={disabled}>

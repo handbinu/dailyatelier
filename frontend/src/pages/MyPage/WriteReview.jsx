@@ -131,7 +131,7 @@ export default function WriteReview() {
 
   if (loading) {
     return (
-      <PageWrap>
+      <PageWrap tone="warm">
         <PageBanner title="리뷰 정보 확인 중" crumb="리뷰 쓰기" />
         <div className={s.stateWrap} aria-live="polite">
           <p className={s.stateMessage}>주문과 리뷰 정보를 불러오는 중입니다.</p>
@@ -142,7 +142,7 @@ export default function WriteReview() {
 
   if (loadError || !reviewContext) {
     return (
-      <PageWrap>
+      <PageWrap tone="warm">
         <PageBanner title="리뷰 정보를 확인할 수 없습니다" crumb="리뷰 쓰기" />
         <div className={s.stateWrap} role="alert">
           <p className={s.stateMessage}>{loadError}</p>
@@ -163,7 +163,7 @@ export default function WriteReview() {
 
   if (done) {
     return (
-      <PageWrap>
+      <PageWrap tone="warm">
         <PageBanner title={isEdit ? '리뷰 수정 완료' : '리뷰 등록 완료'} crumb="리뷰 쓰기" />
         <div className={s.doneWrap}>
           <span className={s.doneIcon} aria-hidden="true">✓</span>
@@ -179,7 +179,7 @@ export default function WriteReview() {
   }
 
   return (
-    <PageWrap>
+    <PageWrap tone="warm">
       <PageBanner title={isEdit ? '리뷰 수정하기' : '리뷰 쓰기'} crumb="리뷰 쓰기" />
 
       <div className={s.body}>
@@ -264,7 +264,7 @@ export default function WriteReview() {
             <div className={s.btnRow}>
               <button
                 type="submit"
-                className={s.submitBtn}
+                className={`${s.submitBtn} da-button-final`}
                 disabled={submitting}
               >
                 {submitting ? '처리 중…' : isEdit ? '수정 완료' : '리뷰 등록'}

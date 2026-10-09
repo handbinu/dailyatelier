@@ -3,11 +3,24 @@
    ============================================================ */
 
 /* ── 전체 래퍼 ───────────────────────────────────────────── */
+.page {
+  min-height: calc(100vh - var(--header-height, 4.5rem));
+  padding-block: var(--space-1);
+  background: var(--color-page-warm);
+}
+
 .wrap {
   width: 100%;
   max-width: 32rem;           /* 512px */
   margin: var(--space-16) auto var(--space-12);
   padding-inline: var(--space-5);
+}
+
+.wrap form {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 /* ── 페이지 타이틀 ───────────────────────────────────────── */
@@ -28,7 +41,7 @@
 /* ── 필수 입력 안내 ─────────────────────────────────────── */
 .notice {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   text-align: right;
   margin-bottom: var(--space-5);
 }
@@ -38,7 +51,7 @@
   display: block;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-top: var(--space-8);
@@ -80,9 +93,9 @@
 
 .field input:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.18);
-  background: var(--color-accent-light);
+  background: var(--color-surface);
 }
 
 /* ── 인풋 + 버튼 나란히 (중복확인 행) ───────────────────── */
@@ -101,10 +114,10 @@
 .btnCheck {
   flex-shrink: 0;
   padding: 0 var(--space-4);
-  height: auto;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
+  min-height: 44px;
+  background: var(--color-surface);
+  color: var(--color-action-primary);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
@@ -113,7 +126,7 @@
               transform var(--transition-fast);
 }
 
-.btnCheck:hover { background: var(--color-accent); }
+.btnCheck:hover:not(:disabled) { border-color: var(--color-action-primary); color: var(--color-action-primary); }
 .btnCheck:active { transform: translateY(1px); }
 
 /* ── 검사 결과 메시지 ────────────────────────────────────── */
@@ -154,8 +167,8 @@
   width: 100%;
   margin-top: var(--space-8);
   padding: 0.875rem;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-action-final);
+  color: var(--color-action-final-text);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
@@ -167,7 +180,7 @@
 }
 
 .btnSubmit:hover:not(:disabled) {
-  background: var(--color-accent);
+  background: var(--color-action-final-hover);
   box-shadow: var(--shadow-sm);
 }
 
@@ -208,6 +221,8 @@
     margin-top: var(--space-10);
     padding-inline: var(--space-4);
   }
+
+  .wrap form { padding: var(--space-5); }
 
   .title { font-size: var(--font-size-xl); }
 

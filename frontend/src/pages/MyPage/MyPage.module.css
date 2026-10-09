@@ -1105,9 +1105,9 @@
 }
 .managePagination button:hover:not(:disabled),
 .managePagination .managePageButtonActive {
-  border-color: var(--color-primary);
+  border-color: var(--color-action-primary);
   color: #fff;
-  background: var(--color-primary);
+  background: var(--color-action-primary);
 }
 .managePagination button:disabled { opacity: 0.4; cursor: default; }
 

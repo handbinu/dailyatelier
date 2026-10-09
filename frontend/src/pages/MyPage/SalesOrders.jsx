@@ -247,9 +247,9 @@ export default function SalesOrders() {
         </div>
 
         <div className={s.filterBar} role="group" aria-label="판매 주문 상태 필터">
-          <button type="button" className={filter === '' ? s.filterActive : ''} onClick={() => changeFilter('')} aria-pressed={filter === ''}>전체</button>
-          <button type="button" className={filter === 'PAID' ? s.filterActive : ''} onClick={() => changeFilter('PAID')} aria-pressed={filter === 'PAID'}>배송 준비 필요</button>
-          <button type="button" className={filter === 'PREPARING' ? s.filterActive : ''} onClick={() => changeFilter('PREPARING')} aria-pressed={filter === 'PREPARING'}>발송 필요</button>
+          <button type="button" className={filter === '' ? `${s.filterActive} da-button-state` : ''} onClick={() => changeFilter('')} aria-pressed={filter === ''}>전체</button>
+          <button type="button" className={filter === 'PAID' ? `${s.filterActive} da-button-state` : ''} onClick={() => changeFilter('PAID')} aria-pressed={filter === 'PAID'}>배송 준비 필요</button>
+          <button type="button" className={filter === 'PREPARING' ? `${s.filterActive} da-button-state` : ''} onClick={() => changeFilter('PREPARING')} aria-pressed={filter === 'PREPARING'}>발송 필요</button>
           <label className={s.statusSelectLabel}>
             <span className="sr-only">상태 선택</span>
             <select value={filter === 'PAID' || filter === 'PREPARING' ? '' : filter} onChange={(event) => changeFilter(event.target.value)} aria-label="상태 선택">

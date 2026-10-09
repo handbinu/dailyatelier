@@ -81,6 +81,7 @@ function RegisterArtist(){
     }
 
     return(
+      <main className={styles.page}>
         <div className={styles.wrap}>
             <h1 className={styles.title}>작가 회원가입</h1>
             <hr className={styles.hr} />
@@ -101,7 +102,7 @@ function RegisterArtist(){
                             autoComplete="username" aria-describedby="artist-register-id-message"
                             aria-invalid={Boolean(messages.userId && !checked.userId)}
                         />
-                        <button type="button" className={styles.btnCheck}
+                        <button type="button" className={`${styles.btnCheck} da-button-secondary`}
                             onClick={() => check('userId')}
                             disabled={loading || checking.userId}>
                             {checking.userId ? '확인 중...' : '중복확인'}
@@ -157,7 +158,7 @@ function RegisterArtist(){
                             aria-describedby="artist-register-nickname-message"
                             aria-invalid={Boolean(messages.nickname && !checked.nickname)}
                         />
-                        <button type="button" className={styles.btnCheck}
+                        <button type="button" className={`${styles.btnCheck} da-button-secondary`}
                             onClick={() => check('nickname')}
                             disabled={loading || checking.nickname}>
                             {checking.nickname ? '확인 중...' : '중복확인'}
@@ -242,7 +243,7 @@ function RegisterArtist(){
 
                 {error && <p className={styles.errMsg} role="alert">{error}</p>}
 
-                <button type="submit" className={styles.btnSubmit}
+                <button type="submit" className={`${styles.btnSubmit} da-button-final`}
                     disabled={loading || checking.userId || checking.nickname
                         || !checked.userId || !checked.nickname}>
                     {loading ? '처리 중...' : '작가로 가입하기'}
@@ -253,6 +254,7 @@ function RegisterArtist(){
                 이미 계정이 있으신가요? <Link to="/login">로그인</Link>
             </div>
         </div>
+      </main>
     )
 }
 

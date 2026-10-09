@@ -30,7 +30,7 @@
 .label {
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   text-transform: uppercase;
   letter-spacing: .06em;
   display: flex;
@@ -54,7 +54,7 @@
   transition: all var(--transition-fast);
 }
 .typeBtn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.typeBtnActive { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
+.typeBtnActive { border-color: var(--color-action-primary); background: var(--color-action-primary); color: #fff; }
 
 /* 인풋 */
 .input, .textarea {
@@ -71,8 +71,9 @@
 }
 .input:focus, .textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0 0 3px rgba(119,140,134,.18);
+  background: var(--color-surface);
 }
 .inputErr { border-color: var(--color-error) !important; }
 .textarea { resize: vertical; min-height: 180px; line-height: 1.7; }
@@ -90,13 +91,13 @@
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   color: var(--color-text-sub);
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
   cursor: pointer;
   width: fit-content;
   font-weight: 600;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
-.fileLabel:hover { border-color: var(--color-accent); background: var(--color-accent-light); }
+.fileLabel:hover { border-color: var(--color-action-primary); color: var(--color-action-primary); background: var(--color-surface); }
 .fileInput { display: none; }
 .fileGuide { font-size: 11px; color: var(--color-text-muted); margin-top: 4px; }
 
@@ -142,10 +143,11 @@
 /* 유의사항 */
 .notice {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   padding: var(--space-4) var(--space-5);
-  background: var(--color-surface-alt);
-  border-left: 3px solid var(--color-border-dark);
+  background: var(--color-notice-bg);
+  border: 1px solid var(--color-notice-border);
+  border-left: 3px solid var(--color-action-primary);
   border-radius: var(--radius-sm);
   line-height: 1.7;
 }
@@ -155,15 +157,15 @@
 .submitBtn {
   flex: 1;
   padding: var(--space-4);
-  background: var(--color-primary);
-  color: #fff; border: none;
+  background: var(--color-action-final);
+  color: var(--color-action-final-text); border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
   font-weight: 700;
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
-.submitBtn:hover:not(:disabled) { background: var(--color-accent); }
+.submitBtn:hover:not(:disabled) { background: var(--color-action-final-hover); }
 .submitBtn:active:not(:disabled) { transform: translateY(1px); }
 .submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
 
@@ -185,8 +187,8 @@
 .doneTitle { font-size: var(--font-size-xl); font-weight: 800; color: var(--color-primary); }
 .doneSub   { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 .doneActions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
-.doneBtn { padding: var(--space-3) var(--space-6); background: var(--color-primary); color: #fff; border-radius: var(--radius-md); font-size: var(--font-size-sm); font-weight: 600; display: inline-flex; align-items: center; transition: background var(--transition-fast); }
-.doneBtn:hover { background: var(--color-accent); color: #fff; }
+.doneBtn { padding: var(--space-3) var(--space-6); background: var(--color-action-primary); color: #fff; border-radius: var(--radius-md); font-size: var(--font-size-sm); font-weight: 600; display: inline-flex; align-items: center; transition: background var(--transition-fast); }
+.doneBtn:hover { background: var(--color-action-primary-hover); color: #fff; }
 .doneBtnOutline { background: var(--color-surface); color: var(--color-text-sub); border: 1px solid var(--color-border); }
 .doneBtnOutline:hover { background: var(--color-surface-alt); color: var(--color-text); }
 

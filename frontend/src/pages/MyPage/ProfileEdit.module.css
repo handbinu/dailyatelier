@@ -60,8 +60,10 @@
   display: inline-flex;
   align-items: center;
   padding: var(--space-2) var(--space-4);
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
+  min-height: 36px;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   color: var(--color-text-sub);
@@ -69,21 +71,23 @@
   font-weight: 600;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.fileLabel:hover { background: var(--color-border); }
+.fileLabel { color: var(--color-action-primary); }
+.fileLabel:hover { border-color: var(--color-action-primary); color: var(--color-action-primary); background: var(--color-surface); }
 .fileLabelDisabled { cursor: not-allowed; opacity: .65; }
 .fileInput { display: none; }
 .imageSaveBtn {
   padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  min-height: 36px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-sm);
-  color: #fff;
+  color: var(--color-action-primary);
   font-size: var(--font-size-xs);
   font-weight: 600;
   cursor: pointer;
 }
-.imageSaveBtn:hover:not(:disabled) { background: var(--color-accent); border-color: var(--color-accent); }
-.imageSaveBtn:disabled { background: var(--color-border-dark); border-color: var(--color-border-dark); cursor: not-allowed; }
+.imageSaveBtn:hover:not(:disabled) { color: var(--color-action-primary); background: var(--color-surface); border-color: var(--color-action-primary); }
+.imageSaveBtn:disabled { background: var(--color-surface-alt); border-color: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; }
 
 /* 필드 그리드 */
 .fieldGrid { display: flex; flex-direction: column; gap: var(--space-5); }
@@ -91,10 +95,12 @@
 .fieldLabel {
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: var(--color-action-primary);
   text-transform: uppercase;
   letter-spacing: .06em;
 }
+
+.fieldLabel { color: var(--color-text-sub); }
 
 /* 인풋 공통 */
 .input {
@@ -108,7 +114,7 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   box-sizing: border-box;
 }
-.input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(119,140,134,.18); }
+.input:focus { outline: none; border-color: var(--color-action-primary); box-shadow: 0 0 0 3px rgba(119,140,134,.18); background: var(--color-surface); }
 .inputOk  { border-color: #1e8c4f !important; }
 .inputErr { border-color: var(--color-error) !important; }
 
@@ -123,7 +129,7 @@
   outline: none;
   transition: border-color var(--transition-fast);
 }
-.select:focus { border-color: var(--color-accent); }
+.select:focus { border-color: var(--color-action-primary); box-shadow: 0 0 0 3px rgba(119,140,134,.18); }
 
 /* 복합 인풋 행 */
 .inlineRow { display: flex; gap: var(--space-2); align-items: center; }
@@ -148,17 +154,18 @@
 .checkBtn {
   flex-shrink: 0;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  border: 1px solid var(--color-border-dark);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
 }
-.checkBtn:hover { background: var(--color-accent); }
+.checkBtn:hover:not(:disabled) { color: var(--color-action-primary); border-color: var(--color-action-primary); }
+.checkBtn { color: var(--color-action-primary); border-color: var(--color-action-primary); }
 
 .postcodeOverlay {
   position: fixed;
@@ -225,8 +232,8 @@
 .submitBtn {
   flex: 1;
   padding: var(--space-4);
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-action-final);
+  color: var(--color-action-final-text);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
@@ -234,7 +241,7 @@
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
-.submitBtn:hover:not(:disabled) { background: var(--color-accent); }
+.submitBtn:hover:not(:disabled) { background: var(--color-action-final-hover); }
 .submitBtn:active:not(:disabled) { transform: translateY(1px); }
 .submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
 

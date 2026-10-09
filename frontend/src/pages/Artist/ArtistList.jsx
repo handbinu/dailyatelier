@@ -158,7 +158,7 @@ function Pagination({ currentPage, totalPages, visiblePages, onMove, label }) {
   return (
     <nav className={styles.pagination} aria-label={label}>
       <button type="button" onClick={() => onMove(currentPage - 1)} disabled={currentPage === 1} aria-label="이전 페이지">‹</button>
-      {visiblePages.map((page) => <button type="button" key={page} onClick={() => onMove(page)} className={page === currentPage ? styles.activePage : ''} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
+      {visiblePages.map((page) => <button type="button" key={page} onClick={() => onMove(page)} className={page === currentPage ? `${styles.activePage} da-pagination-current` : ''} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
       <button type="button" onClick={() => onMove(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="다음 페이지">›</button>
     </nav>
   )

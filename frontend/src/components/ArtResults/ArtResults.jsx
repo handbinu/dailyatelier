@@ -62,7 +62,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }) {
   return (
     <nav className={styles.pagination} aria-label="작품 목록 페이지">
       <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} aria-label="이전 페이지">‹</button>
-      {pages.map((page) => <button type="button" key={page} onClick={() => onPageChange(page)} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
+      {pages.map((page) => <button type="button" key={page} onClick={() => onPageChange(page)} className={page === currentPage ? 'da-pagination-current' : ''} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
       <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="다음 페이지">›</button>
     </nav>
   )

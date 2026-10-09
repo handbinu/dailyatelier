@@ -1,3 +1,5 @@
+@import './VisualRoles.css';
+
 /* ============================================================
    Global.css  —  Design tokens + Base reset
    데일리 아틀리에 React 프론트엔드
@@ -10,9 +12,17 @@
   --color-accent:         #778c86;   /* 포인트 그린 */
   --color-accent-hover:   #5a6e69;
   --color-accent-light:   #eef3f2;   /* 인풋 포커스 배경 등 */
+  --color-action-primary: #5a6e69;   /* 일반 primary CTA용 deep sage */
+  --color-action-primary-hover: #435a50;
+  --color-action-final:   #f2cd5d;   /* 등록·저장·제출·확정용 butter */
+  --color-action-final-hover: #ddbb4f;
+  --color-action-final-text: #252223;
+  --color-page-warm:      #f7f4ee;
+  --color-notice-bg:      #eef3f2;
+  --color-notice-border:  #bfd0c7;
 
   /* Surface */
-  --color-bg:             #f7f7f5;
+  --color-bg:             #f7f4ee;
   --color-surface:        #ffffff;
   --color-surface-alt:    #f0efed;   /* 라벨·배지 배경 */
 
@@ -156,8 +166,20 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0 0 3px rgba(119,140,134,.18);
+  background-color: var(--color-surface);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled,
+input[readonly],
+textarea[readonly],
+select[readonly] {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-sub);
+  cursor: not-allowed;
 }
 
 input::placeholder,
@@ -261,9 +283,9 @@ hr {
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 .input:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0 0 3px rgba(119,140,134,.18);
-  background: var(--color-accent-light);
+  background: var(--color-surface);
 }
 .input--error { border-color: var(--color-error); }
 .input--error:focus { box-shadow: 0 0 0 3px rgba(217,48,37,.15); }

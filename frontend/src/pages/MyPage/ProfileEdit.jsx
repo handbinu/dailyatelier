@@ -277,7 +277,7 @@ export default function ProfileEdit() {
   const showProfileImage = profileImageSrc && !imageLoadFailed
 
   return (
-    <PageWrap>
+    <PageWrap tone="warm">
       <PageBanner title="회원 정보 수정" crumb="프로필 수정" />
 
       <div className={s.body}>
@@ -301,7 +301,7 @@ export default function ProfileEdit() {
               <div className={s.avatarInfo}>
                 <p className={s.avatarGuide}>JPG, PNG 파일 (최대 5MB)</p>
                 <div className={s.avatarActions}>
-                  <label className={`${s.fileLabel} ${imageSaving ? s.fileLabelDisabled : ''}`}>
+                  <label className={`${s.fileLabel} da-button-secondary ${imageSaving ? s.fileLabelDisabled : ''}`}>
                   사진 선택
                     <input
                       ref={imageInputRef}
@@ -314,7 +314,7 @@ export default function ProfileEdit() {
                   </label>
                   <button
                     type="button"
-                    className={s.imageSaveBtn}
+                    className={`${s.imageSaveBtn} da-button-secondary`}
                     onClick={handleImageSave}
                     disabled={!selectedImage || imageSaving || saving}
                   >
@@ -343,7 +343,7 @@ export default function ProfileEdit() {
                     onChange={set('nickname')}
                     required placeholder="닉네임 입력"
                   />
-                  <button type="button" className={s.checkBtn} onClick={handleCheckNickname}>중복확인</button>
+                  <button type="button" className={`${s.checkBtn} da-button-secondary`} onClick={handleCheckNickname}>중복확인</button>
                 </div>
                 {nickMsg && (
                   <p className={`${s.fieldMsg} ${nickChecked ? s.fieldOk : s.fieldErr}`}>{nickMsg}</p>
@@ -400,7 +400,7 @@ export default function ProfileEdit() {
               <Field label="우편번호">
                 <div className={s.inlineRow}>
                   <input className={s.input} value={form.zipCode} onChange={set('zipCode')} placeholder="우편번호" />
-                  <button type="button" className={s.checkBtn} onClick={() => setPostcodeOpen(true)}>우편번호 찾기</button>
+                  <button type="button" className={`${s.checkBtn} da-button-secondary`} onClick={() => setPostcodeOpen(true)}>우편번호 찾기</button>
                 </div>
               </Field>
               <Field label="주소">
@@ -440,7 +440,7 @@ export default function ProfileEdit() {
 
           {/* 버튼 */}
           <div className={s.btnRow}>
-            <button type="submit" className={s.submitBtn} disabled={saving || imageSaving}>
+            <button type="submit" className={`${s.submitBtn} da-button-final`} disabled={saving || imageSaving}>
               {saving ? '저장 중…' : '수정 완료'}
             </button>
             <button type="button" className={s.cancelBtn} onClick={() => navigate(-1)} disabled={saving}>취소</button>

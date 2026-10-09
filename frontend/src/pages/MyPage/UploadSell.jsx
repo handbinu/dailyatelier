@@ -550,7 +550,7 @@ function FormField({ label, error, children }) {
 
 function UploadBanner() {
   return (
-    <header className={s.uploadBanner}>
+    <header className={`${s.uploadBanner} da-brand-banner`}>
       <div className={s.uploadBannerHeading}>
         <span className={s.uploadBreadcrumb}>홈 · 마이페이지 · 작품 등록</span>
         <h1 className={s.uploadBannerTitle}>작품 등록</h1>

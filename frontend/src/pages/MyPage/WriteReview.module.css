@@ -97,18 +97,20 @@
 }
 .textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0 0 3px rgba(119,140,134,.18);
+  background: var(--color-surface);
 }
 
 /* 안내 */
 .notice {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg);
+  background: var(--color-notice-bg);
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-accent);
+  border: 1px solid var(--color-notice-border);
+  border-left: 3px solid var(--color-action-primary);
 }
 
 /* 버튼 */
@@ -116,8 +118,8 @@
 .submitBtn {
   flex: 1;
   padding: var(--space-4);
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-action-final);
+  color: var(--color-action-final-text);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
@@ -125,7 +127,7 @@
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
-.submitBtn:hover:not(:disabled) { background: var(--color-accent); }
+.submitBtn:hover:not(:disabled) { background: var(--color-action-final-hover); }
 .submitBtn:active:not(:disabled) { transform: translateY(1px); }
 .submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
 
@@ -165,7 +167,7 @@
 .doneActions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
 .doneBtn {
   padding: var(--space-3) var(--space-6);
-  background: var(--color-primary);
+  background: var(--color-action-primary);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -173,7 +175,7 @@
   transition: background var(--transition-fast);
   display: inline-block;
 }
-.doneBtn:hover { background: var(--color-accent); color: #fff; }
+.doneBtn:hover { background: var(--color-action-primary-hover); color: #fff; }
 .doneBtnOutline {
   background: var(--color-surface);
   color: var(--color-text-sub);
@@ -183,8 +185,15 @@
 
 @media (max-width: 720px) {
   .form { grid-template-columns: 1fr; }
-  .artPanel { position: static; }
-  .artImgWrap { aspect-ratio: 16/9; }
+  .artPanel { position: static; display: grid; grid-template-columns: 96px minmax(0, 1fr); }
+  .artImgWrap { aspect-ratio: 1; }
+  .artInfo { padding: var(--space-4); gap: var(--space-1); }
+  .artHr { display: none; }
+}
+
+@media (max-width: 480px) {
+  .artPanel { grid-template-columns: 80px minmax(0, 1fr); }
+  .artInfo { padding: var(--space-3); }
 }
 
 .stateWrap {

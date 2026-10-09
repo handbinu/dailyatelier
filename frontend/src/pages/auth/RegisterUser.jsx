@@ -81,6 +81,7 @@ function RegisterUser(){
     }
 
     return(
+      <main className={styles.page}>
         <div className={styles.wrap}>
             <h1 className={styles.title}>일반 회원가입</h1>
             <hr className={styles.hr} />
@@ -101,7 +102,7 @@ function RegisterUser(){
                             autoComplete="username" aria-describedby="user-register-id-message"
                             aria-invalid={Boolean(messages.userId && !checked.userId)}
                         />
-                        <button type="button" className={styles.btnCheck}
+                        <button type="button" className={`${styles.btnCheck} da-button-secondary`}
                             onClick={() => check('userId')}
                             disabled={loading || checking.userId}>
                             {checking.userId ? '확인 중...' : '중복확인'}
@@ -169,7 +170,7 @@ function RegisterUser(){
                             aria-describedby="user-register-nickname-message"
                             aria-invalid={Boolean(messages.nickname && !checked.nickname)}
                         />
-                        <button type="button" className={styles.btnCheck}
+                        <button type="button" className={`${styles.btnCheck} da-button-secondary`}
                             onClick={() => check('nickname')}
                             disabled={loading || checking.nickname}>
                             {checking.nickname ? '확인 중...' : '중복확인'}
@@ -204,7 +205,7 @@ function RegisterUser(){
 
                 {error && <p className={styles.errMsg} role="alert">{error}</p>}
 
-                <button type="submit" className={styles.btnSubmit}
+                <button type="submit" className={`${styles.btnSubmit} da-button-final`}
                     disabled={loading || checking.userId || checking.nickname
                         || !checked.userId || !checked.nickname}>
                     {loading ? '처리 중...' : '가입하기'}
@@ -215,6 +216,7 @@ function RegisterUser(){
                 이미 계정이 있으신가요? <Link to="/login">로그인</Link>
             </div>
         </div>
+      </main>
     )
 }
 

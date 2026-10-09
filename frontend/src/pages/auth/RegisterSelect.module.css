@@ -10,6 +10,7 @@
   min-height: calc(100vh - var(--header-height, 4.5rem));
   padding: var(--space-16) var(--space-4) var(--space-12);
   text-align: center;
+  background: var(--color-page-warm);
 }
 
 /* ── 타이틀 ─────────────────────────────────────────────── */
@@ -30,7 +31,7 @@
 /* ── 안내 문구 ───────────────────────────────────────────── */
 .sub {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   max-width: 28rem;
   line-height: var(--line-height-relaxed);
   margin-bottom: var(--space-10);
@@ -100,9 +101,9 @@
 }
 
 .card:hover .cardBtn {
-  background: var(--color-accent);
+  background: var(--color-action-primary);
   color: #fff;
-  border-color: var(--color-accent);
+  border-color: var(--color-action-primary);
 }
 
 /* ── 반응형 ─────────────────────────────────────────────── */

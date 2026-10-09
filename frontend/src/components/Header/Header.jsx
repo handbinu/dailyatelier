@@ -234,14 +234,14 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <>
-              <Link to="/login" className={styles.userLink}>
+            <div className={styles.authActions}>
+              <Link to="/login" className={`${styles.userLink} ${styles.loginBtn}`}>
                 로그인
               </Link>
               <Link to="/register" className={`${styles.userLink} ${styles.registerBtn}`}>
                 회원가입
               </Link>
-            </>
+            </div>
           )}
         </div>
 

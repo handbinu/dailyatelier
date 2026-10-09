@@ -104,7 +104,7 @@ export default function InquiryWrite() {
   }
 
   return (
-    <PageWrap>
+    <PageWrap tone="warm">
       <PageBanner title="1:1 문의하기" crumb="문의 작성" />
 
       <div className={s.body}>
@@ -179,7 +179,7 @@ export default function InquiryWrite() {
                     }
                     <button type="button" className={s.removeFile} onClick={removeFile} disabled={submitting}>✕ 제거</button>
                   </div>
-                : <label className={s.fileLabel}>
+                : <label className={`${s.fileLabel} da-button-secondary`}>
                     📎 파일 선택
                     <input
                       ref={fileRef}
@@ -222,7 +222,7 @@ export default function InquiryWrite() {
           </div>
 
           <div className={s.btnRow}>
-            <button type="submit" className={s.submitBtn} disabled={submitting}>
+            <button type="submit" className={`${s.submitBtn} da-button-final`} disabled={submitting}>
               {submitting ? '등록 중…' : '문의 등록'}
             </button>
             <button type="button" className={s.cancelBtn} onClick={() => {

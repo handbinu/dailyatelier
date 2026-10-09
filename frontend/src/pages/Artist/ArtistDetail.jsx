@@ -132,7 +132,7 @@ export default function ArtistDetail() {
             {artsResult.totalPages > 1 && (
               <nav className={styles.pagination} aria-label="작가 공개 작품 페이지">
                 <button type="button" onClick={() => moveToPage(currentPage - 1)} disabled={currentPage === 1} aria-label="이전 페이지">‹</button>
-                {visiblePages.map((page) => <button type="button" key={page} onClick={() => moveToPage(page)} className={page === currentPage ? styles.activePage : ''} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
+                {visiblePages.map((page) => <button type="button" key={page} onClick={() => moveToPage(page)} className={page === currentPage ? `${styles.activePage} da-pagination-current` : ''} aria-current={page === currentPage ? 'page' : undefined}>{page}</button>)}
                 <button type="button" onClick={() => moveToPage(currentPage + 1)} disabled={currentPage >= artsResult.totalPages} aria-label="다음 페이지">›</button>
               </nav>
             )}

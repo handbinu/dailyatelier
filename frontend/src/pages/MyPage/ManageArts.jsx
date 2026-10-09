@@ -132,7 +132,7 @@ export default function ManageArts() {
               등록 작품 {Number(result?.totalElements ?? 0).toLocaleString('ko-KR')}점
             </p>
           )}
-          <ActionBtn to="/upload" variant="fill">+ 작품 등록</ActionBtn>
+          <ActionBtn to="/upload" variant="final">+ 작품 등록</ActionBtn>
         </div>
         <div className={styles.manageFilters}>
           <FilterBar options={FILTERS} value={currentFilter} onChange={changeFilter} />
@@ -275,7 +275,7 @@ export default function ManageArts() {
                   <button
                     type="button"
                     key={page}
-                    className={page === currentPage ? styles.managePageButtonActive : ''}
+                    className={page === currentPage ? `${styles.managePageButtonActive} da-pagination-current` : ''}
                     onClick={() => moveToPage(page)}
                     aria-current={page === currentPage ? 'page' : undefined}
                   >

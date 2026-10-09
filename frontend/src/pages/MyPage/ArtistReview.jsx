@@ -135,7 +135,7 @@ export default function ArtistReview() {
           : loading
           ? <p className={s.state} role="status">작품 리뷰를 불러오는 중입니다.</p>
           : error
-            ? <div className={s.state} role="alert"><p>{error}</p><button className={s.retryBtn} onClick={retry}>다시 시도</button></div>
+            ? <div className={s.state} role="alert"><p>{error}</p><button className={`${s.retryBtn} da-button-secondary`} onClick={retry}>다시 시도</button></div>
           : reviews.length === 0
           ? <Empty msg="작성된 작품 리뷰가 없습니다." />
           : <div className={s.grid}>
@@ -193,7 +193,7 @@ function Pagination({ current, total, onChange }) {
       {Array.from({ length: total }, (_, i) => i).map(n => (
         <button
           key={n}
-          className={`${s.pgBtn} ${n === current ? s.pgBtnActive : ''}`}
+          className={`${s.pgBtn} ${n === current ? `${s.pgBtnActive} da-pagination-current` : ''}`}
           onClick={() => onChange(n)}
           aria-current={n === current ? 'page' : undefined}
         >

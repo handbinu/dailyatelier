@@ -84,7 +84,7 @@ function Login() {
 
           <button
             type="submit"
-            className={styles.btnSubmit}
+            className={`${styles.btnSubmit} da-button-final`}
             disabled={loading}
           >
             {loading ? '로그인 중…' : '로그인'}
