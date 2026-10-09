@@ -9,6 +9,13 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## UI 시각 정합화 1·2단계
+
+- 공통 visual role을 통합해 warm cream page canvas, white card·form surface, sage/deep sage 보조 역할, butter final CTA를 적용했다.
+- 공통 `PageBanner`는 `/upload` 기준 drawing-paper texture와 sage gradient를 공유하도록 정리했다.
+- 인증·프로필·문의·리뷰 form의 입력 상태와 CTA 위계를 정합화하고, 모바일 리뷰 작성에는 compact 작품 summary를 유지했다.
+- 관련 자동 테스트와 사용자 브라우저 QA를 완료했으며 `/upload`·EditArt 회귀를 확인했다.
+
 ## 작품 조회 및 공개 접근
 
 - 진행 작품 목록, 상태와 무관한 상세, 작가 본인의 등록 작품 조회를 실제 API로 연결하고 URL 페이지네이션과 로딩·오류·빈 상태를 적용했다.
