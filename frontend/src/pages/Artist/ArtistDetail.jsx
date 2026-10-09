@@ -100,7 +100,7 @@ export default function ArtistDetail() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.profile}>
+      <section className={`${styles.profile} da-brand-banner`}>
         <div className={styles.profileInner}>
           <Link to={backTo} className={styles.back}>← 작가 목록</Link>
           <div className={styles.profileGrid}>
@@ -124,7 +124,7 @@ export default function ArtistDetail() {
           <div className={styles.feedback} role="status">
             <h3>표시할 공개 작품이 없습니다</h3>
             <p>{currentPage > 1 ? '요청한 페이지에 표시할 작품이 없습니다.' : '공개 작품이 등록되면 이곳에 표시됩니다.'}</p>
-            {currentPage > 1 && <button type="button" onClick={() => moveToPage(1)}>첫 페이지로</button>}
+            {currentPage > 1 && <button type="button" className="da-button-secondary" onClick={() => moveToPage(1)}>첫 페이지로</button>}
           </div>
         ) : (
           <>
@@ -163,7 +163,7 @@ function StatePage({ loading = false, title, message, actionLabel, onAction, bac
     <main className={styles.statePage} aria-live="polite" aria-busy={loading}>
       <h1>{title}</h1>
       {message && <p>{message}</p>}
-      <div>{actionLabel && <button type="button" onClick={onAction}>{actionLabel}</button>}{backTo && <Link to={backTo}>작가 목록으로</Link>}</div>
+      <div>{actionLabel && <button type="button" className="da-button-secondary" onClick={onAction}>{actionLabel}</button>}{backTo && <Link to={backTo} className="da-button-secondary">작가 목록으로</Link>}</div>
     </main>
   )
 }

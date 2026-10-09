@@ -331,7 +331,7 @@ function BestArtGrid({ arts, loading, error, onRetry }) {
     return (
       <div className={styles.homeFeedback} role="alert">
         <p>{error}</p>
-        <button type="button" onClick={onRetry}>다시 시도</button>
+        <button type="button" className="da-button-secondary" onClick={onRetry}>다시 시도</button>
       </div>
     )
   }
@@ -382,7 +382,7 @@ function FilterTabs({ options, value, onChange }) {
           key={opt.value}
           role="tab"
           aria-selected={value === opt.value}
-          className={`${styles.filterTab} ${value === opt.value ? styles.filterTabActive : ''}`}
+          className={`${styles.filterTab} ${value === opt.value ? `${styles.filterTabActive} da-button-state` : ''}`}
           onClick={() => onChange(opt.value)}
         >
           {opt.label}
@@ -410,7 +410,7 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
     return (
       <div className={styles.homeFeedback} role="alert">
         <p>{error}</p>
-        <button type="button" onClick={onRetry}>다시 시도</button>
+        <button type="button" className="da-button-secondary" onClick={onRetry}>다시 시도</button>
       </div>
     )
   }
@@ -447,6 +447,7 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
             </div>
             <div className={styles.artInfo}>
               <p className={styles.artTitle}>{art.name}</p>
+              <p className={styles.artArtist}>by {art.artistName || '작가 미상'}</p>
               <p className={styles.artPrice}>현재가: {formatPrice(art.currentPrice)}원</p>
               <p className={`${styles.artTime} ${deadline.isUrgent ? styles.artTimeUrgent : ''}`}>
                 마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
@@ -477,7 +478,7 @@ function EndedArtGrid({ arts, loading, error, from, onRetry }) {
     return (
       <div className={styles.homeFeedback} role="alert">
         <p>{error}</p>
-        <button type="button" onClick={onRetry}>다시 시도</button>
+        <button type="button" className="da-button-secondary" onClick={onRetry}>다시 시도</button>
       </div>
     )
   }

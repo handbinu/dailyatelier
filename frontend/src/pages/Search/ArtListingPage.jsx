@@ -66,7 +66,7 @@ export default function ArtListingPage({ preset = {}, title, subtitle, eyebrow, 
   const arts = result?.content || []
 
   return <main className={styles.page}>
-    <header className={styles.hero}><p>{eyebrow}</p><h1>{title}</h1><span>{subtitle}</span></header>
+    <header className={`${styles.hero} da-brand-banner`}><p>{eyebrow}</p><h1>{title}</h1><span>{subtitle}</span></header>
     <section className={styles.content} aria-labelledby="art-results-title">
       <div className={styles.filters}>
         {!auction && <KeywordSearch key={`${urlState.q}:${urlState.artist}`} q={urlState.q} artist={urlState.artist} onSubmit={updateConditions} />}
@@ -75,7 +75,7 @@ export default function ArtListingPage({ preset = {}, title, subtitle, eyebrow, 
           <FilterSelect label="카테고리" value={urlState.category} onChange={(value) => updateConditions({ category: value })} options={allowedCategories.map((value) => [value, CATEGORY_LABELS[value]])} />
           {!auction && <FilterSelect label="상태" value={urlState.status} onChange={(value) => updateConditions({ status: value })} options={[['UPCOMING', '예정'], ['ONGOING', '진행 중'], ['ENDED', '종료']]} />}
           <FilterSelect label="정렬" value={urlState.sort} allLabel={null} onChange={(value) => updateConditions({ sort: value })} options={[['ENDING_SOON', '마감 임박순'], ['RECENTLY_ENDED', '최근 종료순'], ['NEWEST', '최신 등록순'], ['PRICE_ASC', '가격 낮은순'], ['PRICE_DESC', '가격 높은순']]} />
-          <button type="button" className={styles.resetButton} onClick={reset}>{auction ? '필터 초기화' : '전체 초기화'}</button>
+          <button type="button" className={`${styles.resetButton} da-button-filter-reset`} onClick={reset}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16" /><path d="M21 21v-5h-5" /></svg>{auction ? '필터 초기화' : '전체 초기화'}</button>
         </div>
       </div>
       <div className={styles.resultHeader}><div><p>{auction ? 'LIVE COLLECTION' : 'SEARCH RESULTS'}</p><h2 id="art-results-title">{resultTitle}</h2></div>{!loading && !error && <span>총 {Number(result?.totalElements || 0).toLocaleString('ko-KR')}점</span>}</div>
@@ -91,7 +91,7 @@ function KeywordSearch({ q, artist, onSubmit }) {
   return <form className={styles.keywordGrid} onSubmit={(event) => { event.preventDefault(); onSubmit(draft) }} role="search">
     <label>작품명<input value={draft.q} onChange={(event) => setDraft((value) => ({ ...value, q: event.target.value }))} placeholder="작품명 검색" /></label>
     <label>작가명<input value={draft.artist} onChange={(event) => setDraft((value) => ({ ...value, artist: event.target.value }))} placeholder="작가명 검색" /></label>
-    <button type="submit" className={styles.searchButton}>검색</button>
+    <button type="submit" className={`${styles.searchButton} da-button-filter-search`}>검색</button>
   </form>
 }
 

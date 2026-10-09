@@ -94,7 +94,7 @@ export default function ArtistList() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.hero}>
+      <header className={`${styles.hero} da-brand-banner`}>
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>DAILY ARTISTS</p>
           <h1>작가 찾기</h1>
@@ -107,7 +107,7 @@ export default function ArtistList() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="작가명을 입력하세요"
             />
-            <button type="submit">검색</button>
+            <button type="submit" className="da-button-filter-search--inverse">검색</button>
           </form>
         </div>
       </header>
@@ -169,5 +169,5 @@ function LoadingGrid() {
 }
 
 function Feedback({ title, message, actionLabel, onAction }) {
-  return <div className={styles.feedback} role="status"><h3>{title}</h3><p>{message}</p>{actionLabel && <button type="button" onClick={onAction}>{actionLabel}</button>}</div>
+  return <div className={styles.feedback} role="status"><h3>{title}</h3><p>{message}</p>{actionLabel && <button type="button" className="da-button-secondary" onClick={onAction}>{actionLabel}</button>}</div>
 }

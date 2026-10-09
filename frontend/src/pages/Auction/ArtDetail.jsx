@@ -340,7 +340,7 @@ export default function ArtDetail() {
             </div>
           </dl>
 
-          <form className={styles.bidForm} onSubmit={handleBidSubmit}>
+          <form className={`${styles.bidForm} da-notice`} onSubmit={handleBidSubmit}>
             <div className={styles.bidHeading}>
               <div>
                 <h2>입찰하기</h2>
@@ -376,7 +376,7 @@ export default function ArtDetail() {
               {!isLoggedIn && !art.isOwner ? (
                 <button
                   type="button"
-                  className={styles.bidButton}
+                  className={`${styles.bidButton} da-button-secondary`}
                   onClick={() => navigate('/login', { state: createLoginState(location) })}
                 >
                   로그인
@@ -384,7 +384,7 @@ export default function ArtDetail() {
               ) : (
                 <button
                   type="submit"
-                  className={styles.bidButton}
+                  className={`${styles.bidButton} da-button-final`}
                   disabled={!canBid || bidSubmitting}
                 >
                   {bidSubmitting ? '입찰 처리 중…' : '입찰하기'}
@@ -406,7 +406,7 @@ export default function ArtDetail() {
           {art.orderId && (
             <Link
               to={`/mypage/order-status?orderId=${art.orderId}`}
-              className={styles.orderLink}
+              className={`${styles.orderLink} da-button-secondary`}
             >
               낙찰 주문 확인
             </Link>
@@ -418,7 +418,7 @@ export default function ArtDetail() {
             <div className={styles.likeRow}>
               <button
                 type="button"
-                className={`${styles.likeButton} ${isLiked ? styles.likeButtonActive : ''}`}
+                className={`${styles.likeButton} ${isLiked ? styles.likeButtonActive : ''} da-button-secondary`}
                 onClick={handleLike}
                 aria-pressed={isLiked}
                 disabled={likeLoading}

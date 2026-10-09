@@ -176,7 +176,7 @@
 
 .priceSummary .currentPriceItem dd {
   font-size: clamp(1.7rem, 2.8vw, 2.4rem);
-  color: var(--color-accent);
+  color: var(--color-text);
   font-weight: 900;
   letter-spacing: -.03em;
 }

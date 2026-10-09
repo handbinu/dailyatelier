@@ -210,7 +210,7 @@
 
 .sectionAlt {
   max-width: 100%;
-  background: var(--color-surface-alt);
+  background: var(--color-page-warm);
   padding: var(--space-10) 0;
 }
 
@@ -483,8 +483,14 @@
 }
 
 .artPrice {
-  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.artArtist {
   color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 .artTime {

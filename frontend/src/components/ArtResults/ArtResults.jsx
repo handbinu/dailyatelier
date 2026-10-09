@@ -25,8 +25,8 @@ export function ArtCard({ art, from }) {
           </span>
         </div>
         <div className={styles.cardBody}>
-          <p className={styles.artist}>by {art.artistName || '작가 미상'}</p>
           <h3 className={styles.artName}>{art.name}</h3>
+          <p className={styles.artist}>by {art.artistName || '작가 미상'}</p>
           <div className={styles.priceRow}><span>현재가</span><strong>{formatPrice(art.currentPrice)}원</strong></div>
           <p className={styles.closingTime}><span>마감</span><time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time></p>
         </div>
@@ -50,7 +50,7 @@ export function ResultFeedback({ title, message, actionLabel, onAction }) {
     <div className={styles.feedback} role="status">
       <span className={styles.feedbackIcon} aria-hidden="true">□</span>
       <h3>{title}</h3><p>{message}</p>
-      {actionLabel && <button type="button" className={styles.feedbackButton} onClick={onAction}>{actionLabel}</button>}
+      {actionLabel && <button type="button" className={`${styles.feedbackButton} da-button-secondary`} onClick={onAction}>{actionLabel}</button>}
     </div>
   )
 }
