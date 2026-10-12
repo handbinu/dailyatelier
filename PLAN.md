@@ -27,6 +27,7 @@
 2. `/mypage/inquiry`, `/admin/inquiries`의 notice·error·Q/A surface와 모바일 제목·상태·날짜 우선순위를 정리한다. butter final은 실제 문의 등록·답변 등록·제출에만 적용하며, 작성 화면 진입·조회·목록 이동에는 적용하지 않는다.
 3. `/charge`의 유의사항·오류·계산 결과 surface를 semantic role로 분리한다. 충전 완료 화면에서는 `추가 충전`을 sage primary로, 단순 이동인 `마이페이지로`를 secondary로 구분한다.
 4. `/mypage` 허브는 sidebar·정보구조를 바꾸지 않고 PageBanner, 요약 surface, 보조 CTA만 공통 visual role에 맞춘다.
+5. local-demo 문의 QA fixture를 보강한다. `LocalDemoDataSeeder`에 `demo-buyer-one` 소유의 미답변 문의 1건을 idempotent하게 추가하고, 모바일 줄바꿈을 확인할 수 있는 긴 제목·첨부 파일 없음·비어 있는 답변 및 답변 완료 시각을 유지한다. `/mypage/inquiry`의 populated 목록·상세와 `/admin/inquiries`의 목록·상세·답변 등록 CTA를 실제 브라우저에서 검증하는 용도로만 사용한다.
 
 #### 제외
 
@@ -34,6 +35,7 @@
 - `/mypage` 허브 sidebar·정보구조의 대규모 재설계와 `/admin/inquiries`의 모바일 drill-in 구조는 별도 UX/구조 작업 후보로만 기록한다.
 - 백엔드 API, 인증·권한, 도메인 규칙, URL·요청/응답 계약은 변경하지 않는다.
 - 화면 역할과 무관하게 `/upload`의 sticky UI와 progress panel을 전파하지 않는다. sage gradient·drawing-paper texture와 butter 최종 CTA는 공통 브랜드 언어로 재정의하되, 화면별 layout은 복제하지 않는다.
+- 충전 완료 화면을 위한 seed 데이터 또는 QA 전용 route는 추가하지 않는다. 충전 완료는 성공 제출 직후의 프론트 일시 상태이므로 기존 `Charge.test.jsx`의 성공 상태 검증을 사용하고, 브라우저 미검증 사유를 QA 결과에 기록한다.
 - 구현 중 범위 밖 구조 문제가 발견되면 임의로 포함하지 않고 문제·영향·권장 대응을 보고한 뒤 PLAN 수정 여부를 결정한다.
 
 ### 공통 원칙
@@ -49,7 +51,9 @@
 ### 구현 후 사용자 브라우저 QA 대상
 
 - 공통: 1440px, 1024px, 390px, 320px, 200% 확대에서 gutter, overflow, focus-visible, CTA 대비
-- 대상 화면: 정적 안내, 문의 목록·관리·작성, 충전·완료, 마이페이지 허브의 notice/error/final·state·secondary 역할과 모바일 정보 순서
+- 대상 화면: 정적 안내, 문의 목록·관리·작성, 충전, 마이페이지 허브의 notice/error/final·state·secondary 역할과 모바일 정보 순서
+- 문의 화면은 추가 fixture로 populated 목록·상세와 관리자 답변 등록 CTA까지 브라우저에서 확인한다.
+- 충전 완료 화면은 `Charge.test.jsx`의 성공 상태 테스트로 검증하며, 브라우저 미검증 사유를 함께 남긴다.
 - 기준 화면: `/upload`, EditArt, 탐색·작품·작가, 거래 화면의 surface, CTA, focus 상태 회귀 여부
 
 ### 완료 조건
