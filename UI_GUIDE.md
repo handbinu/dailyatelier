@@ -66,6 +66,9 @@
 - danger action은 danger text 또는 outline 중심으로 두고, 일반 primary와 같은 강한 fill 경쟁을 피한다.
 - butter CTA는 해당 흐름의 최종 결정을 하나만 명확히 표시한다. 보조 행동, 필터, 중복 확인에는 사용하지 않는다.
 - charcoal CTA는 전역 이동 또는 구조적으로 강한 중립 행동처럼 예외적인 경우에만 사용한다.
+- final, state, current pagination, 상태 전이형 주요 행동은 700을, secondary와 danger outline은 600을 기본 굵기로 사용한다. 공통 `ActionBtn` base는 600을 유지한다.
+- white surface에서 outline secondary가 묻히는 보조 행동에만 light sage surface의 `secondary-soft`를 사용하며, 기존 white secondary가 충분히 읽히는 곳에는 적용하지 않는다.
+- 연결형 검색 bar는 enabled 입력부를 white로 유지하고, 제출부는 입력부와 구분되는 muted cream surface와 charcoal text로 표현할 수 있다.
 - 기본 클릭·입력 컨트롤은 44px 이상을 우선한다. 조밀한 card 안의 보조 행동만 36~40px까지 줄일 수 있다.
 
 ## 8. 상태, 진행, 보조 UI
@@ -75,6 +78,8 @@
 - 모바일에서는 desktop sidebar를 그대로 세로 적층하지 않는다. 핵심 단계·현재 위치·남은 흐름만 남긴 compact UI로 바꿀 수 있다.
 - sticky UI는 긴 흐름에서 현재 위치 인지가 필요할 때만 사용한다. 짧은 페이지의 장식적 sticky 사용은 피한다.
 - chip과 pill은 상태 필터, 짧은 상태값, 제한된 선택 집합에 사용한다. 모든 메타 정보와 행동을 chip으로 만들지 않는다.
+- 필터 초기화처럼 비파괴적 보조 행동의 아이콘은 `currentColor` 선형 SVG를 사용하고, 텍스트보다 작거나 같은 15px 안팎 크기로 둔다.
+- pagination은 current 페이지만 state fill로 표시하고, 이전·다음 이동은 secondary 역할로 둔다.
 
 ## 9. 모바일과 반응형 우선순위
 
@@ -97,6 +102,7 @@
 - gradient, texture, shadow는 의미가 있는 경우에만 사용한다.
 - 큰 색면이 필요한 화면은 평평한 SaaS block처럼 보이지 않도록 해당 화면 성격에 맞는 texture, gradient, 이미지, 명도 변화를 선택할 수 있다.
 - 공통 PageBanner는 sage gradient와 drawing-paper texture 계열을 기본으로 사용한다. `/upload`는 이 공통 브랜드 언어를 더 강하게 활용한 사례이며, 화면별 차이는 제목·높이·내용에서만 둔다.
+- brand banner texture는 `cover + center + no-repeat`으로 적용해 가로·세로 tile seam을 방지한다.
 
 ## 12. 화면 감사 체크리스트
 

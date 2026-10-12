@@ -44,32 +44,6 @@
 - 핵심 금액·상태·제목·label은 charcoal 중심으로 읽히게 하며, 정책·제한·다음 행동을 바꾸는 helper는 작은 muted caption으로 숨기지 않는다.
 - `PageBanner`, Header, 공통 action/filter/pagination은 실제 사용처와 영향 범위를 확인한 뒤 최소 변경한다. 공통 PageBanner는 sage gradient + drawing-paper texture를 기본으로 하며 `/upload`는 이를 더 강하게 활용하는 전용 사례로 유지한다.
 
-### 4단계 — 마이페이지·거래 화면의 남은 시각 불일치 정합화
-
-#### 대상
-
-- `/mypage/bid-status`, `/mypage/likes`, `/mypage/successful-bid`
-- `/mypage/order-status`, `/mypage/sales-orders`, `/mypage/manage-arts`
-- `/mypage/my-review`, `/mypage/artist-review`, `/mypage/inquiry`, `/charge`
-
-#### 구현 순서
-
-1. 완료된 거래/목록 UX와 API 상태를 먼저 확인한다. 레이아웃 재작성 없이 판매 주문 상세의 nested gray/tinted panel, 중복 card, 의미 없는 label box만 최소한으로 줄인다.
-2. visual role 버튼 타이포를 역할별로 정리한다. final / state / current pagination / 상태 전이형 주요 행동은 700, secondary / danger outline은 600을 기준으로 하며 `ActionBtn` base를 일괄 700으로 올리지는 않는다. 충전·결제·구매 확정은 butter final로, 수정·조회·재시도는 secondary로 두며, 발송 준비·발송 같은 상태 전이형 주요 행동은 기존 sage primary 역할을 유지한다.
-3. 흰 surface에서 행동성이 묻히는 보조 행동에는 `secondary-soft` 역할을 추가하되, 기존 white secondary가 충분히 작동하는 화면은 유지한다. 취소·환불 요청은 danger outline/text 역할을 유지하고, 판매 주문의 환불 승인·거절·작품 이동은 각각 primary / danger / secondary로 구분한다. 주문·판매·낙찰 pagination은 현재 페이지만 state fill로 두고 이전·다음은 secondary 계열로 분리한다.
-4. 리뷰·문의 화면은 이미 가이드에 맞으므로 유지 대상으로 둔다. 충전과 거래 화면에서 행동 결정에 필요한 정책·상태 문구만 선별해 가독성을 조정하며, 충전 계산 결과와 선택 상태의 의미 있는 sage surface는 보존한다.
-5. mobile은 이미 개선된 주문·판매 화면의 단일 열 전환과 버튼 wrapping을 유지한다. `/mypage/bid-status` 통계는 `진행 중 | 종료 임박 | 종료`와 수치를 하나의 compact 3열 summary로 변경하고, 상태 pill·action row·작은 메타의 줄바꿈·overflow만 화면별로 보완한다. 기존 API·상태 전이·데스크톱 레이아웃은 변경하지 않는다.
-
-#### desktop / mobile 확인
-
-- Desktop: 주문/판매 row의 핵심 값·상태·다음 행동이 table header/detail panel보다 우선하는지, card별 primary가 하나로 읽히는지 확인한다.
-- Mobile: 식별 정보·상태·핵심 값·다음 행동 순서, 보조 메타의 후순위화, 320px/390px에서 filter·badge·action row·긴 주문 번호 overflow를 확인한다.
-
-#### 자동 테스트
-
-- 입찰/낙찰/찜/주문/판매 주문/작품 관리의 API 요청, 상태별 CTA, latest request, 취소·환불·배송 행동 테스트를 유지한다.
-- 리뷰·문의·충전의 loading/empty/error/success/retry, pagination/filter를 유지하고, DOM 변경 시 키보드 흐름과 CTA accessible name을 추가 검증한다.
-
 ### 구현 후 사용자 브라우저 QA 대상
 
 - 공통: 1440px, 1024px, 390px, 320px, 200% 확대에서 gutter, overflow, focus-visible, CTA 대비

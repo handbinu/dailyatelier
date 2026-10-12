@@ -16,6 +16,19 @@
 - 인증·프로필·문의·리뷰 form의 입력 상태와 CTA 위계를 정합화하고, 모바일 리뷰 작성에는 compact 작품 summary를 유지했다.
 - 관련 자동 테스트와 사용자 브라우저 QA를 완료했으며 `/upload`·EditArt 회귀를 확인했다.
 
+## UI 시각 정합화 3단계 — 탐색·작품·작가
+
+- 작품·작가 목록은 제목, 작가, 가격·마감 순서로 읽히게 하고, 탐색·오류 복구·선택 상태를 공통 secondary/state 역할로 정리했다.
+- 작품 상세의 입찰 영역은 light sage 안내 surface와 butter 최종 입찰 CTA를 분리했으며, 작가 검색은 white 입력부와 muted cream 제출부를 하나의 캡슐로 유지한다.
+- 공통 brand banner texture는 `cover + center + no-repeat`으로 적용해 가로·세로 tile seam이 드러나지 않게 했다.
+
+## UI 시각 정합화 4단계 — 마이페이지·거래
+
+- 마이페이지·거래 CTA를 final / state / secondary / danger 역할로 정합화하고, white surface에서 묻히는 보조 행동에는 `secondary-soft`를 적용했다.
+- final·state·상태 전이·현재 pagination은 700, secondary·danger outline은 600으로 버튼 타이포 역할을 정리했다.
+- 주문·판매·낙찰 pagination은 현재 페이지만 state fill로 분리하고, 판매 주문 상세의 불필요한 gray surface를 축소했다.
+- `/mypage/bid-status` 모바일 통계는 상태와 수치를 한 번에 읽는 compact 3열 summary로 전환했다.
+
 ## 작품 조회 및 공개 접근
 
 - 진행 작품 목록, 상태와 무관한 상세, 작가 본인의 등록 작품 조회를 실제 API로 연결하고 URL 페이지네이션과 로딩·오류·빈 상태를 적용했다.
