@@ -145,7 +145,7 @@ export default function ManageArts() {
         ) : error ? (
           <div className={styles.manageFeedback} role="alert">
             <p>{error}</p>
-            <button type="button" onClick={() => setRetryKey((key) => key + 1)}>다시 시도</button>
+            <button type="button" className="da-button-secondary-soft" onClick={() => setRetryKey((key) => key + 1)}>다시 시도</button>
           </div>
         ) : arts.length === 0 ? (
           <div className={styles.manageEmpty}>
@@ -161,7 +161,7 @@ export default function ManageArts() {
               }
             />
             {currentPage > 1 && (
-              <button type="button" className={styles.manageFirstPageButton} onClick={() => moveToPage(1)}>
+              <button type="button" className={`${styles.manageFirstPageButton} da-button-secondary-soft`} onClick={() => moveToPage(1)}>
                 첫 페이지로
               </button>
             )}

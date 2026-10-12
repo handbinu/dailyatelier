@@ -97,11 +97,11 @@
 .statusGroup {
   grid-area: status;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: flex-start;
   gap: var(--space-2);
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .statusGroup > span {
@@ -244,8 +244,18 @@
 @media (max-width: 768px) {
   .body { padding-inline: 16px; }
   .summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
   }
+  .summaryCard { align-items: center; padding: var(--space-3) var(--space-2); border: 0; border-right: 1px solid var(--color-border); border-radius: 0; box-shadow: none; text-align: center; }
+  .summaryCard:last-child { border-right: 0; }
+  .summaryLabel { order: -1; font-size: var(--font-size-xs); }
+  .summaryValue { font-size: 1.25rem; }
+  .summaryValue small { display: none; }
 
   .card {
     grid-template-columns: 96px minmax(0, 1fr);

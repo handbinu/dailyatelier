@@ -174,8 +174,8 @@
 .chargeBtn {
   width: 100%;
   padding: var(--space-4);
-  background: var(--color-accent-hover);
-  color: #fff;
+  background: var(--color-action-final);
+  color: var(--color-action-final-text);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
@@ -186,7 +186,7 @@
 }
 .chargeBtn:hover:not(:disabled),
 .chargeBtn:active:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary));
+  background: var(--color-action-final-hover);
 }
 .chargeBtn:active:not(:disabled) { transform: translateY(1px); }
 .chargeBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }

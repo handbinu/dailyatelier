@@ -309,14 +309,16 @@ export default function SalesOrders() {
           <nav className={s.pagination} aria-label="판매 주문 목록 페이지">
             <button
               type="button"
+              className="da-button-secondary"
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={page === 0 || loading}
             >
               이전
             </button>
-            <span>{page + 1} / {result.totalPages}</span>
+            <span className={`${s.paginationCurrent} da-pagination-current`}>{page + 1} / {result.totalPages}</span>
             <button
               type="button"
+              className="da-button-secondary"
               onClick={() => setPage((current) => current + 1)}
               disabled={page + 1 >= result.totalPages || loading}
             >
@@ -498,7 +500,7 @@ function SellerOrderItem({
               )}
               <SellerRefundStatus detail={detail} headingId={`${detailId}-refund`} />
               <div className={s.secondaryActions}>
-                <Link className={s.artLink} to={`/auction/${detail.artId}`}>
+                <Link className={`${s.artLink} da-button-secondary-soft`} to={`/auction/${detail.artId}`}>
                   작품 페이지로 이동
                 </Link>
               </div>

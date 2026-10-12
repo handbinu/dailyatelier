@@ -165,7 +165,8 @@
   flex-wrap: wrap;
 }
 
-.mainAction,
+.finalAction,
+.stateAction,
 .secondaryAction,
 .dangerAction {
   min-height: 44px;
@@ -178,13 +179,18 @@
   white-space: nowrap;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.mainAction { display: inline-flex; align-items: center; justify-content: center; color: #fff; border-color: var(--color-accent-hover); background: var(--color-accent-hover); text-decoration: none; }
-.mainAction:hover { border-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); }
-.secondaryAction { color: var(--color-text-sub); background: var(--color-surface); }
+.finalAction, .stateAction { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.finalAction { color: var(--color-action-final-text); border-color: var(--color-action-final); background: var(--color-action-final); }
+.finalAction, .stateAction { font-weight: 700; }
+.finalAction:hover { border-color: var(--color-action-final-hover); background: var(--color-action-final-hover); }
+.stateAction { color: #fff; border-color: var(--color-accent-hover); background: var(--color-accent-hover); }
+.stateAction:hover { border-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); background: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary)); }
+.secondaryAction { color: var(--color-text-sub); background: var(--color-surface); font-weight: 600; }
 .secondaryAction:hover { background: var(--color-surface-alt); border-color: var(--color-text-muted); }
-.dangerAction { color: #8d5f59; border-color: #d8c4c0; background: #fcf8f7; }
+.dangerAction { color: #8d5f59; border-color: #d8c4c0; background: #fcf8f7; font-weight: 600; }
 .dangerAction:hover { color: var(--color-error); border-color: #b77a72; background: #f8ece9; }
-.mainAction:disabled,
+.finalAction:disabled,
+.stateAction:disabled,
 .secondaryAction:disabled,
 .dangerAction:disabled { opacity: .5; cursor: default; }
 
@@ -487,15 +493,17 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
-.pagination button {
+.pagination button,
+.paginationCurrent {
   min-height: 44px;
   padding: var(--space-2) var(--space-5);
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: #fff;
-  background: var(--color-primary);
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.pagination button { cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: default; }
 
 /* 반응형 */

@@ -563,14 +563,16 @@ export default function OrderStatus() {
           <nav className={s.pagination} aria-label="주문 목록 페이지">
             <button
               type="button"
+              className="da-button-secondary"
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={page === 0 || loading}
             >
               이전
             </button>
-            <span>{page + 1} / {result.totalPages}</span>
+            <span className={`${s.paginationCurrent} da-pagination-current`}>{page + 1} / {result.totalPages}</span>
             <button
               type="button"
+              className="da-button-secondary"
               onClick={() => setPage((current) => current + 1)}
               disabled={page + 1 >= result.totalPages || loading}
             >
@@ -671,7 +673,7 @@ function OrderItem({
           {requiresAddress && (
             <button
               type="button"
-              className={s.mainAction}
+              className={`${s.secondaryAction} da-button-secondary-soft`}
               onClick={onAddressEdit}
               disabled={isProcessing}
             >
@@ -681,7 +683,7 @@ function OrderItem({
           {canPay && (
             <button
               type="button"
-              className={s.mainAction}
+              className={s.finalAction}
               onClick={() => pointSummary.loaded ? onAction('PAY') : onPointRetry()}
               disabled={isProcessing || pointSummary.loading || Boolean(pointSummary.error)}
             >
@@ -695,7 +697,7 @@ function OrderItem({
           {actions.includes('MARK_DELIVERED') && (
             <button
               type="button"
-              className={s.mainAction}
+              className={s.stateAction}
               onClick={() => onAction('MARK_DELIVERED')}
               disabled={isProcessing}
             >
@@ -705,7 +707,7 @@ function OrderItem({
           {actions.includes('CONFIRM') && (
             <button
               type="button"
-              className={s.mainAction}
+              className={s.finalAction}
               onClick={() => onAction('CONFIRM')}
               disabled={isProcessing}
             >
@@ -715,7 +717,7 @@ function OrderItem({
           {order.status === 'CONFIRMED' && (
             <Link
               to={`/write-review/${order.orderId}`}
-              className={s.mainAction}
+              className={`${s.secondaryAction} da-button-secondary-soft`}
             >
               리뷰 쓰기·수정
             </Link>
@@ -723,7 +725,7 @@ function OrderItem({
           {canUpdateAddress && !requiresAddress && (
             <button
               type="button"
-              className={s.secondaryAction}
+              className={`${s.secondaryAction} da-button-secondary-soft`}
               onClick={onAddressEdit}
               disabled={isProcessing}
             >

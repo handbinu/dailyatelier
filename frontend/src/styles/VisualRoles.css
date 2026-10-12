@@ -20,18 +20,20 @@
 }
 .da-brand-banner > * { position: relative; z-index: 1; }
 
-.da-button-final { background: var(--color-action-final) !important; border-color: var(--color-action-final) !important; color: var(--color-action-final-text) !important; }
+.da-button-final { background: var(--color-action-final) !important; border-color: var(--color-action-final) !important; color: var(--color-action-final-text) !important; font-weight: 700 !important; }
 .da-button-final:hover:not(:disabled) { background: var(--color-action-final-hover) !important; border-color: var(--color-action-final-hover) !important; }
-.da-button-secondary { background: var(--color-surface) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; }
+.da-button-secondary { background: var(--color-surface) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
 .da-button-secondary:hover:not(:disabled) { background: var(--color-notice-bg) !important; border-color: var(--color-action-primary-hover) !important; color: var(--color-action-primary-hover) !important; }
-.da-button-state, .da-pagination-current { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; }
-.da-button-filter-search { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; }
+.da-button-secondary-soft { background: var(--color-notice-bg) !important; border-color: var(--color-notice-border) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
+.da-button-secondary-soft:hover:not(:disabled) { background: var(--color-notice-border) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary-hover) !important; }
+.da-button-state, .da-pagination-current { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; font-weight: 700 !important; }
+.da-button-filter-search { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; font-weight: 700 !important; }
 .da-button-filter-search:hover:not(:disabled) { background: var(--color-action-primary-hover) !important; border-color: var(--color-action-primary-hover) !important; }
-.da-button-filter-search--inverse { background: #e6dcc9 !important; border-color: #e6dcc9 !important; color: #292829 !important; }
+.da-button-filter-search--inverse { background: #e6dcc9 !important; border-color: #e6dcc9 !important; color: #292829 !important; font-weight: 700 !important; }
 .da-button-filter-search--inverse:hover:not(:disabled) { background: #dacdb5 !important; border-color: #dacdb5 !important; color: #292829 !important; }
-.da-button-filter-reset { background: #dbe7df !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; }
+.da-button-filter-reset { background: #dbe7df !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
 .da-button-filter-reset:hover:not(:disabled) { background: var(--color-notice-bg) !important; border-color: var(--color-action-primary-hover) !important; color: var(--color-action-primary-hover) !important; }
-.da-button-danger { background: var(--color-surface) !important; border-color: var(--color-error) !important; color: var(--color-error) !important; }
+.da-button-danger { background: var(--color-surface) !important; border-color: var(--color-error) !important; color: var(--color-error) !important; font-weight: 600 !important; }
 .da-button-danger:hover:not(:disabled) { background: var(--color-error-bg) !important; }
 .da-button-final:disabled, .da-button-secondary:disabled, .da-button-state:disabled { background: var(--color-surface-alt) !important; border-color: var(--color-border) !important; color: var(--color-text-muted) !important; cursor: not-allowed; }
 

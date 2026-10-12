@@ -1077,10 +1077,10 @@
 .manageFirstPageButton {
   min-height: 40px;
   padding: var(--space-2) var(--space-5);
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-md);
-  color: #fff;
-  background: var(--color-primary);
+  color: var(--color-action-primary);
+  background: var(--color-surface);
   font-family: inherit;
   font-weight: var(--font-weight-semibold);
   cursor: pointer;

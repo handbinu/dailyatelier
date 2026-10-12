@@ -116,14 +116,16 @@ export default function SuccessfulBid() {
               <nav className={s.pagination} aria-label="낙찰 작품 목록 페이지">
                 <button
                   type="button"
+                  className="da-button-secondary"
                   onClick={() => setPage((current) => Math.max(current - 1, 0))}
                   disabled={page === 0}
                 >
                   이전
                 </button>
-                <span>{page + 1} / {result.totalPages}</span>
+                <span className={`${s.paginationCurrent} da-pagination-current`}>{page + 1} / {result.totalPages}</span>
                 <button
                   type="button"
+                  className="da-button-secondary"
                   onClick={() => setPage((current) => current + 1)}
                   disabled={page + 1 >= result.totalPages}
                 >
