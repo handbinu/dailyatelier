@@ -11,24 +11,26 @@
 
 ---
 
-## UI 시각 정합화 구현 계획
+## UI 시각 정합화 5단계 구현 계획
 
 ### 목표
 
-- `/upload`의 레이아웃을 다른 화면에 복제하지 않고, 공통 브랜드 언어를 화면 역할에 맞춰 색상·surface·타이포·CTA·form 상태에 정합화한다.
-- 기존 라우트, API·도메인 계약, 접근성 동작, 최근 완료된 화면 구조를 보존한다.
+- 최근 완료된 탐색·작품·작가·거래 화면의 visual role을 기준으로 정적 안내, 문의, 충전, 마이페이지 허브의 남은 불일치를 최소 수정한다.
+- 기존 라우트, API·도메인 계약, 접근성 동작, 상태 전이와 큰 레이아웃을 보존한다.
 - warm cream 전체 page canvas / white card·enabled form surface / charcoal 읽기 정보 / sage·deep sage 구조·보조 행동 / butter 최종 CTA / 의미 있는 light sage 보조 surface의 역할을 명확히 한다.
 
 ### 범위와 비목표
 
 #### 구현 범위
 
-1. 탐색·작품·작가 계열 정합화
-2. 마이페이지·거래 화면 시각 정합화
+1. `/info`, `/qna`의 gray-heavy canvas와 중첩 section card를 cream canvas·white 읽기 흐름으로 정리하고, 정의되지 않은 secondary border를 공통 secondary 역할로 교체한다.
+2. `/mypage/inquiry`, `/admin/inquiries`의 notice·error·Q/A surface와 모바일 제목·상태·날짜 우선순위를 정리한다. butter final은 실제 문의 등록·답변 등록·제출에만 적용하며, 작성 화면 진입·조회·목록 이동에는 적용하지 않는다.
+3. `/charge`의 유의사항·오류·계산 결과 surface를 semantic role로 분리한다. 충전 완료 화면에서는 `추가 충전`을 sage primary로, 단순 이동인 `마이페이지로`를 secondary로 구분한다.
+4. `/mypage` 허브는 sidebar·정보구조를 바꾸지 않고 PageBanner, 요약 surface, 보조 CTA만 공통 visual role에 맞춘다.
 
 #### 제외
 
-- `/upload`와 `/mypage/manage-arts/:artId/edit`(EditArt)은 기준 화면으로 보존하며, 공통 변경에 따른 회귀 확인만 한다.
+- `/upload`, `/mypage/manage-arts/:artId/edit`(EditArt), 탐색·작품·작가, 인증·프로필·리뷰, 입찰·낙찰·주문·판매 화면은 기준 화면으로 보존하며 회귀 확인만 한다.
 - `/mypage` 허브 sidebar·정보구조의 대규모 재설계와 `/admin/inquiries`의 모바일 drill-in 구조는 별도 UX/구조 작업 후보로만 기록한다.
 - 백엔드 API, 인증·권한, 도메인 규칙, URL·요청/응답 계약은 변경하지 않는다.
 - 화면 역할과 무관하게 `/upload`의 sticky UI와 progress panel을 전파하지 않는다. sage gradient·drawing-paper texture와 butter 최종 CTA는 공통 브랜드 언어로 재정의하되, 화면별 layout은 복제하지 않는다.
@@ -39,7 +41,7 @@
 - 전역 토큰을 기계적으로 교체하지 않는다. 토큰과 전용 CSS의 사용처를 먼저 조사하고, UI 가이드와 충돌하는 사용처만 최소 변경한다.
 - 일반 page canvas는 warm cream, enabled input/select/textarea와 card/form/content surface는 white를 유지한다. focus는 white + sage/deep-sage border/ring으로 표현하고, disabled/readonly와 error는 별도 semantic 상태로 둔다.
 - 최종 등록·가입·저장·제출·확정 CTA는 butter, secondary는 white + sage border/text, danger는 danger text/outline을 기본으로 한다. sage/deep sage는 선택·상태·진행·focus·보조 행동과 구조적 강조에 사용한다.
-- 공통 notice는 light sage surface, pagination active와 FilterBar active는 deep sage를 사용한다. 이를 전역 단일 CSS로 강제하지 않고 공통 컴포넌트·variant와 실제 화면별 역할 CSS에 적용한다.
+- 공통 notice는 light sage surface, pagination active와 FilterBar active는 deep sage를 사용한다. `FilterBar`는 정상 사용처를 일괄 변경하지 않고, 실제 불일치가 확인된 문의 계열 사용처만 대상으로 한다.
 - gray/tinted surface는 계산·진행·중요 안내처럼 의미가 있는 경우만 남긴다. 메타와 문장을 box/chip으로 과도하게 분리하지 않는다.
 - 핵심 금액·상태·제목·label은 charcoal 중심으로 읽히게 하며, 정책·제한·다음 행동을 바꾸는 helper는 작은 muted caption으로 숨기지 않는다.
 - `PageBanner`, Header, 공통 action/filter/pagination은 실제 사용처와 영향 범위를 확인한 뒤 최소 변경한다. 공통 PageBanner는 sage gradient + drawing-paper texture를 기본으로 하며 `/upload`는 이를 더 강하게 활용하는 전용 사례로 유지한다.
@@ -47,10 +49,8 @@
 ### 구현 후 사용자 브라우저 QA 대상
 
 - 공통: 1440px, 1024px, 390px, 320px, 200% 확대에서 gutter, overflow, focus-visible, CTA 대비
-- Form: login/register/profile/inquiry/review의 enabled·focus·disabled·error·policy·submit 흐름
-- 탐색/거래: filter/pagination, 작품 상세 입찰, 가격·마감·상태, 로그인 복귀
-- 마이페이지: 주문·판매·입찰·관리·리뷰·문의·충전의 핵심 값/상태/다음 행동 및 mobile 순서
-- 기준 화면: `/upload`, EditArt의 surface, CTA, focus 상태 회귀 여부
+- 대상 화면: 정적 안내, 문의 목록·관리·작성, 충전·완료, 마이페이지 허브의 notice/error/final·state·secondary 역할과 모바일 정보 순서
+- 기준 화면: `/upload`, EditArt, 탐색·작품·작가, 거래 화면의 surface, CTA, focus 상태 회귀 여부
 
 ### 완료 조건
 
