@@ -55,10 +55,10 @@
 #### 구현 순서
 
 1. 완료된 거래/목록 UX와 API 상태를 먼저 확인한다. 레이아웃 재작성 없이 판매 주문 상세의 nested gray/tinted panel, 중복 card, 의미 없는 label box만 최소한으로 줄인다.
-2. 충전·구매 주문·작품 관리의 행동을 final / secondary / danger로 구분한다. 충전·결제·구매 확정은 butter final로, 수정·조회·재시도는 secondary로 두며, 발송 준비·발송 같은 상태 전이형 주요 행동은 기존 sage primary 역할을 유지한다.
-3. 취소·환불 요청은 danger outline/text 역할을 유지하고, 입찰 현황의 가격 비교·현재 최고 입찰·낙찰/패찰 상태 pill처럼 의미 있는 상태 단서는 보존한다.
+2. visual role 버튼 타이포를 역할별로 정리한다. final / state / current pagination / 상태 전이형 주요 행동은 700, secondary / danger outline은 600을 기준으로 하며 `ActionBtn` base를 일괄 700으로 올리지는 않는다. 충전·결제·구매 확정은 butter final로, 수정·조회·재시도는 secondary로 두며, 발송 준비·발송 같은 상태 전이형 주요 행동은 기존 sage primary 역할을 유지한다.
+3. 흰 surface에서 행동성이 묻히는 보조 행동에는 `secondary-soft` 역할을 추가하되, 기존 white secondary가 충분히 작동하는 화면은 유지한다. 취소·환불 요청은 danger outline/text 역할을 유지하고, 판매 주문의 환불 승인·거절·작품 이동은 각각 primary / danger / secondary로 구분한다. 주문·판매·낙찰 pagination은 현재 페이지만 state fill로 두고 이전·다음은 secondary 계열로 분리한다.
 4. 리뷰·문의 화면은 이미 가이드에 맞으므로 유지 대상으로 둔다. 충전과 거래 화면에서 행동 결정에 필요한 정책·상태 문구만 선별해 가독성을 조정하며, 충전 계산 결과와 선택 상태의 의미 있는 sage surface는 보존한다.
-5. mobile은 이미 개선된 주문·판매 화면의 단일 열 전환과 버튼 wrapping을 유지한다. 입찰 현황의 상태 pill, action row, 작은 메타의 줄바꿈·overflow만 화면별로 보완한다.
+5. mobile은 이미 개선된 주문·판매 화면의 단일 열 전환과 버튼 wrapping을 유지한다. `/mypage/bid-status` 통계는 `진행 중 | 종료 임박 | 종료`와 수치를 하나의 compact 3열 summary로 변경하고, 상태 pill·action row·작은 메타의 줄바꿈·overflow만 화면별로 보완한다. 기존 API·상태 전이·데스크톱 레이아웃은 변경하지 않는다.
 
 #### desktop / mobile 확인
 
