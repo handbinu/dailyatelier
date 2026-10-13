@@ -312,9 +312,9 @@ export default function Charge() {
             </div>
           )}
           <div className={s.doneActions}>
-            <button className={s.doneBtn} onClick={() => navigate('/mypage')}>마이페이지로</button>
+            <button className={`${s.doneBtn} da-button-secondary`} onClick={() => navigate('/mypage')}>마이페이지로</button>
             <button
-              className={`${s.doneBtn} ${s.doneBtnOutline}`}
+              className={`${s.doneBtn} ${s.doneBtnOutline} da-button-state`}
               onClick={() => {
                 setCompletedCharge(null)
                 setRefreshError('')

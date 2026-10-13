@@ -25,9 +25,14 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
+  background: var(--color-notice-bg);
   color: var(--color-text-sub);
   font-size: var(--font-size-sm);
+}
+.errorBox[role='alert'] {
+  border: 1px solid var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 .errorBox button {
   flex-shrink: 0;
@@ -149,14 +154,14 @@
 
 /* 유의사항 */
 .noticeSection {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
+  background: var(--color-notice-bg);
+  border: 1px solid var(--color-notice-border);
   border-radius: var(--radius-md);
   padding: var(--space-5) var(--space-6);
 }
-.noticeTitle { font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text-muted); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: .06em; }
+.noticeTitle { font-size: var(--font-size-xs); font-weight: 700; color: var(--color-text); margin-bottom: var(--space-3); text-transform: uppercase; letter-spacing: .06em; }
 .noticeList  { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
-.noticeItem  { font-size: 11px; color: var(--color-text-muted); line-height: 1.6; }
+.noticeItem  { font-size: var(--font-size-sm); color: var(--color-text-sub); line-height: 1.6; }
 
 .agreeRow {
   display: flex;

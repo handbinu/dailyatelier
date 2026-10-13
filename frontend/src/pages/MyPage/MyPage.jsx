@@ -205,7 +205,7 @@ export default function MyPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.heroBanner}>
+      <div className={`${styles.heroBanner} da-brand-banner`}>
         <div className={styles.heroBannerInner}>
           <span className={styles.heroBreadcrumb}>{T.home} · {T.mypage}</span>
           <h1 className={styles.heroTitle}>MY PAGE</h1>
