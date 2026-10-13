@@ -44,6 +44,10 @@ backend/daliyatelier.env
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+frontend/.env.ui-qa.local
+frontend/.playwright/
+frontend/test-results/
+frontend/playwright-report/
 
 # Local-only reference materials
 /_local/

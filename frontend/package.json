@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "node --test src/utils/*.test.js",
     "test:component": "vitest run",
+    "qa:ui": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.64.0",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
