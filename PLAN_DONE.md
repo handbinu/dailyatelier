@@ -35,6 +35,12 @@
 - local-demo에 긴 제목의 미답변 문의와 답변 완료 문의를 idempotent하게 제공해 문의 목록·상세·관리 화면의 populated 상태를 재현한다.
 - 충전 완료의 일시 상태는 기존 컴포넌트 테스트로 유지하며, 별도 seed 데이터나 QA 전용 route는 추가하지 않았다.
 
+## Playwright 기반 UI 자동 QA MVP
+
+- local-demo API 로그인 결과를 역할별 localStorage storageState로 만들고, desktop 1440px·mobile 390px Chromium에서 public/buyer/artist/admin 읽기 전용 smoke를 실행한다.
+- console error·horizontal overflow를 공통 검사하고 실패 때만 screenshot·trace를 남기며, 실행 산출물과 로컬 비밀값은 Git에서 제외한다.
+- local-demo 계정·fixture 정상화 후 desktop/mobile 합계 10개 smoke 테스트를 통과했다.
+
 ## 작품 조회 및 공개 접근
 
 - 진행 작품 목록, 상태와 무관한 상세, 작가 본인의 등록 작품 조회를 실제 API로 연결하고 URL 페이지네이션과 로딩·오류·빈 상태를 적용했다.
