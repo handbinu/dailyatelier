@@ -109,7 +109,7 @@ export default function InquiryList() {
               <span className={s.statLbl}>답변 완료</span>
             </div>
           </div>
-          <Link to="/mypage/inquiry/write" className={s.writeBtn}>
+          <Link to="/mypage/inquiry/write" className={`${s.writeBtn} da-button-state`}>
             + 새 문의 작성
           </Link>
         </div>
@@ -146,11 +146,13 @@ export default function InquiryList() {
 
         <div className={s.notice}>
           <span className={s.noticeIcon}>ℹ️</span>
-          영업일 기준 1~3일 내 답변 드립니다. 긴급한 문의는{' '}
-          <a href="mailto:support@dailyatelier.com" className={s.noticeLink}>
-            support@dailyatelier.com
-          </a>
-          으로 연락주세요.
+          <span className={s.noticeCopy}>
+            영업일 기준 1~3일 내 답변 드립니다. 긴급한 문의는{' '}
+            <a href="mailto:support@dailyatelier.com" className={s.noticeLink}>
+              support@dailyatelier.com
+            </a>
+            으로 연락주세요.
+          </span>
         </div>
 
         <div className={s.backRow}>

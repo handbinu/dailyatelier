@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InquiryList from '../pages/MyPage/InquiryList'
@@ -287,6 +287,20 @@ describe('문의 실제 연동', () => {
     expect(await screen.findByText('답변을 등록했습니다.')).toBeVisible()
     expect(screen.getByText('내일 출고 예정입니다.')).toBeVisible()
     expect(getAdminInquiries).toHaveBeenLastCalledWith({ status: 'ALL', size: 50 })
+  })
+
+  it('관리자 목록에서 상태 badge와 날짜를 분리해 표시한다', async () => {
+    const answeredInquiry = { ...inquiry, title: '답변 완료 문의' }
+    getAdminInquiries.mockResolvedValue({ data: { content: [pendingInquiry, answeredInquiry] } })
+
+    render(<MemoryRouter><AdminInquiry /></MemoryRouter>)
+
+    const pendingCard = await screen.findByRole('button', { name: /배송 문의/ })
+    const answeredCard = screen.getByRole('button', { name: /답변 완료 문의/ })
+    expect(within(pendingCard).getByText('대기 중')).toBeVisible()
+    expect(pendingCard).not.toHaveTextContent('대기 중 ·')
+    expect(within(answeredCard).getByText('답변 완료')).toBeVisible()
+    expect(answeredCard).not.toHaveTextContent('답변 완료 ·')
   })
 
   it('관리자 답변 성공 후 목록 재조회 실패를 분리하고 다시 조회한다', async () => {

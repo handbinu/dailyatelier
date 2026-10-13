@@ -162,9 +162,12 @@ export default function AdminInquiry() {
                     const typeLabel = TYPE_LABELS[inquiry.inquiryType] ?? '기타'
                     return (
                       <button key={inquiry.inquiryId} className={`${s.adminItem} ${selected?.inquiryId === inquiry.inquiryId ? s.adminItemActive : ''}`} onClick={() => selectInquiry(inquiry.inquiryId)} disabled={submitting}>
-                        <span className={s.adminItemMeta}><Badge label={typeLabel} color={TYPE_COLORS[typeLabel] ?? 'gray'} /> {inquiry.nickname} ({inquiry.userId})</span>
+                        <span className={s.adminItemHeader}>
+                          <span className={s.adminItemMeta}><Badge label={typeLabel} color={TYPE_COLORS[typeLabel] ?? 'gray'} /> {inquiry.nickname} ({inquiry.userId})</span>
+                          <Badge label={inquiry.answered ? '답변 완료' : '대기 중'} color={inquiry.answered ? 'green' : 'orange'} />
+                        </span>
                         <strong>{inquiry.title}</strong>
-                        <span>{inquiry.answered ? '답변 완료' : '대기 중'} · {formatDate(inquiry.createdAt)}</span>
+                        <span className={s.adminItemDate}>{formatDate(inquiry.createdAt)}</span>
                       </button>
                     )
                   })}
@@ -193,7 +196,7 @@ export default function AdminInquiry() {
                       : <form className={s.answerForm} onSubmit={submitAnswer}>
                           <label htmlFor="admin-inquiry-answer">답변</label>
                           <textarea id="admin-inquiry-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} maxLength={1000} rows={6} disabled={submitting} />
-                          <button type="submit" disabled={submitting}>{submitting ? '등록 중…' : '답변 등록'}</button>
+                          <button type="submit" className="da-button-final" disabled={submitting}>{submitting ? '등록 중…' : '답변 등록'}</button>
                         </form>}
                   </>}
                 </section>

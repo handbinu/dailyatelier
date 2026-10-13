@@ -33,14 +33,14 @@
   display: inline-flex;
   align-items: center;
   padding: var(--space-3) var(--space-5);
-  background: var(--color-primary);
+  background: var(--color-action-primary);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: 700;
   transition: background var(--transition-fast);
 }
-.writeBtn:hover { background: var(--color-accent); color: #fff; }
+.writeBtn:hover { background: var(--color-action-primary-hover); color: #fff; }
 
 /* 리스트 */
 .list { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -187,15 +187,16 @@
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
+  background: var(--color-notice-bg);
+  border: 1px solid var(--color-notice-border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text-sub);
   line-height: 1.6;
   margin-top: var(--space-6);
 }
 .noticeIcon { flex-shrink: 0; }
+.noticeCopy { min-width: 0; }
 .noticeLink { color: var(--color-accent); font-weight: 600; text-decoration: underline; }
 
 /* 돌아가기 */
@@ -208,9 +209,14 @@
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  background: var(--color-surface-alt);
+  color: var(--color-text-sub);
+  background: var(--color-notice-bg);
   font-size: var(--font-size-sm);
+}
+.feedback[role='alert'] {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: var(--color-error-bg);
 }
 .attachmentLink { color: var(--color-accent); font-size: var(--font-size-sm); text-decoration: underline; }
 .adminBody { max-width: 1100px; }
@@ -218,7 +224,10 @@
 .adminItem { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); width: 100%; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-sub); cursor: pointer; text-align: left; }
 .adminItem strong { color: var(--color-text); font-size: var(--font-size-sm); }
 .adminItem span { font-size: var(--font-size-xs); }
-.adminItemMeta { display: inline-flex; align-items: center; gap: var(--space-2); }
+.adminItemHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); width: 100%; }
+.adminItemHeader > :last-child { flex-shrink: 0; }
+.adminItemMeta { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.adminItemDate { color: var(--color-text-muted); }
 .adminItemActive { border-color: var(--color-accent); background: var(--color-accent-light); }
 .adminDetail { min-height: 360px; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .adminDetail h2 { margin-bottom: var(--space-2); color: var(--color-primary); font-size: var(--font-size-lg); }
@@ -227,10 +236,11 @@
 .answerForm { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-6); }
 .answerForm label { color: var(--color-text-muted); font-size: var(--font-size-sm); font-weight: 700; }
 .answerForm textarea { resize: vertical; min-height: 120px; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font: inherit; }
-.answerForm button { align-self: flex-end; padding: var(--space-3) var(--space-5); border: 0; border-radius: var(--radius-md); background: var(--color-primary); color: #fff; cursor: pointer; font-weight: 700; }
+.answerForm button { align-self: flex-end; padding: var(--space-3) var(--space-5); border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; font-weight: 700; }
 .answerForm button:disabled { background: var(--color-border-dark); cursor: not-allowed; }
 
 @media (max-width: 560px) {
+  .trigger { align-items: flex-start; }
   .triggerRight { gap: var(--space-2); }
   .triggerDate  { display: none; }
   .stats        { flex-direction: column; }
