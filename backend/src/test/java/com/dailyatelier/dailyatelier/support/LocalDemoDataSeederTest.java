@@ -14,6 +14,7 @@ import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
 import com.dailyatelier.dailyatelier.dto.OrderAction;
 import com.dailyatelier.dailyatelier.dto.OrderSummaryResponseDto;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
+import com.dailyatelier.dailyatelier.repository.InquiryRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
@@ -70,6 +71,8 @@ class LocalDemoDataSeederTest {
     @Autowired
     private ArtRepository artRepository;
     @Autowired
+    private InquiryRepository inquiryRepository;
+    @Autowired
     private UserRepository userRepository;
     @Autowired
     private OrderRepository orderRepository;
@@ -103,7 +106,7 @@ class LocalDemoDataSeederTest {
         seeder.seed();
 
         assertThat(artCount).isEqualTo(46);
-        assertThat(userCount).isEqualTo(9);
+        assertThat(userCount).isEqualTo(10);
         assertThat(artRepository.count()).isEqualTo(artCount);
         assertThat(userRepository.count()).isEqualTo(userCount);
         assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
@@ -273,6 +276,38 @@ class LocalDemoDataSeederTest {
 
     @Test
     @Transactional
+    void createsInquiryFixturesAndAdminQaAccountWithoutDuplicates() {
+        var pendingInquiries = inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-one", PageRequest.of(0, 10)).getContent();
+
+        assertThat(pendingInquiries).singleElement().satisfies(inquiry -> {
+            assertThat(inquiry.getTitle()).isEqualTo("QA 문의 목록 모바일 줄바꿈과 상태·날짜 우선순위 확인을 위한 긴 제목입니다");
+            assertThat(inquiry.getAttachmentUrl()).isNull();
+            assertThat(inquiry.getAttachmentName()).isNull();
+            assertThat(inquiry.getAttachmentResourceType()).isNull();
+            assertThat(inquiry.getAnswer()).isNull();
+            assertThat(inquiry.getAnsweredAt()).isNull();
+        });
+        assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-two", PageRequest.of(0, 10)).getContent()).singleElement().satisfies(inquiry -> {
+            assertThat(inquiry.getTitle()).isEqualTo("QA 답변 완료 문의 상태와 답변 메타 확인용 문의입니다");
+            assertThat(inquiry.getAttachmentUrl()).isNull();
+            assertThat(inquiry.getAnswer()).isNotBlank();
+            assertThat(inquiry.getAnsweredAt()).isNotNull();
+        });
+        assertThat(userRepository.findByUserId("demo-admin-inquiry-qa"))
+                .extracting(user -> user.getUserStatus()).isEqualTo(2);
+
+        seeder.seed();
+
+        assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-one", PageRequest.of(0, 10)).getContent()).hasSize(1);
+        assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-two", PageRequest.of(0, 10)).getContent()).hasSize(1);
+    }
+
+    @Test
+    @Transactional
     void migratesLegacyChargeHistoryFixturesWithoutChangingBidQaBalance() {
         String buyerId = "demo-buyer-bid-qa";
         long availableBalance = pointAccountRepository.findById(buyerId).orElseThrow().getAvailableBalance();
@@ -319,7 +354,7 @@ class LocalDemoDataSeederTest {
     }
 
     private void assertArtistPointAccounts() {
-        assertThat(pointAccountRepository.count()).isEqualTo(9);
+        assertThat(pointAccountRepository.count()).isEqualTo(10);
         DEMO_ARTIST_IDS.forEach(userId -> {
             assertThat(pointAccountRepository.existsById(userId)).isTrue();
             assertThat(userService.getUserProfile(userId).getUserId()).isEqualTo(userId);

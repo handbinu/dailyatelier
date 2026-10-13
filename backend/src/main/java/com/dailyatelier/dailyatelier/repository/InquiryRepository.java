@@ -6,6 +6,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
+    boolean existsByUser_UserIdAndTitle(String userId, String title);
+
     Page<Inquiry> findByUser_UserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
     Page<Inquiry> findByUser_UserIdAndAnsweredAtIsNullOrderByCreatedAtDesc(String userId, Pageable pageable);

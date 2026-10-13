@@ -6,6 +6,8 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.Inquiry;
+import com.dailyatelier.dailyatelier.entity.InquiryType;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.entity.PointCharge;
@@ -17,6 +19,7 @@ import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.InquiryRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
@@ -53,11 +56,14 @@ import java.util.List;
 public class LocalDemoDataSeeder {
     private static final String PASSWORD = "demo-password";
     private static final long BUYER_POINTS = 5_000_000L;
+    private static final String PENDING_INQUIRY_QA_TITLE = "QA 문의 목록 모바일 줄바꿈과 상태·날짜 우선순위 확인을 위한 긴 제목입니다";
+    private static final String ANSWERED_INQUIRY_QA_TITLE = "QA 답변 완료 문의 상태와 답변 메타 확인용 문의입니다";
 
     private final UserRepository userRepository;
     private final ArtistRepository artistRepository;
     private final ArtRepository artRepository;
     private final BidRepository bidRepository;
+    private final InquiryRepository inquiryRepository;
     private final OrderRepository orderRepository;
     private final PointAccountService pointAccountService;
     private final PointAccountRepository pointAccountRepository;
@@ -86,10 +92,13 @@ public class LocalDemoDataSeeder {
         User buyerTwo = user("demo-buyer-two", "유진", "buyer2@demo.local", 0);
         User buyerThree = user("demo-buyer-three", "서연", "buyer3@demo.local", 0);
         User bidQaBuyer = user("demo-buyer-bid-qa", "입찰 QA", "bid-qa@demo.local", 0);
+        User inquiryAdmin = user("demo-admin-inquiry-qa", "문의 QA 관리자", "inquiry-admin@demo.local", 2);
         fund(buyerOne, now);
         fund(buyerTwo, now);
         fund(buyerThree, now);
         fund(bidQaBuyer, now);
+        pointAccountService.initializeAccount(inquiryAdmin.getUserId());
+        seedInquiryFixtures(buyerOne, buyerTwo, now);
 
         List<DemoArt> arts = List.of(
                 art(artists.get(0), "코랄 블루의 오후", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 180000, 10000, 72, DemoArtRole.ONGOING),
@@ -170,6 +179,34 @@ public class LocalDemoDataSeeder {
         seedOrderStatusFixtures(bidQaBuyer);
         seedChargeHistoryFixtures(bidQaBuyer, now);
         log.info("Local demo seed is ready: {} demo artworks", arts.size());
+    }
+
+    private void seedInquiryFixtures(User pendingBuyer, User answeredBuyer, LocalDateTime now) {
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(pendingBuyer.getUserId(), PENDING_INQUIRY_QA_TITLE)) {
+            Inquiry pendingInquiry = inquiry(pendingBuyer, PENDING_INQUIRY_QA_TITLE,
+                    "문의 목록과 관리자 답변 등록 화면의 populated 상태를 확인하기 위한 로컬 demo QA 문의입니다.",
+                    now.minusHours(2));
+            inquiryRepository.save(pendingInquiry);
+        }
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(answeredBuyer.getUserId(), ANSWERED_INQUIRY_QA_TITLE)) {
+            Inquiry answeredInquiry = inquiry(answeredBuyer, ANSWERED_INQUIRY_QA_TITLE,
+                    "답변 완료 상태와 답변 완료 시각을 확인하기 위한 로컬 demo QA 문의입니다.",
+                    now.minusDays(2));
+            answeredInquiry.setAnswer("답변 완료 문의의 본문과 완료 시각을 확인할 수 있도록 등록한 QA 답변입니다.");
+            answeredInquiry.setAnsweredAt(now.minusDays(1));
+            inquiryRepository.save(answeredInquiry);
+        }
+    }
+
+    private Inquiry inquiry(User buyer, String title, String content, LocalDateTime createdAt) {
+        Inquiry inquiry = new Inquiry();
+        inquiry.setUser(buyer);
+        inquiry.setTitle(title);
+        inquiry.setContent(content);
+        inquiry.setInquiryType(InquiryType.OTHER);
+        inquiry.setEmailAlert(false);
+        inquiry.setCreatedAt(createdAt);
+        return inquiry;
     }
 
     private Artist artist(String id, String nickname, String email, String artistName, String intro) {
