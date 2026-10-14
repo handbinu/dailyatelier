@@ -41,6 +41,12 @@
 - console error·horizontal overflow를 공통 검사하고 실패 때만 screenshot·trace를 남기며, 실행 산출물과 로컬 비밀값은 Git에서 제외한다.
 - local-demo 계정·fixture 정상화 후 desktop/mobile 합계 10개 smoke 테스트를 통과했다.
 
+## Playwright UI QA 커버리지 확대
+
+- local-demo의 찜·리뷰·문의 populated fixture를 보강하고 public, buyer, artist, admin의 읽기 전용 route를 desktop/mobile Chromium 대상으로 확대했다.
+- 대표 작품·상태·최종가·주문/리뷰 상세와 CTA 존재를 검증하며, console error와 horizontal overflow 검사를 유지한다.
+- 전체 Playwright UI QA는 desktop/mobile Chromium 합계 28개를 통과했다.
+
 ## 작품 조회 및 공개 접근
 
 - 진행 작품 목록, 상태와 무관한 상세, 작가 본인의 등록 작품 조회를 실제 API로 연결하고 URL 페이지네이션과 로딩·오류·빈 상태를 적용했다.
