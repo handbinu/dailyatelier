@@ -10,6 +10,7 @@
     "test": "node --test src/utils/*.test.js",
     "test:component": "vitest run",
     "qa:ui": "playwright test",
+    "screenshots:ui": "node ./scripts/run-ui-screenshots.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

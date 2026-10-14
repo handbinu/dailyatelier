@@ -48,6 +48,7 @@ frontend/.env.ui-qa.local
 frontend/.playwright/
 frontend/test-results/
 frontend/playwright-report/
+frontend/ui-screenshots/
 
 # Local-only reference materials
 /_local/
