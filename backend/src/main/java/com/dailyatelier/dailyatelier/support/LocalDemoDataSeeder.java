@@ -8,6 +8,7 @@ import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.Artist;
 import com.dailyatelier.dailyatelier.entity.Inquiry;
 import com.dailyatelier.dailyatelier.entity.InquiryType;
+import com.dailyatelier.dailyatelier.entity.Likes;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.entity.PointCharge;
@@ -15,16 +16,19 @@ import com.dailyatelier.dailyatelier.entity.PointReferenceType;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.Order;
+import com.dailyatelier.dailyatelier.entity.Review;
 import com.dailyatelier.dailyatelier.entity.User;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
 import com.dailyatelier.dailyatelier.repository.BidRepository;
 import com.dailyatelier.dailyatelier.repository.InquiryRepository;
+import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.service.AuctionCloseService;
 import com.dailyatelier.dailyatelier.service.ArtService;
 import com.dailyatelier.dailyatelier.service.BidService;
@@ -60,10 +64,12 @@ public class LocalDemoDataSeeder {
     private static final String ANSWERED_INQUIRY_QA_TITLE = "QA 답변 완료 문의 상태와 답변 메타 확인용 문의입니다";
 
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
     private final ArtistRepository artistRepository;
     private final ArtRepository artRepository;
     private final BidRepository bidRepository;
     private final InquiryRepository inquiryRepository;
+    private final LikesRepository likesRepository;
     private final OrderRepository orderRepository;
     private final PointAccountService pointAccountService;
     private final PointAccountRepository pointAccountRepository;
@@ -98,7 +104,7 @@ public class LocalDemoDataSeeder {
         fund(buyerThree, now);
         fund(bidQaBuyer, now);
         pointAccountService.initializeAccount(inquiryAdmin.getUserId());
-        seedInquiryFixtures(buyerOne, buyerTwo, now);
+        seedInquiryFixtures(buyerOne, buyerTwo, bidQaBuyer, now);
 
         List<DemoArt> arts = List.of(
                 art(artists.get(0), "코랄 블루의 오후", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 180000, 10000, 72, DemoArtRole.ONGOING),
@@ -109,6 +115,7 @@ public class LocalDemoDataSeeder {
                 art(artists.get(0), "오렌지 코발트", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 430000, 10000, 4, DemoArtRole.ONGOING),
                 art(artists.get(1), "소프트 테이블", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 10000, 15, DemoArtRole.ONGOING),
                 art(artists.get(1), "세라믹 리듬", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 260000, 10000, 96, DemoArtRole.ONGOING),
+                art(artists.get(3), "QA 디지털 진행 작품", "art-demo-17-architecture.jpg", ArtFormat.DIGITAL, ArtCategory.DIGITAL_ART, 300000, 10000, 48, DemoArtRole.ONGOING),
                 art(artists.get(0), "QA 진행 중 입찰 작품", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 200000, 10000, 48, DemoArtRole.QA_ONGOING),
                 art(artists.get(0), "QA 경쟁 중 긴 작품명 모바일 줄바꿈 확인용", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 1980000, 10000, 36, DemoArtRole.QA_COMPETING),
                 art(artists.get(1), "QA 24시간 내 마감 작품", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 220000, 10000, 12, DemoArtRole.QA_IMMINENT),
@@ -178,14 +185,51 @@ public class LocalDemoDataSeeder {
         }
         seedOrderStatusFixtures(bidQaBuyer);
         seedChargeHistoryFixtures(bidQaBuyer, now);
+        seedLikeFixtures(bidQaBuyer);
+        seedReviewFixtures(now);
         log.info("Local demo seed is ready: {} demo artworks", arts.size());
     }
 
-    private void seedInquiryFixtures(User pendingBuyer, User answeredBuyer, LocalDateTime now) {
+    private void seedLikeFixtures(User buyer) {
+        seedLike(buyer, "QA 진행 중 입찰 작품");
+        seedLike(buyer, "QA 낙찰 주문 작품");
+        seedLike(buyer, "QA 경매 취소 작품");
+    }
+
+    private void seedLike(User buyer, String artName) {
+        Art art = artRepository.findById(findArtId(artName)).orElseThrow();
+        if (likesRepository.existsByUserAndArt(buyer, art)) return;
+
+        Likes like = new Likes();
+        like.setUser(buyer);
+        like.setArt(art);
+        likesRepository.save(like);
+    }
+
+    private void seedReviewFixtures(LocalDateTime now) {
+        Order order = orderRepository.findByArtArtId(findArtId("판매 QA 주문 구매 확정"))
+                .orElseThrow();
+        if (reviewRepository.existsByOrderOrderId(order.getOrderId())) return;
+
+        reviewRepository.save(Review.create(
+                order,
+                9,
+                "로컬 demo 읽기 전용 QA에서 리뷰 카드와 상세 내용을 확인하기 위한 후기입니다.",
+                now.minusDays(1)
+        ));
+    }
+
+    private void seedInquiryFixtures(User pendingBuyer, User answeredBuyer, User bidQaBuyer, LocalDateTime now) {
         if (!inquiryRepository.existsByUser_UserIdAndTitle(pendingBuyer.getUserId(), PENDING_INQUIRY_QA_TITLE)) {
             Inquiry pendingInquiry = inquiry(pendingBuyer, PENDING_INQUIRY_QA_TITLE,
                     "문의 목록과 관리자 답변 등록 화면의 populated 상태를 확인하기 위한 로컬 demo QA 문의입니다.",
                     now.minusHours(2));
+            inquiryRepository.save(pendingInquiry);
+        }
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(bidQaBuyer.getUserId(), PENDING_INQUIRY_QA_TITLE)) {
+            Inquiry pendingInquiry = inquiry(bidQaBuyer, PENDING_INQUIRY_QA_TITLE,
+                    "입찰·주문·찜 QA 계정의 문의 목록 조회를 확인하기 위한 로컬 demo 문의입니다.",
+                    now.minusHours(1));
             inquiryRepository.save(pendingInquiry);
         }
         if (!inquiryRepository.existsByUser_UserIdAndTitle(answeredBuyer.getUserId(), ANSWERED_INQUIRY_QA_TITLE)) {

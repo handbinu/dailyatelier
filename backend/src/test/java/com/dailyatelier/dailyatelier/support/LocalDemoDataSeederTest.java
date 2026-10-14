@@ -15,12 +15,14 @@ import com.dailyatelier.dailyatelier.dto.OrderAction;
 import com.dailyatelier.dailyatelier.dto.OrderSummaryResponseDto;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.InquiryRepository;
+import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.ReviewRepository;
 import com.dailyatelier.dailyatelier.service.BidService;
 import com.dailyatelier.dailyatelier.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -73,7 +75,11 @@ class LocalDemoDataSeederTest {
     @Autowired
     private InquiryRepository inquiryRepository;
     @Autowired
+    private LikesRepository likesRepository;
+    @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ReviewRepository reviewRepository;
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -105,14 +111,14 @@ class LocalDemoDataSeederTest {
 
         seeder.seed();
 
-        assertThat(artCount).isEqualTo(46);
+        assertThat(artCount).isEqualTo(47);
         assertThat(userCount).isEqualTo(10);
         assertThat(artRepository.count()).isEqualTo(artCount);
         assertThat(userRepository.count()).isEqualTo(userCount);
         assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
-                .count()).isEqualTo(17);
+                .count()).isEqualTo(18);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_UNSOLD)
                 .count()).isEqualTo(2);
@@ -189,7 +195,7 @@ class LocalDemoDataSeederTest {
         seeder.seed();
 
         LocalDateTime now = LocalDateTime.now(clock);
-        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(46);
+        assertThat(artRepository.count()).isEqualTo(artCount).isEqualTo(47);
         assertThat(orderRepository.count()).isEqualTo(orderCount).isEqualTo(26);
         assertThat(pointHoldRepository.count()).isEqualTo(holdCount).isEqualTo(32);
         assertArtistPointAccounts();
@@ -197,7 +203,7 @@ class LocalDemoDataSeederTest {
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .filter(art -> !art.getBidStartTime().isAfter(now))
                 .filter(art -> art.getClosingTime().isAfter(now))
-                .count()).isEqualTo(8);
+                .count()).isEqualTo(9);
         assertThat(artRepository.findAll().stream()
                 .filter(art -> art.getArtStatus() == Art.STATUS_ACTIVE)
                 .filter(art -> art.getBidStartTime().isAfter(now))
@@ -295,6 +301,12 @@ class LocalDemoDataSeederTest {
             assertThat(inquiry.getAnswer()).isNotBlank();
             assertThat(inquiry.getAnsweredAt()).isNotNull();
         });
+        assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-bid-qa", PageRequest.of(0, 10)).getContent()).singleElement().satisfies(inquiry -> {
+            assertThat(inquiry.getTitle()).isEqualTo("QA 문의 목록 모바일 줄바꿈과 상태·날짜 우선순위 확인을 위한 긴 제목입니다");
+            assertThat(inquiry.getAnswer()).isNull();
+            assertThat(inquiry.getAnsweredAt()).isNull();
+        });
         assertThat(userRepository.findByUserId("demo-admin-inquiry-qa"))
                 .extracting(user -> user.getUserStatus()).isEqualTo(2);
 
@@ -304,6 +316,36 @@ class LocalDemoDataSeederTest {
                 "demo-buyer-one", PageRequest.of(0, 10)).getContent()).hasSize(1);
         assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
                 "demo-buyer-two", PageRequest.of(0, 10)).getContent()).hasSize(1);
+        assertThat(inquiryRepository.findByUser_UserIdOrderByCreatedAtDesc(
+                "demo-buyer-bid-qa", PageRequest.of(0, 10)).getContent()).hasSize(1);
+    }
+
+    @Test
+    @Transactional
+    void createsIdempotentLikeAndReviewFixturesForReadOnlyQa() {
+        assertThat(likesRepository.findLikeItemsByUserId("demo-buyer-bid-qa", PageRequest.of(0, 10))
+                .getContent())
+                .extracting(item -> item.getArtName())
+                .containsExactlyInAnyOrder(
+                        "QA 진행 중 입찰 작품",
+                        "QA 낙찰 주문 작품",
+                        "QA 경매 취소 작품");
+        assertThat(reviewRepository.findByUserUserId("demo-buyer-bid-qa", PageRequest.of(0, 10))
+                .getContent())
+                .singleElement()
+                .satisfies(review -> {
+                    assertThat(review.getArt().getName()).isEqualTo("판매 QA 주문 구매 확정");
+                    assertThat(review.getArt().getArtist().getUser().getUserId())
+                            .isEqualTo("demo-artist-aria");
+                    assertThat(review.getStar()).isEqualTo(9);
+                });
+
+        seeder.seed();
+
+        assertThat(likesRepository.findLikeItemsByUserId("demo-buyer-bid-qa", PageRequest.of(0, 10))
+                .getTotalElements()).isEqualTo(3);
+        assertThat(reviewRepository.findByUserUserId("demo-buyer-bid-qa", PageRequest.of(0, 10))
+                .getTotalElements()).isEqualTo(1);
     }
 
     @Test
