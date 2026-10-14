@@ -9,6 +9,12 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## Playwright 전체 UI 스크린샷 자동 수집
+
+- `npm run screenshots:ui`는 기존 UI QA와 별도의 config·reporter로 public/buyer/artist/admin 72개 capture point를 desktop/mobile에 수집하며, project별 manifest를 병합해 PNG·상태·viewport·촬영 방식을 기록한다.
+- 일반 화면은 전체 페이지, dialog 상태는 animation을 비활성화한 viewport 캡처로 저장해 fixed overlay·dim의 full-page 합성 문제를 피한다. capture point별 console error와 horizontal overflow는 실패로 처리한다.
+- 최신 local-demo 스크린샷 QA에서 72개가 `captured`이고 manifest와 PNG 경로가 모두 일치했으며, 사용자 촬영 품질 QA를 통과했다. 기존 `qa:ui`는 독립 실행 계약으로 유지한다.
+
 ## UI 시각 정합화 1·2단계
 
 - 공통 visual role을 통합해 warm cream page canvas, white card·form surface, sage/deep sage 보조 역할, butter final CTA를 적용했다.
