@@ -9,6 +9,11 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## 작품 수정 CTA 배치 및 높이 보정
+
+- Desktop은 DOM·Tab 순서와 같은 `수정 저장 → 작품 삭제`를 우측 150px 버튼 그룹으로 정리했고, mobile은 저장 full-width와 우측 compact 삭제 버튼을 유지한다.
+- mobile column 레이아웃에서 desktop의 280px flex basis가 높이로 전파되지 않도록 `flex-basis: auto`를 적용했다. 저장·삭제 동작, disabled·validation, 색상 계약은 유지한다.
+
 ## Playwright 전체 UI 스크린샷 자동 수집
 
 - `npm run screenshots:ui`는 기존 UI QA와 별도의 config·reporter로 public/buyer/artist/admin 72개 capture point를 desktop/mobile에 수집하며, project별 manifest를 병합해 PNG·상태·viewport·촬영 방식을 기록한다.
