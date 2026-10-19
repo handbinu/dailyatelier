@@ -8,14 +8,14 @@
 .imageFileInput:focus-visible + .imageReplaceTrigger { outline: none; border-color: #315F52; box-shadow: 0 0 0 3px rgba(49, 95, 82, .2); }
 .imageFileInput:disabled + .imageReplaceTrigger { cursor: not-allowed; opacity: .55; }
 .lockNotice, .unavailable { padding: var(--space-3); border-radius: var(--radius-md); background: #fff7e8; color: #805514; }
-.actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
-.actions > :first-child { flex: 0 1 280px; }
-.saveButton { min-width: 200px; padding: var(--space-5); border: 0; border-radius: var(--radius-md); background: #315F52; color: #FFFFFF; font-size: var(--font-size-lg); font-weight: 700; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast); }
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-4); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+.actions > :first-child { flex: 0 0 150px; }
+.saveButton { width: 150px; min-width: 0; padding: var(--space-5); border: 0; border-radius: var(--radius-md); background: #315F52; color: #FFFFFF; font-size: var(--font-size-lg); font-weight: 700; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast); }
 .saveButton:hover:not(:disabled) { background: #435A50; }
 .saveButton:active:not(:disabled) { transform: translateY(1px) scale(.99); }
 .saveButton:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(120, 145, 132, .32); }
 .saveButton:disabled { background: var(--color-border-dark); color: var(--color-text-muted); cursor: not-allowed; }
-.deleteButton { flex: none; padding: var(--space-4) var(--space-5); border: 1px solid #b74646; border-radius: var(--radius-md); background: #fff; color: #a22f2f; font-weight: 700; cursor: pointer; }
+.deleteButton { flex: none; width: 150px; padding: var(--space-4) var(--space-5); border: 1px solid #b74646; border-radius: var(--radius-md); background: #fff; color: #a22f2f; font-weight: 700; cursor: pointer; }
 .deleteButton:disabled { cursor: not-allowed; opacity: .55; }
 .state { min-height: 50vh; display: grid; place-content: center; gap: var(--space-4); text-align: center; }
-@media (max-width: 640px) { .actions { align-items: stretch; flex-direction: column; padding: var(--space-5); } .actions > :first-child { width: 100%; } .saveButton, .deleteButton { min-height: 52px; } }
+@media (max-width: 640px) { .actions { align-items: stretch; flex-direction: column; padding: var(--space-5); } .actions > :first-child { width: 100%; flex-basis: auto; } .saveButton { width: 100%; } .deleteButton { align-self: flex-end; width: auto; } .saveButton, .deleteButton { min-height: 52px; } }
