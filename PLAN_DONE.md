@@ -15,6 +15,12 @@
 - 일반 화면은 전체 페이지, dialog 상태는 animation을 비활성화한 viewport 캡처로 저장해 fixed overlay·dim의 full-page 합성 문제를 피한다. capture point별 console error와 horizontal overflow는 실패로 처리한다.
 - 최신 local-demo 스크린샷 QA에서 72개가 `captured`이고 manifest와 PNG 경로가 모두 일치했으며, 사용자 촬영 품질 QA를 통과했다. 기존 `qa:ui`는 독립 실행 계약으로 유지한다.
 
+## UI 스크린샷 수집 신뢰성 개선
+
+- 데이터 readiness는 Buyer 마이페이지·주문 조회와 Admin 문의 관리의 loading 소멸 및 fixture 표시를 확인하며, 실패하면 screenshot 없이 구체적 reason을 `failed` manifest record로 남긴다.
+- 실제 캡처 영역 이미지는 lazy-load 활성화 뒤 `complete`·`naturalWidth`·`decode()`를 확인하고 fallback `src` 변경도 재검사한다. full-page Header의 임시 absolute style과 스크롤 위치는 성공·실패 모두 복원한다.
+- 사용자 QA와 이전 PNG 비교에서 72/72 captured, 이미지·데이터 loading 중 촬영 해소, mobile Header 단일 표시, 모달 6건 viewport 계약 및 기존 `qa:ui` 회귀 통과를 확인했다.
+
 ## UI 시각 정합화 1·2단계
 
 - 공통 visual role을 통합해 warm cream page canvas, white card·form surface, sage/deep sage 보조 역할, butter final CTA를 적용했다.
