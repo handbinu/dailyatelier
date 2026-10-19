@@ -11,6 +11,7 @@ type CaptureOptions = {
   state?: string
   captureMode?: 'full-page' | 'viewport'
   prepare: () => Promise<void>
+  readiness?: () => Promise<void>
   skip?: {
     kind: 'fixture-unavailable'
     reason: string
@@ -39,6 +40,8 @@ export async function capture(page: Page, testInfo: TestInfo, options: CaptureOp
       return result
     }
     await options.prepare()
+    await options.readiness?.()
+    await waitForCaptureImages(page, result.captureMode)
     result.horizontalOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth,
     )
@@ -48,10 +51,12 @@ export async function capture(page: Page, testInfo: TestInfo, options: CaptureOp
     await mkdir(directory, { recursive: true })
     const filename = `${options.role}__${options.key}__${state}.png`
     const target = path.join(directory, filename)
-    await page.screenshot({
-      path: target,
-      fullPage: result.captureMode === 'full-page',
-      animations: 'disabled',
+    await withFullPageHeaderInFlow(page, result.captureMode, async () => {
+      await page.screenshot({
+        path: target,
+        fullPage: result.captureMode === 'full-page',
+        animations: 'disabled',
+      })
     })
     result.file = path.relative(path.resolve('ui-screenshots', runId), target).replaceAll('\\', '/')
     if (consoleErrors.length || result.horizontalOverflow) {
@@ -71,6 +76,100 @@ export async function capture(page: Page, testInfo: TestInfo, options: CaptureOp
     })
   }
   return result
+}
+
+async function waitForCaptureImages(page: Page, captureMode: 'full-page' | 'viewport') {
+  const outcome = await page.evaluate(async ({ captureMode, timeoutMs }) => {
+    const isVisibleCaptureImage = (image: HTMLImageElement) => {
+      if (!image.getAttribute('src') || image.closest('[aria-hidden="true"]')) return false
+      const style = window.getComputedStyle(image)
+      const rect = image.getBoundingClientRect()
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0
+    }
+    const inViewport = (image: HTMLImageElement) => {
+      const rect = image.getBoundingClientRect()
+      return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth
+    }
+    const scope = captureMode === 'viewport'
+      ? document.querySelector('[role="dialog"]') ?? document
+      : document.querySelector('#root') ?? document
+    const images = Array.from(scope.querySelectorAll('img')).filter(isVisibleCaptureImage)
+      .filter((image) => captureMode === 'full-page' || inViewport(image))
+    const scroll = { x: window.scrollX, y: window.scrollY }
+
+    try {
+      if (captureMode === 'full-page') {
+        for (const image of images) {
+          image.scrollIntoView({ block: 'center', inline: 'nearest' })
+          await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+        }
+      }
+
+      const checkImage = async (image: HTMLImageElement) => {
+        const deadline = Date.now() + timeoutMs
+        let source = image.currentSrc || image.src
+        while (Date.now() < deadline) {
+          if (!image.complete) {
+            await new Promise((resolve) => setTimeout(resolve, 50))
+            continue
+          }
+          if (image.naturalWidth <= 0) {
+            await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+            const nextSource = image.currentSrc || image.src
+            if (nextSource !== source) {
+              source = nextSource
+              continue
+            }
+            throw new Error(`${image.alt || source}: naturalWidth is 0`)
+          }
+          try {
+            await image.decode()
+          } catch {
+            throw new Error(`${image.alt || source}: decode failed`)
+          }
+          const nextSource = image.currentSrc || image.src
+          if (nextSource === source) return
+          source = nextSource
+        }
+        throw new Error(`${image.alt || source}: image readiness timed out`)
+      }
+      await Promise.all(images.map(checkImage))
+      return { count: images.length }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) }
+    } finally {
+      window.scrollTo(scroll.x, scroll.y)
+    }
+  }, { captureMode, timeoutMs: 12_000 })
+  if ('error' in outcome) throw new Error(`image readiness failed: ${outcome.error}`)
+}
+
+async function withFullPageHeaderInFlow(
+  page: Page,
+  captureMode: 'full-page' | 'viewport',
+  screenshot: () => Promise<void>,
+) {
+  if (captureMode !== 'full-page') return screenshot()
+  const originalStyle = await page.evaluate(() => {
+    const header = document.querySelector<HTMLElement>('#root > header, #root > div > header')
+    if (!header || !['fixed', 'sticky'].includes(window.getComputedStyle(header).position)) return undefined
+    const style = header.getAttribute('style')
+    header.style.position = 'absolute'
+    header.style.top = '0'
+    header.style.left = '0'
+    header.style.right = '0'
+    return style
+  })
+  try {
+    await screenshot()
+  } finally {
+    await page.evaluate((style) => {
+      const header = document.querySelector<HTMLElement>('#root > header, #root > div > header')
+      if (!header || style === undefined) return
+      if (style === null) header.removeAttribute('style')
+      else header.setAttribute('style', style)
+    }, originalStyle)
+  }
 }
 
 export async function expectCapture(result: Awaited<ReturnType<typeof capture>>) {

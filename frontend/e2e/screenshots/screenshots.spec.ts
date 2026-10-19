@@ -1,9 +1,39 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import path from 'node:path'
 import { capture, expectCapture } from './capture'
 
 type Role = 'public' | 'buyer' | 'artist' | 'admin'
 type Entry = [string, string, string]
+
+async function waitForDataReadiness(page: Page, role: Role, key: string) {
+  const checks = {
+    buyer: {
+      mypage: [
+        '프로필 정보를 불러오는 중입니다.',
+        page.getByText('사용 가능 포인트').first(),
+      ],
+      'order-status': [
+        '주문 내역을 불러오는 중입니다.',
+        page.getByText('QA 주문 배송 중').first(),
+      ],
+    },
+    admin: {
+      'admin-inquiries': [
+        '문의 목록을 불러오는 중입니다.',
+        page.getByRole('button').filter({ hasText: 'QA 문의 목록 모바일 줄바꿈' }).first(),
+      ],
+    },
+  } as const
+  const check = checks[role as 'buyer' | 'admin']?.[key as never]
+  if (!check) return
+  try {
+    await expect(page.getByText(check[0], { exact: true })).toBeHidden({ timeout: 10_000 })
+    await expect(check[1]).toBeVisible({ timeout: 10_000 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split('\n')[0] : String(error)
+    throw new Error(`data readiness failed for ${role}/${key}: ${message}`)
+  }
+}
 
 function defineRoute(testApi: typeof test, role: Role, [key, route, heading]: Entry) {
   testApi(`${role} ${key}`, { annotation: { type: 'ui-capture', description: `${key}:default` } }, async ({ page }, info) => {
@@ -13,6 +43,7 @@ function defineRoute(testApi: typeof test, role: Role, [key, route, heading]: En
         await page.goto(route, { waitUntil: 'domcontentloaded' })
         await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible()
       },
+      readiness: () => waitForDataReadiness(page, role, key),
     })
     await expectCapture(result)
   })
