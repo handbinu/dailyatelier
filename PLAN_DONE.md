@@ -9,6 +9,12 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## GitHub Actions UI QA CI 1단계
+
+- PR, `main` push, 수동 실행에서 MySQL 8·Flyway·local-demo와 Spring/Vite readiness를 준비한 뒤 기존 백엔드·프론트 검증, desktop/mobile Playwright UI QA, 스크린샷 수집을 실행한다.
+- 성공 run은 72개 PNG와 성공 manifest를 14일 artifact로 보관하고, 실패 run은 실제 생성된 로그·리포트·부분 산출물만 디버깅 artifact로 남긴다. checkout 인증정보는 유지하지 않고 CI 전용 더미 환경변수만 사용한다.
+- PR #1의 GitHub Actions run `39365851309`에서 UI QA 28/28, 스크린샷 72/72 및 artifact 업로드를 확인했다. `main` push 및 수동 실행 트리거 검증은 별도로 남아 있다.
+
 ## 작품 수정 CTA 배치 및 높이 보정
 
 - Desktop은 DOM·Tab 순서와 같은 `수정 저장 → 작품 삭제`를 우측 150px 버튼 그룹으로 정리했고, mobile은 저장 full-width와 우측 compact 삭제 버튼을 유지한다.
