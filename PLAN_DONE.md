@@ -9,6 +9,12 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## 찜 중복 방지와 MySQL 무결성
+
+- Flyway V10과 `Likes` JPA 매핑에 `(user_id, art_id)` unique 제약을 추가해 사용자·작품별 찜 한 건을 DB에서 보장한다.
+- 찜 생성은 작품 행 잠금 뒤 잠금 존재 조회로 최신 상태를 확인해, 동시 동일 요청도 기존 `200 liked=true` 멱등 계약을 유지한다.
+- 격리 MySQL에서 V1~V10, Hibernate validate, unique 제약·동시성 및 전체 백엔드 테스트를 검증했다.
+
 ## GitHub Actions UI QA CI 1단계
 
 - PR, `main` push, 수동 실행에서 MySQL 8·Flyway·local-demo와 Spring/Vite readiness를 준비한 뒤 기존 백엔드·프론트 검증, desktop/mobile Playwright UI QA, 스크린샷 수집을 실행한다.
