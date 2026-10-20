@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.service;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -10,7 +11,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -27,9 +27,10 @@ public class PointAccountService {
     @Transactional
     public PointAccount initializeAccount(String userId) {
         User user = userRepository.findByIdForUpdate(userId)
-                .orElseThrow(() -> new ResponseStatusException(
+                .orElseThrow(() -> new DomainApiException(
                         HttpStatus.NOT_FOUND,
-                        "사용자를 찾을 수 없습니다"
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
                 ));
 
         return pointAccountRepository.findById(userId)

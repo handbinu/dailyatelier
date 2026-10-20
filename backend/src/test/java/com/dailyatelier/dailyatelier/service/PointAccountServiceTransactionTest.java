@@ -4,6 +4,7 @@ import com.dailyatelier.dailyatelier.config.TimeConfig;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -138,6 +139,16 @@ class PointAccountServiceTransactionTest {
         assertThat(pointAccountRepository.findById("rollback-member")).isEmpty();
         assertThat(pointTransactionRepository.countByUserId("rollback-member"))
                 .isZero();
+    }
+
+    @Test
+    void missingUserDuringAccountInitializationUsesDomainNotFoundException() {
+        assertThatThrownBy(() -> pointAccountService.initializeAccount("missing-user"))
+                .isInstanceOfSatisfying(DomainApiException.class, exception -> {
+                    assertThat(exception.getStatus())
+                            .isEqualTo(org.springframework.http.HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("USER_NOT_FOUND");
+                });
     }
 
     private void saveUserWithLegacyReserve(String userId, int reserve) {

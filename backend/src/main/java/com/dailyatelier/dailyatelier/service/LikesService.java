@@ -5,6 +5,7 @@ import com.dailyatelier.dailyatelier.dto.LikeStatusDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Likes;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -14,7 +15,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -59,25 +59,41 @@ public class LikesService {
 
     private void ensureUser(String userId) {
         if (!userRepository.existsByUserId(userId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw userNotFound();
         }
     }
 
     private User getUser(String userId) {
         User user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw userNotFound();
         }
         return user;
     }
 
     private Art getArt(Long artId) {
         return artRepository.findById(artId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Art not found"));
+                .orElseThrow(this::artNotFound);
     }
 
     private Art getArtForUpdate(Long artId) {
         return artRepository.findByIdForUpdate(artId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Art not found"));
+                .orElseThrow(this::artNotFound);
+    }
+
+    private DomainApiException userNotFound() {
+        return new DomainApiException(
+                HttpStatus.NOT_FOUND,
+                "USER_NOT_FOUND",
+                "사용자를 찾을 수 없습니다."
+        );
+    }
+
+    private DomainApiException artNotFound() {
+        return new DomainApiException(
+                HttpStatus.NOT_FOUND,
+                "ART_NOT_FOUND",
+                "작품을 찾을 수 없습니다."
+        );
     }
 }

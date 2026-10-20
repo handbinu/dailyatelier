@@ -82,6 +82,21 @@ class UserApiContractTest {
     }
 
     @Test
+    void missingPointAccountInvariantUsesSafeInternalServerErrorContract() throws Exception {
+        when(userService.getUserProfile("member"))
+                .thenThrow(new IllegalStateException("포인트 계정이 없습니다: member"));
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(authentication(authToken("member"))))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.message").value("서버 오류가 발생했습니다."))
+                .andExpect(jsonPath("$.path").value("/api/users/me"));
+    }
+
+    @Test
     void unreadableRequestDoesNotBecomeInternalServerError() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")

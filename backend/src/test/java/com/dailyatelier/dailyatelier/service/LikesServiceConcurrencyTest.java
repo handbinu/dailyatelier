@@ -4,6 +4,7 @@ import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.ArtCategory;
 import com.dailyatelier.dailyatelier.entity.ArtFormat;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.LikesRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:likes-concurrency;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
@@ -106,6 +108,25 @@ class LikesServiceConcurrencyTest {
         assertThat(likesRepository.existsByUserAndArt(
                 userRepository.findByUserId(USER_ID),
                 artRepository.findById(artId).orElseThrow())).isTrue();
+    }
+
+    @Test
+    void missingUserUsesDomainNotFoundException() {
+        assertThatThrownBy(() -> likesService.getMyLikes(
+                "missing-user", org.springframework.data.domain.PageRequest.of(0, 12)))
+                .isInstanceOfSatisfying(DomainApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(org.springframework.http.HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("USER_NOT_FOUND");
+                });
+    }
+
+    @Test
+    void missingArtUsesDomainNotFoundException() {
+        assertThatThrownBy(() -> likesService.addLike(USER_ID, Long.MAX_VALUE))
+                .isInstanceOfSatisfying(DomainApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(org.springframework.http.HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("ART_NOT_FOUND");
+                });
     }
 
     private boolean addLike(CountDownLatch ready, CountDownLatch start) {
