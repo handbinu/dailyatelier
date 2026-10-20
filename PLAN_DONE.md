@@ -9,6 +9,12 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## API 오류 HTTP 계약 보완
+
+- Likes와 포인트 계정 초기화의 사용자·작품 미존재를 `DomainApiException`으로 통일해 각각 `404 / USER_NOT_FOUND`, `404 / ART_NOT_FOUND` 공통 오류 DTO로 반환한다.
+- 포인트 계정 누락·음수 기존 잔액은 내부 불변식 위반으로 유지해, 구현 정보 없이 안전한 `500 / INTERNAL_SERVER_ERROR`를 반환한다.
+- 서비스 직접 호출·MockMvc 계약 회귀 테스트와 전체 백엔드 테스트를 통과했다.
+
 ## 찜 중복 방지와 MySQL 무결성
 
 - Flyway V10과 `Likes` JPA 매핑에 `(user_id, art_id)` unique 제약을 추가해 사용자·작품별 찜 한 건을 DB에서 보장한다.
