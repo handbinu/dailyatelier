@@ -62,7 +62,7 @@ buyerTest('구매자가 마이페이지와 입찰·낙찰 현황을 조회한다
   await page.goto('/mypage/bid-status')
   await expect(page.getByRole('heading', { name: '입찰 현황' })).toBeVisible()
   await expect(page.getByText('QA 진행 중 입찰 작품')).toBeVisible()
-  await expect(page.getByText('경쟁 중')).toBeVisible()
+  await expect(page.getByText('경쟁 중', { exact: true })).toBeVisible()
   const wonBidCard = page.getByText('QA 낙찰 주문 작품', { exact: true }).locator('xpath=ancestor::div[3]')
   await expect(wonBidCard.getByText('낙찰', { exact: true })).toBeVisible()
 
