@@ -4,8 +4,10 @@ import com.dailyatelier.dailyatelier.dto.LikeItemDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Likes;
 import com.dailyatelier.dailyatelier.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +19,12 @@ public interface LikesRepository extends JpaRepository<Likes, Long> {
     boolean existsByUserAndArt(User user, Art art);
 
     Optional<Likes> findByUserAndArt(User user, Art art);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select liked from Likes liked where liked.user = :user and liked.art = :art")
+    Optional<Likes> findByUserAndArtForUpdate(
+            @Param("user") User user,
+            @Param("art") Art art);
 
     void deleteByUserAndArt(User user, Art art);
 

@@ -30,10 +30,10 @@ public class LikesService {
 
     @Transactional
     public LikeStatusDto addLike(String userId, Long artId) {
+        Art art = getArtForUpdate(artId);
         User user = getUser(userId);
-        Art art = getArt(artId);
 
-        if (!likesRepository.existsByUserAndArt(user, art)) {
+        if (likesRepository.findByUserAndArtForUpdate(user, art).isEmpty()) {
             Likes like = new Likes();
             like.setUser(user);
             like.setArt(art);
@@ -73,6 +73,11 @@ public class LikesService {
 
     private Art getArt(Long artId) {
         return artRepository.findById(artId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Art not found"));
+    }
+
+    private Art getArtForUpdate(Long artId) {
+        return artRepository.findByIdForUpdate(artId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Art not found"));
     }
 }

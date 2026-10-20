@@ -102,6 +102,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Set<String> EXPECTED_UNIQUE_CONSTRAINTS = Set.of(
             "uq_artist_user",
             "uq_orders_art",
+            "uq_likes_user_art",
             "uq_review_order",
             "uq_art_active_point_hold",
             "uq_point_transaction_idempotency",
@@ -118,6 +119,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Map<String, String> EXPECTED_UNIQUE_COLUMNS = Map.ofEntries(
             Map.entry("uq_artist_user", "user_id"),
             Map.entry("uq_orders_art", "art_id"),
+            Map.entry("uq_likes_user_art", "user_id,art_id"),
             Map.entry("uq_review_order", "order_id"),
             Map.entry("uq_art_active_point_hold", "active_point_hold_id"),
             Map.entry("uq_point_transaction_idempotency", "idempotency_key"),
@@ -230,7 +232,8 @@ class FlywayEmptyDatabaseMySqlTest {
 
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
-        assertThat(appliedVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(appliedVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(15);
