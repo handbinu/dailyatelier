@@ -124,6 +124,30 @@ class PointApiTest {
     }
 
     @Test
+    void reusedIdempotencyKeyKeepsConflictErrorContract() throws Exception {
+        when(pointChargeService.create(eq("buyer"), any(), eq(30_000L), eq("reused-key")))
+                .thenThrow(new PointApiException(
+                        HttpStatus.CONFLICT,
+                        "IDEMPOTENCY_KEY_REUSED",
+                        "멱등성 키가 다른 충전 요청에 이미 사용되었습니다"
+                ));
+
+        mockMvc.perform(post("/api/users/me/points/charges")
+                        .with(authentication(authToken("buyer")))
+                        .header("Idempotency-Key", "reused-key")
+                        .contentType("application/json")
+                        .content("{\"amount\":30000}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"))
+                .andExpect(jsonPath("$.message")
+                        .value("멱등성 키가 다른 충전 요청에 이미 사용되었습니다"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/users/me/points/charges"));
+    }
+
+    @Test
     void anonymousUserCannotReadPointData() throws Exception {
         mockMvc.perform(get("/api/users/me/points"))
                 .andExpect(status().isUnauthorized())
