@@ -8,6 +8,7 @@ import {
   updateUserProfileImage,
   checkNickname,
 } from '../../api/userApi'
+import { clearStoredAuth } from '../../utils/authStorage'
 import s from './ProfileEdit.module.css'
 
 const EMAIL_DOMAINS = ['직접 입력', 'naver.com', 'daum.net', 'gmail.com', 'nate.com']
@@ -71,6 +72,7 @@ export default function ProfileEdit() {
   const postcodeHostRef = useRef(null)
   const addressDetailRef = useRef(null)
   const profileMutationRef = useRef(null)
+  const passwordChangeRedirectRef = useRef(false)
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
@@ -78,6 +80,7 @@ export default function ProfileEdit() {
 
   useEffect(() => {
     if (!token) {
+      if (passwordChangeRedirectRef.current) return
       alert('로그인이 필요합니다.')
       navigate('/login', { replace: true })
       return
@@ -258,6 +261,15 @@ export default function ProfileEdit() {
         artistName: form.artistName,
       }
       await updateUserProfile(payload)
+      if (form.newPw) {
+        passwordChangeRedirectRef.current = true
+        clearStoredAuth()
+        navigate('/login', {
+          replace: true,
+          state: { passwordChanged: true },
+        })
+        return
+      }
       navigate('/mypage', { state: { profileUpdated: true } })
     } catch (err) {
       alert(err.response?.data?.message || '정보 수정에 실패했습니다.')

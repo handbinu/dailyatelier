@@ -55,7 +55,9 @@ public class UserService {
                     "아이디 또는 비밀번호가 올바르지 않습니다"
             );
         }
-        String token = jwtTokenProvider.generateToken(user.getUserId(), user.getUserStatus());
+        String token = jwtTokenProvider.generateToken(
+                user.getUserId(), user.getUserStatus(), user.getAuthVersion()
+        );
         return new LoginResponseDto(token, user.getUserId(), user.getNickname(), user.getUserStatus());
     }
 
@@ -100,6 +102,15 @@ public class UserService {
     }
     public boolean isNicknameDuplicate(String nickname) {
         return userRepository.existsByNickname(nickname);
+    }
+
+    @Transactional
+    public void changeUserStatus(String userId, int userStatus) {
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(this::userNotFound);
+        if (user.changeUserStatus(userStatus)) {
+            userRepository.save(user);
+        }
     }
 
     // 마이페이지 프로필 조회
@@ -191,10 +202,8 @@ public class UserService {
     // 마이페이지 프로필 수정
     @Transactional
     public void updateUserProfile(String userId, ProfileUpdateDto dto) {
-        User user = userRepository.findByUserId(userId);
-        if (user == null) {
-            throw userNotFound();
-        }
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(this::userNotFound);
 
         // 비밀번호 변경 요청 시 검증
         if (dto.getNewPw() != null && !dto.getNewPw().isBlank()) {
@@ -213,6 +222,7 @@ public class UserService {
                 );
             }
             user.setPassword(passwordEncoder.encode(dto.getNewPw()));
+            user.invalidateExistingTokens();
         }
 
         // 기본 정보 업데이트

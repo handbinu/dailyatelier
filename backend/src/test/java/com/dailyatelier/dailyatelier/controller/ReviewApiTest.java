@@ -43,6 +43,9 @@ class ReviewApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void createUsesPrincipalAndOnlyOrderStarContentContract() throws Exception {
         when(reviewService.create(

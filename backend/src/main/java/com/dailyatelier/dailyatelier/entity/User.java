@@ -38,6 +38,9 @@ public class User {
     @Column(nullable = false)
     private Integer userStatus; // 0:일반 회원, 1: 작가 회원, 2: 관리자
 
+    @Column(name = "auth_version", nullable = false)
+    private Integer authVersion = 0;
+
     @Setter(AccessLevel.NONE)
     @Column(insertable = false, updatable = false)
     private Integer reserve = 0;
@@ -50,4 +53,17 @@ public class User {
 
     @Column(name = "profile_image_public_id", length = 320, unique = true)
     private String profileImagePublicId;
+
+    public void invalidateExistingTokens() {
+        authVersion = authVersion == null ? 1 : Math.incrementExact(authVersion);
+    }
+
+    public boolean changeUserStatus(int userStatus) {
+        if (this.userStatus != null && this.userStatus == userStatus) {
+            return false;
+        }
+        this.userStatus = userStatus;
+        invalidateExistingTokens();
+        return true;
+    }
 }

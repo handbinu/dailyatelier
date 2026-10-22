@@ -49,6 +49,9 @@ class OrderShippingAddressApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void buyerCanConfirmShippingAddress() throws Exception {
         when(orderService.confirmShippingAddress(

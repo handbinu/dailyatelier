@@ -42,6 +42,9 @@ class ArtistApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void anonymousUserCanSearchArtistsWithPaginationContract() throws Exception {
         ArtistSummaryResponseDto artist = new ArtistSummaryResponseDto(

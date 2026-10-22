@@ -8,7 +8,9 @@ function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ userId: '', password: '' })
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    location.state?.passwordChanged ? '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.' : '',
+  )
   const [loading, setLoading] = useState(false)
   const submitGuard = useRef(false)
 

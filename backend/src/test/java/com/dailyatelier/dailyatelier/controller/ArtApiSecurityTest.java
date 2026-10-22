@@ -6,6 +6,8 @@ import com.dailyatelier.dailyatelier.dto.ArtDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.ArtResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
+import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.service.ArtService;
 import com.dailyatelier.dailyatelier.service.ArtSearchService;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,9 @@ class ArtApiSecurityTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @Test
     void anonymousUserCanGetArtList() throws Exception {
@@ -223,6 +228,23 @@ class ArtApiSecurityTest {
         mockMvc.perform(get("/api/users/me/arts")
                         .header("Authorization", "Bearer expired-token"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void tokenWithOutdatedAuthenticationVersionGetsUnauthorizedForMyArts() throws Exception {
+        User user = new User();
+        user.setUserId("member");
+        user.setUserStatus(1);
+        user.setAuthVersion(1);
+        when(jwtTokenProvider.validateToken("outdated-token")).thenReturn(true);
+        when(jwtTokenProvider.getUserId("outdated-token")).thenReturn("member");
+        when(jwtTokenProvider.getAuthVersion("outdated-token")).thenReturn(0);
+        when(userRepository.findByUserId("member")).thenReturn(user);
+
+        mockMvc.perform(get("/api/users/me/arts")
+                        .header("Authorization", "Bearer outdated-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     private ArtResponseDto createArtResponse(Long artId, int artStatus) {

@@ -46,6 +46,9 @@ class InquiryApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void authenticatedUserCanCreateInquiry() throws Exception {
         InquiryDetailResponseDto inquiry = detail(7L, "member", false, null);

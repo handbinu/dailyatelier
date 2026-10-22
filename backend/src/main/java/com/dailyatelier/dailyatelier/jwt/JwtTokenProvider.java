@@ -26,10 +26,11 @@ public class JwtTokenProvider {
     }
 
     //토큰 생성
-    public String generateToken(String userId, int userStatus){
+    public String generateToken(String userId, int userStatus, int authVersion){
         return Jwts.builder()
                 .subject(userId)
                 .claim("userStatus", userStatus)
+                .claim("authVersion", authVersion)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis()+expirationMs))
                 .signWith(secretKey)
@@ -44,6 +45,10 @@ public class JwtTokenProvider {
     // 토큰에서 userStatus 추출
     public int getUserStatus(String token){
         return getClaims(token).get("userStatus", Integer.class);
+    }
+
+    public Integer getAuthVersion(String token) {
+        return getClaims(token).get("authVersion", Integer.class);
     }
 
     //토큰 유효성 검증

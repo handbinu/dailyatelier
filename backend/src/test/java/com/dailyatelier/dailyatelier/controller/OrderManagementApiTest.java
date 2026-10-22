@@ -57,6 +57,9 @@ class OrderManagementApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void buyerCanFilterOwnOrdersUsingAuthenticatedPrincipal() throws Exception {
         when(orderQueryService.getBuyerOrders(

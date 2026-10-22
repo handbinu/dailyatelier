@@ -3,7 +3,7 @@ package com.dailyatelier.dailyatelier.repository;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
@@ -26,11 +26,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=validate"
 })
-@EnabledIfEnvironmentVariable(
-        named = "DAILYATELIER_EMPTY_DB_TEST",
-        matches = "true"
-)
+@EnabledIf("emptyDatabaseTestEnabled")
 class FlywayEmptyDatabaseMySqlTest {
+
+    static boolean emptyDatabaseTestEnabled() {
+        return "true".equalsIgnoreCase(System.getenv("DAILYATELIER_EMPTY_DB_TEST"))
+                || "true".equalsIgnoreCase(System.getenv("DAILYATELIER_EMPTY_FLYWAY_TEST"));
+    }
 
     private static final Set<String> EXPECTED_TABLES = Set.of(
             "users", "artist", "art", "bid", "orders", "address",
@@ -40,7 +42,7 @@ class FlywayEmptyDatabaseMySqlTest {
     );
 
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
-            Map.entry("users", 12),
+            Map.entry("users", 13),
             Map.entry("artist", 6),
             Map.entry("art", 20),
             Map.entry("bid", 5),
@@ -233,7 +235,7 @@ class FlywayEmptyDatabaseMySqlTest {
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
         assertThat(appliedVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(15);
@@ -253,6 +255,7 @@ class FlywayEmptyDatabaseMySqlTest {
         assertImportantColumn("users", "reserve", "int", false, "0");
         assertImportantColumn("users", "profile_image_url", "varchar", true, null);
         assertImportantColumn("users", "profile_image_public_id", "varchar", true, null);
+        assertImportantColumn("users", "auth_version", "int", false, "0");
         assertImportantColumn("art", "active_point_hold_id", "bigint", true, null);
         assertImportantColumn("art", "format", "varchar", false, null);
         assertImportantColumn("art", "category", "varchar", false, null);

@@ -44,6 +44,9 @@ class PointApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void authenticatedUserCanReadSeparatedBalances() throws Exception {
         when(pointQueryService.getSummary("buyer"))

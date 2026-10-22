@@ -43,6 +43,9 @@ class UserApiContractTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void loginFailureUsesCommonErrorContract() throws Exception {
         when(userService.login(any())).thenThrow(new DomainApiException(

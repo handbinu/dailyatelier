@@ -42,6 +42,9 @@ class UserArtApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void artistCanFilterEndedArtsWithoutWinnerIdentity() throws Exception {
         MyArtResponseDto result = new MyArtResponseDto(

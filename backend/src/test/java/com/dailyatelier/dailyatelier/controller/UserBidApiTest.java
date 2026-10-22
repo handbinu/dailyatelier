@@ -36,6 +36,9 @@ class UserBidApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void authenticatedUserCanGetOwnBidStatuses() throws Exception {
         BidStatusResponseDto bid = new BidStatusResponseDto(

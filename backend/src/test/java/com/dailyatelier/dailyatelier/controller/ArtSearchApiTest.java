@@ -46,6 +46,9 @@ class ArtSearchApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void anonymousRequestUsesDefaultsAndReturnsPageAndCardContract() throws Exception {
         ArtSearchResponseDto art = artResponse();

@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.config;
 import com.dailyatelier.dailyatelier.dto.ApiErrorResponseDto;
 import com.dailyatelier.dailyatelier.jwt.JwtAuthenticationFilter;
 import com.dailyatelier.dailyatelier.jwt.JwtTokenProvider;
+import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,15 +31,18 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtTokenProvider jwtTokenProvider,
+            UserRepository userRepository,
             ObjectMapper objectMapper,
             @Value("${app.cors.allowed-origins:http://localhost:5173}")
             List<String> allowedOrigins) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.allowedOrigins = allowedOrigins.stream()
                 .map(String::trim)
@@ -109,7 +113,7 @@ public class SecurityConfig {
                 )
                 //JWT 필터를  UsernamePasswordAuthenticationFilter 앞에 추가
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        new JwtAuthenticationFilter(jwtTokenProvider, userRepository),
                         UsernamePasswordAuthenticationFilter.class
                 );
 

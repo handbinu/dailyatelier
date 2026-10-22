@@ -64,7 +64,7 @@ class LoadTestFixtureMySqlTest {
         String databaseName = currentDatabaseName();
         assertThat(databaseName).matches(ALLOWED_DATABASE);
         assertThat(tableCount("flyway_schema_history")).isEqualTo(1);
-        assertThat(appliedMigrationCount()).isEqualTo(7);
+        assertThat(appliedMigrationCount()).isEqualTo(11);
         assertThat(jdbcTemplate.queryForObject("select count(*) from users", Integer.class))
                 .isZero();
 

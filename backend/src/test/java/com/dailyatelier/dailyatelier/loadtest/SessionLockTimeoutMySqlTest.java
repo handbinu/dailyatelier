@@ -79,7 +79,7 @@ class SessionLockTimeoutMySqlTest {
         long globalBefore = queryLong(newConnection(), "select @@global.innodb_lock_wait_timeout");
         long artId = fixtureId("select art_id from art where name = 'LT-HOT-001'");
         String bidderId = "load_bid_001";
-        String token = jwtTokenProvider.generateToken(bidderId, 0);
+        String token = jwtTokenProvider.generateToken(bidderId, 0, 0);
 
         DiagnosticResponse success = invoke(token, "art", "success", artId, bidderId);
         assertRestored(success, HttpStatus.OK, "SUCCESS");
@@ -132,7 +132,7 @@ class SessionLockTimeoutMySqlTest {
         long globalBefore = queryLong(newConnection(), "select @@global.innodb_lock_wait_timeout");
         long artId = fixtureId("select art_id from art where name = 'LT-HOT-001'");
         String bidderId = "load_bid_001";
-        String token = jwtTokenProvider.generateToken(bidderId, 0);
+        String token = jwtTokenProvider.generateToken(bidderId, 0, 0);
         int bidPrice = nextBidPrice(artId);
         BidState initial = snapshot(artId, bidderId);
 

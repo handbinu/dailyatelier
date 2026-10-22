@@ -38,6 +38,9 @@ class LikesApiContractTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void missingUserLikeListUsesCommonNotFoundContract() throws Exception {
         when(likesService.getMyLikes(eq("missing-user"), any()))

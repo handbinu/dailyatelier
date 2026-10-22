@@ -32,6 +32,9 @@ class TestDatabaseSafetyInitializerTest {
         assertThat(TestDatabaseSafetyInitializer.isMySqlOptedIn(Map.of(
                 "DAILYATELIER_MYSQL_SCHEMA_TEST", "true"
         ))).isTrue();
+        assertThat(TestDatabaseSafetyInitializer.isMySqlOptedIn(Map.of(
+                "DAILYATELIER_JWT_MYSQL_TEST", "true"
+        ))).isTrue();
     }
 
     @Test
@@ -71,6 +74,33 @@ class TestDatabaseSafetyInitializerTest {
         assertThat(properties).containsEntry(
                 "spring.datasource.driver-class-name",
                 "com.mysql.cj.jdbc.Driver"
+        );
+    }
+
+    @Test
+    void emptyFlywayTestRequiresItsDedicatedDatabaseBeforeContextCreation() {
+        Map<String, String> environment = mysqlEnvironment(
+                "jdbc:mysql://localhost:3306/dailyatelier_schema_test"
+        );
+        environment.remove("DAILYATELIER_MYSQL_SCHEMA_TEST");
+        environment.put("DAILYATELIER_EMPTY_FLYWAY_TEST", "true");
+
+        assertThatThrownBy(() ->
+                TestDatabaseSafetyInitializer.mysqlDatasourceProperties(environment)
+        ).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("dailyatelier_flyway_empty_test");
+    }
+
+    @Test
+    void jwtMysqlTestRequiresItsDedicatedDatabaseBeforeContextCreation() {
+        Map<String, String> environment = mysqlEnvironment(
+                "jdbc:mysql://localhost:3306/dailyatelier_jwt_integration_test"
+        );
+        environment.remove("DAILYATELIER_MYSQL_SCHEMA_TEST");
+        environment.put("DAILYATELIER_JWT_MYSQL_TEST", "true");
+
+        assertThatNoException().isThrownBy(() ->
+                TestDatabaseSafetyInitializer.mysqlDatasourceProperties(environment)
         );
     }
 

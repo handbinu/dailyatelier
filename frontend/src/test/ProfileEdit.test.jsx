@@ -195,6 +195,20 @@ describe('프로필 기본정보 저장', () => {
 
     expect(updateUserProfileImage).not.toHaveBeenCalled()
   })
+
+  it('비밀번호 변경 성공 뒤 저장된 인증 정보를 지우고 로그인으로 이동한다', async () => {
+    updateUserProfile.mockResolvedValue({ data: { message: 'ok' } })
+    renderProfileEdit()
+    await screen.findByLabelText('사진 선택')
+    fireEvent.change(screen.getByPlaceholderText('현재 비밀번호'), { target: { value: 'current-password' } })
+    fireEvent.change(screen.getByPlaceholderText('문자·숫자·특수문자 포함 8~20자'), { target: { value: 'new-password' } })
+    fireEvent.change(screen.getByPlaceholderText('새 비밀번호 재입력'), { target: { value: 'new-password' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '수정 완료' }))
+
+    await waitFor(() => expect(localStorage.getItem('token')).toBeNull())
+    expect(screen.getByTestId('location')).toHaveTextContent('/login|{"passwordChanged":true}')
+  })
 })
 
 describe('프로필 주소 검색', () => {

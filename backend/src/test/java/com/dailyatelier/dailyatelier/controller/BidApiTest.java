@@ -40,6 +40,9 @@ class BidApiTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.UserRepository userRepository;
+
     @Test
     void authenticatedUserCanCreateBid() throws Exception {
         when(bidService.createBid(eq(7L), eq("bidder"), any(BidCreateRequestDto.class)))

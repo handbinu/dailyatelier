@@ -241,4 +241,43 @@ class UserServiceTest {
         assertThat(response.getName()).isEqualTo("변경된 이름");
         verify(userRepository).save(user);
     }
+
+    @Test
+    void passwordChangeInvalidatesExistingTokensUnderUserLock() {
+        user.setPassword("existing-hash");
+        ProfileUpdateDto update = new ProfileUpdateDto();
+        update.setCurrentPw("current-password");
+        update.setNewPw("new-password");
+        when(passwordEncoder.matches("current-password", "existing-hash")).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        userService.updateUserProfile("member", update);
+
+        assertThat(user.getPassword()).isEqualTo("new-hash");
+        assertThat(user.getAuthVersion()).isEqualTo(1);
+        verify(userRepository).findByIdForUpdate("member");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void regularProfileUpdateDoesNotInvalidateExistingTokens() {
+        ProfileUpdateDto update = new ProfileUpdateDto();
+        update.setName("변경된 이름");
+
+        userService.updateUserProfile("member", update);
+
+        assertThat(user.getAuthVersion()).isZero();
+    }
+
+    @Test
+    void roleChangeInvalidatesExistingTokensUnderUserLock() {
+        user.setUserStatus(1);
+
+        userService.changeUserStatus("member", 0);
+
+        assertThat(user.getUserStatus()).isZero();
+        assertThat(user.getAuthVersion()).isEqualTo(1);
+        verify(userRepository).findByIdForUpdate("member");
+        verify(userRepository).save(user);
+    }
 }

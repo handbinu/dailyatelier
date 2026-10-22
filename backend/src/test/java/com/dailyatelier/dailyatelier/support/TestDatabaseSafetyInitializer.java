@@ -16,6 +16,8 @@ public class TestDatabaseSafetyInitializer
     private static final String MYSQL_PROPERTIES = "mysqlIntegrationTestDatasource";
     private static final List<String> MYSQL_OPT_IN_FLAGS = List.of(
             "DAILYATELIER_EMPTY_DB_TEST",
+            "DAILYATELIER_EMPTY_FLYWAY_TEST",
+            "DAILYATELIER_JWT_MYSQL_TEST",
             "DAILYATELIER_MYSQL_SCHEMA_TEST",
             "DAILYATELIER_LOAD_TEST_FIXTURE",
             "DAILYATELIER_SESSION_TIMEOUT_TEST"
@@ -56,7 +58,8 @@ public class TestDatabaseSafetyInitializer
         String datasourceUrl = requireValue(environment, "DB_URL");
         String username = requireValue(environment, "DB_USERNAME");
         String password = requireValue(environment, "DB_PASSWORD");
-        validateDedicatedLocalMySql(datasourceUrl);
+        String database = validateDedicatedLocalMySql(datasourceUrl);
+        validateApprovedDatabaseName(environment, database);
 
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("spring.datasource.url", datasourceUrl);
@@ -66,7 +69,7 @@ public class TestDatabaseSafetyInitializer
         return properties;
     }
 
-    static void validateDedicatedLocalMySql(String datasourceUrl) {
+    static String validateDedicatedLocalMySql(String datasourceUrl) {
         if (!datasourceUrl.startsWith("jdbc:mysql://")) {
             throw new IllegalStateException(
                     "Opt-in MySQL tests require a jdbc:mysql datasource."
@@ -91,6 +94,37 @@ public class TestDatabaseSafetyInitializer
         if ("dailyatelier".equals(database.toLowerCase(Locale.ROOT))) {
             throw new IllegalStateException(
                     "The dailyatelier development database cannot be used by MySQL tests."
+            );
+        }
+        return database;
+    }
+
+    private static void validateApprovedDatabaseName(
+            Map<String, String> environment,
+            String database) {
+        requireDatabaseForFlag(
+                environment,
+                "DAILYATELIER_EMPTY_FLYWAY_TEST",
+                "dailyatelier_flyway_empty_test",
+                database
+        );
+        requireDatabaseForFlag(
+                environment,
+                "DAILYATELIER_JWT_MYSQL_TEST",
+                "dailyatelier_jwt_integration_test",
+                database
+        );
+    }
+
+    private static void requireDatabaseForFlag(
+            Map<String, String> environment,
+            String flag,
+            String expectedDatabase,
+            String actualDatabase) {
+        if ("true".equalsIgnoreCase(environment.get(flag))
+                && !expectedDatabase.equalsIgnoreCase(actualDatabase)) {
+            throw new IllegalStateException(
+                    flag + " requires the " + expectedDatabase + " database."
             );
         }
     }
