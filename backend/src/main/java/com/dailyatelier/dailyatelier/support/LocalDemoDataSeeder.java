@@ -1,0 +1,694 @@
+package com.dailyatelier.dailyatelier.support;
+
+import com.dailyatelier.dailyatelier.dto.BidCreateRequestDto;
+import com.dailyatelier.dailyatelier.dto.OrderShippingAddressRequestDto;
+import com.dailyatelier.dailyatelier.entity.Art;
+import com.dailyatelier.dailyatelier.entity.ArtCategory;
+import com.dailyatelier.dailyatelier.entity.ArtFormat;
+import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.Inquiry;
+import com.dailyatelier.dailyatelier.entity.InquiryType;
+import com.dailyatelier.dailyatelier.entity.Likes;
+import com.dailyatelier.dailyatelier.entity.PointAccount;
+import com.dailyatelier.dailyatelier.entity.PaymentProvider;
+import com.dailyatelier.dailyatelier.entity.PointCharge;
+import com.dailyatelier.dailyatelier.entity.PointReferenceType;
+import com.dailyatelier.dailyatelier.entity.PointTransaction;
+import com.dailyatelier.dailyatelier.entity.PointTransactionType;
+import com.dailyatelier.dailyatelier.entity.Order;
+import com.dailyatelier.dailyatelier.entity.Review;
+import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.repository.ArtRepository;
+import com.dailyatelier.dailyatelier.repository.ArtistRepository;
+import com.dailyatelier.dailyatelier.repository.BidRepository;
+import com.dailyatelier.dailyatelier.repository.InquiryRepository;
+import com.dailyatelier.dailyatelier.repository.LikesRepository;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
+import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
+import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
+import com.dailyatelier.dailyatelier.repository.UserRepository;
+import com.dailyatelier.dailyatelier.repository.ReviewRepository;
+import com.dailyatelier.dailyatelier.service.AuctionCloseService;
+import com.dailyatelier.dailyatelier.service.ArtService;
+import com.dailyatelier.dailyatelier.service.BidService;
+import com.dailyatelier.dailyatelier.service.PointAccountService;
+import com.dailyatelier.dailyatelier.service.OrderService;
+import com.dailyatelier.dailyatelier.service.OrderStateService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+@Profile("local-demo")
+@ConditionalOnProperty(prefix = "dailyatelier.local-demo", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
+@Slf4j
+public class LocalDemoDataSeeder {
+    private static final String PASSWORD = "demo-password";
+    private static final long BUYER_POINTS = 5_000_000L;
+    private static final String PENDING_INQUIRY_QA_TITLE = "QA 문의 목록 모바일 줄바꿈과 상태·날짜 우선순위 확인을 위한 긴 제목입니다";
+    private static final String ANSWERED_INQUIRY_QA_TITLE = "QA 답변 완료 문의 상태와 답변 메타 확인용 문의입니다";
+
+    private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
+    private final ArtistRepository artistRepository;
+    private final ArtRepository artRepository;
+    private final BidRepository bidRepository;
+    private final InquiryRepository inquiryRepository;
+    private final LikesRepository likesRepository;
+    private final OrderRepository orderRepository;
+    private final PointAccountService pointAccountService;
+    private final PointAccountRepository pointAccountRepository;
+    private final PointChargeRepository pointChargeRepository;
+    private final PointTransactionRepository pointTransactionRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final BidService bidService;
+    private final AuctionCloseService auctionCloseService;
+    private final ArtService artService;
+    private final OrderService orderService;
+    private final OrderStateService orderStateService;
+    private final Clock clock;
+
+    @Transactional
+    public void seed() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<Artist> artists = List.of(
+                artist("demo-artist-aria", "아리아", "aria@demo.local", "아리아 김", "색과 빛의 리듬을 회화로 기록합니다."),
+                artist("demo-artist-min", "민서", "min@demo.local", "민서 윤", "일상의 오브제를 낯선 균형으로 재구성합니다."),
+                artist("demo-artist-jun", "준호", "jun@demo.local", "준호 박", "공간과 재료가 만나는 순간을 탐구합니다."),
+                artist("demo-artist-soo", "수아", "soo@demo.local", "수아 이", "사진과 디지털 매체로 감각의 층을 만듭니다."),
+                artist("demo-artist-han", "하늘", "han@demo.local", "하늘 한", "느린 관찰에서 출발한 조형 언어를 작업합니다.")
+        );
+        artists.forEach(artist -> pointAccountService.initializeAccount(artist.getUser().getUserId()));
+        User buyerOne = user("demo-buyer-one", "도윤", "buyer1@demo.local", 0);
+        User buyerTwo = user("demo-buyer-two", "유진", "buyer2@demo.local", 0);
+        User buyerThree = user("demo-buyer-three", "서연", "buyer3@demo.local", 0);
+        User bidQaBuyer = user("demo-buyer-bid-qa", "입찰 QA", "bid-qa@demo.local", 0);
+        User inquiryAdmin = user("demo-admin-inquiry-qa", "문의 QA 관리자", "inquiry-admin@demo.local", 2);
+        fund(buyerOne, now);
+        fund(buyerTwo, now);
+        fund(buyerThree, now);
+        fund(bidQaBuyer, now);
+        pointAccountService.initializeAccount(inquiryAdmin.getUserId());
+        seedInquiryFixtures(buyerOne, buyerTwo, bidQaBuyer, now);
+
+        List<DemoArt> arts = List.of(
+                art(artists.get(0), "코랄 블루의 오후", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 180000, 10000, 72, DemoArtRole.ONGOING),
+                art(artists.get(0), "파스텔의 잔상", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 240000, 10000, 36, DemoArtRole.ONGOING),
+                art(artists.get(0), "컬러 필드, 봄", "art-demo-03-acrylic-color.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 320000, 20000, 8, DemoArtRole.ONGOING),
+                art(artists.get(2), "정적의 구조", "art-demo-04-geometric.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 280000, 10000, 120, DemoArtRole.ONGOING),
+                art(artists.get(0), "미니멀 브리즈", "art-demo-05-minimal.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 210000, 10000, 20, DemoArtRole.ONGOING),
+                art(artists.get(0), "오렌지 코발트", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 430000, 10000, 4, DemoArtRole.ONGOING),
+                art(artists.get(1), "소프트 테이블", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 10000, 15, DemoArtRole.ONGOING),
+                art(artists.get(1), "세라믹 리듬", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 260000, 10000, 96, DemoArtRole.ONGOING),
+                art(artists.get(3), "QA 디지털 진행 작품", "art-demo-17-architecture.jpg", ArtFormat.DIGITAL, ArtCategory.DIGITAL_ART, 300000, 10000, 48, DemoArtRole.ONGOING),
+                art(artists.get(0), "QA 진행 중 입찰 작품", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 200000, 10000, 48, DemoArtRole.QA_ONGOING),
+                art(artists.get(0), "QA 경쟁 중 긴 작품명 모바일 줄바꿈 확인용", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 1980000, 10000, 36, DemoArtRole.QA_COMPETING),
+                art(artists.get(1), "QA 24시간 내 마감 작품", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 220000, 10000, 12, DemoArtRole.QA_IMMINENT),
+                art(artists.get(2), "QA 낙찰 주문 작품", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 300000, 10000, -48, DemoArtRole.QA_SOLD),
+                art(artists.get(0), "QA 주문 배송지 확정", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 60000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(1), "QA 주문 결제 완료", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 70000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(2), "QA 주문 결제 완료 환불 요청", "art-demo-03-acrylic-color.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 80000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(3), "QA 주문 결제 완료 환불 거절", "art-demo-04-geometric.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 90000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(4), "QA 주문 배송 중", "art-demo-05-minimal.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 100000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "QA 주문 배송 중 환불 요청", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 110000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(1), "QA 주문 배송 완료", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 120000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(2), "QA 주문 배송 완료 환불 요청", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 130000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(3), "QA 주문 구매 확정", "art-demo-10-modern-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 140000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(4), "QA 주문 취소", "art-demo-11-glass.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 150000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "QA 주문 환불 완료", "art-demo-12-glass-shadow.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 160000, 1000, -48, DemoArtRole.QA_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송지 미확정", "art-demo-01-coral-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 170000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료", "art-demo-02-pastel-abstract.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 180000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 준비", "art-demo-03-acrylic-color.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 190000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료 환불 요청", "art-demo-04-geometric.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 200000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 결제 완료 환불 거절", "art-demo-05-minimal.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 210000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 중", "art-demo-06-orange-blue.jpg", ArtFormat.PHYSICAL, ArtCategory.ACRYLIC_PAINTING, 220000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 배송 완료", "art-demo-07-pastel-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 230000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 구매 확정", "art-demo-08-ceramic.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 240000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(0), "판매 QA 주문 취소", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 250000, 1000, -48, DemoArtRole.QA_SALES_ORDER),
+                art(artists.get(3), "QA 패찰 작품", "art-demo-13-flower-editorial.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 280000, 10000, -48, DemoArtRole.QA_LOST),
+                art(artists.get(4), "QA 경매 취소 작품", "art-demo-20-sage.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 240000, 10000, -48, DemoArtRole.QA_CANCELED),
+                art(artists.get(2), "파스텔 모노리스", "art-demo-09-pastel-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 380000, 20000, -48, DemoArtRole.SOLD),
+                art(artists.get(2), "고요한 조각", "art-demo-10-modern-sculpture.jpg", ArtFormat.PHYSICAL, ArtCategory.SCULPTURE, 460000, 20000, -72, DemoArtRole.SOLD),
+                art(artists.get(2), "프리즘의 방", "art-demo-11-glass.jpg", ArtFormat.PHYSICAL, ArtCategory.CRAFT, 340000, 10000, -96, DemoArtRole.SOLD),
+                art(artists.get(2), "투명한 오후", "art-demo-12-glass-shadow.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 230000, 10000, -120, DemoArtRole.UNSOLD),
+                art(artists.get(3), "블룸 에디토리얼", "art-demo-13-flower-editorial.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 190000, 10000, -144, DemoArtRole.UNSOLD),
+                art(artists.get(3), "꽃의 균형", "art-demo-14-flower-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 270000, 10000, -168, DemoArtRole.UPCOMING),
+                art(artists.get(4), "페이퍼 가든", "art-demo-15-paper-art.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 220000, 10000, -192, DemoArtRole.UPCOMING),
+                art(artists.get(1), "기하학적 오후", "art-demo-16-geometric-stilllife.jpg", ArtFormat.PHYSICAL, ArtCategory.PHOTOGRAPHY, 250000, 10000, -216, DemoArtRole.UPCOMING),
+                art(artists.get(3), "색의 파사드", "art-demo-17-architecture.jpg", ArtFormat.DIGITAL, ArtCategory.DIGITAL_ART, 300000, 10000, -240, DemoArtRole.UPCOMING),
+                art(artists.get(3), "네온 스펙트럼", "art-demo-18-neon.jpg", ArtFormat.DIGITAL, ArtCategory.DIGITAL_ART, 410000, 20000, -264, DemoArtRole.SOLD),
+                art(artists.get(4), "텍스타일 파동", "art-demo-19-textile.jpg", ArtFormat.PHYSICAL, ArtCategory.MIXED_MEDIA, 290000, 10000, -288, DemoArtRole.UPCOMING),
+                art(artists.get(4), "세이지 브레스", "art-demo-20-sage.jpg", ArtFormat.PHYSICAL, ArtCategory.OIL_PAINTING, 360000, 20000, -312, DemoArtRole.UPCOMING)
+        );
+        for (DemoArt spec : arts) {
+            Art art = artRepository.findByArtistUserUserIdAndName(
+                    spec.artist().getUser().getUserId(), spec.name()).orElseGet(() -> create(spec, now));
+            refreshSafeAuctionWindow(art, spec, now);
+            if (isQaBidFixture(spec.role()) && !bidRepository.existsByArt(art)) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+            }
+            if (spec.role() == DemoArtRole.QA_COMPETING && !bidRepository.existsByArt(art)) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+                createBid(art, spec.startPrice() + (spec.increment() * 2), buyerOne);
+            }
+            if ((spec.role() == DemoArtRole.SOLD || spec.role() == DemoArtRole.QA_SOLD
+                    || spec.role() == DemoArtRole.QA_ORDER || spec.role() == DemoArtRole.QA_SALES_ORDER)
+                    && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                closeSoldArt(art, spec.startPrice() + spec.increment(),
+                        isQaOrderFixture(spec.role())
+                                ? bidQaBuyer
+                                : buyerFor(art.getName(), buyerOne, buyerTwo, buyerThree));
+            }
+            if (spec.role() == DemoArtRole.QA_LOST && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                closeLostArt(art, spec.startPrice() + spec.increment(), spec.startPrice() + (spec.increment() * 2),
+                        bidQaBuyer, buyerTwo);
+            }
+            if (spec.role() == DemoArtRole.QA_CANCELED && art.getArtStatus() == Art.STATUS_ACTIVE) {
+                createBid(art, spec.startPrice() + spec.increment(), bidQaBuyer);
+                artService.deleteArt(art.getArtId(), art.getArtist().getUser().getUserId());
+            }
+        }
+        seedOrderStatusFixtures(bidQaBuyer);
+        seedChargeHistoryFixtures(bidQaBuyer, now);
+        seedLikeFixtures(bidQaBuyer);
+        seedReviewFixtures(now);
+        log.info("Local demo seed is ready: {} demo artworks", arts.size());
+    }
+
+    private void seedLikeFixtures(User buyer) {
+        seedLike(buyer, "QA 진행 중 입찰 작품");
+        seedLike(buyer, "QA 낙찰 주문 작품");
+        seedLike(buyer, "QA 경매 취소 작품");
+    }
+
+    private void seedLike(User buyer, String artName) {
+        Art art = artRepository.findById(findArtId(artName)).orElseThrow();
+        if (likesRepository.existsByUserAndArt(buyer, art)) return;
+
+        Likes like = new Likes();
+        like.setUser(buyer);
+        like.setArt(art);
+        likesRepository.save(like);
+    }
+
+    private void seedReviewFixtures(LocalDateTime now) {
+        Order order = orderRepository.findByArtArtId(findArtId("판매 QA 주문 구매 확정"))
+                .orElseThrow();
+        if (reviewRepository.existsByOrderOrderId(order.getOrderId())) return;
+
+        reviewRepository.save(Review.create(
+                order,
+                9,
+                "로컬 demo 읽기 전용 QA에서 리뷰 카드와 상세 내용을 확인하기 위한 후기입니다.",
+                now.minusDays(1)
+        ));
+    }
+
+    private void seedInquiryFixtures(User pendingBuyer, User answeredBuyer, User bidQaBuyer, LocalDateTime now) {
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(pendingBuyer.getUserId(), PENDING_INQUIRY_QA_TITLE)) {
+            Inquiry pendingInquiry = inquiry(pendingBuyer, PENDING_INQUIRY_QA_TITLE,
+                    "문의 목록과 관리자 답변 등록 화면의 populated 상태를 확인하기 위한 로컬 demo QA 문의입니다.",
+                    now.minusHours(2));
+            inquiryRepository.save(pendingInquiry);
+        }
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(bidQaBuyer.getUserId(), PENDING_INQUIRY_QA_TITLE)) {
+            Inquiry pendingInquiry = inquiry(bidQaBuyer, PENDING_INQUIRY_QA_TITLE,
+                    "입찰·주문·찜 QA 계정의 문의 목록 조회를 확인하기 위한 로컬 demo 문의입니다.",
+                    now.minusHours(1));
+            inquiryRepository.save(pendingInquiry);
+        }
+        if (!inquiryRepository.existsByUser_UserIdAndTitle(answeredBuyer.getUserId(), ANSWERED_INQUIRY_QA_TITLE)) {
+            Inquiry answeredInquiry = inquiry(answeredBuyer, ANSWERED_INQUIRY_QA_TITLE,
+                    "답변 완료 상태와 답변 완료 시각을 확인하기 위한 로컬 demo QA 문의입니다.",
+                    now.minusDays(2));
+            answeredInquiry.setAnswer("답변 완료 문의의 본문과 완료 시각을 확인할 수 있도록 등록한 QA 답변입니다.");
+            answeredInquiry.setAnsweredAt(now.minusDays(1));
+            inquiryRepository.save(answeredInquiry);
+        }
+    }
+
+    private Inquiry inquiry(User buyer, String title, String content, LocalDateTime createdAt) {
+        Inquiry inquiry = new Inquiry();
+        inquiry.setUser(buyer);
+        inquiry.setTitle(title);
+        inquiry.setContent(content);
+        inquiry.setInquiryType(InquiryType.OTHER);
+        inquiry.setEmailAlert(false);
+        inquiry.setCreatedAt(createdAt);
+        return inquiry;
+    }
+
+    private Artist artist(String id, String nickname, String email, String artistName, String intro) {
+        User user = user(id, nickname, email, 1);
+        return artistRepository.findByUser(user).orElseGet(() -> {
+            Artist artist = new Artist();
+            artist.setUser(user);
+            artist.setArtistName(artistName);
+            artist.setArtistIntro(intro);
+            artist.setHomepage("https://dailyatelier.local/" + id);
+            return artistRepository.save(artist);
+        });
+    }
+
+    private User user(String id, String nickname, String email, int status) {
+        User existing = userRepository.findByUserId(id);
+        if (existing != null) return existing;
+        User user = new User();
+        user.setUserId(id);
+        user.setPassword(passwordEncoder.encode(PASSWORD));
+        user.setName(nickname + " 데모");
+        user.setNickname(nickname);
+        user.setPhoneNumber("010-0000-" + String.format("%04d", Math.abs(id.hashCode()) % 10000));
+        user.setEmail(email);
+        user.setJoinDate(LocalDateTime.now(clock));
+        user.setUserStatus(status);
+        return userRepository.save(user);
+    }
+
+    private void fund(User user, LocalDateTime now) {
+        PointAccount account = pointAccountService.initializeAccount(user.getUserId());
+        String key = "local-demo:fund:" + user.getUserId();
+        if (pointTransactionRepository.existsByIdempotencyKey(key)) return;
+        account.credit(BUYER_POINTS, now);
+        pointAccountRepository.save(account);
+        pointTransactionRepository.save(PointTransaction.record(user.getUserId(), PointTransactionType.DEMO_CHARGE,
+                BUYER_POINTS, BUYER_POINTS, 0, account.getAvailableBalance(), account.getHeldBalance(),
+                PointReferenceType.USER, user.getUserId(), key, null, "LOCAL_DEMO_SEED", "로컬 demo 입찰 포인트", now));
+    }
+
+    private void seedChargeHistoryFixtures(User buyer, LocalDateTime now) {
+        List<PointCharge> existing = chargeHistoryFixtures(buyer);
+        if (!existing.isEmpty()) {
+            if (requiresChargeHistoryFixtureMigration(existing, now)) {
+                removeLegacyChargeHistoryFixtures(existing, now);
+            } else {
+                return;
+            }
+        }
+
+        LocalDateTime fixtureBaseTime = now.minusDays(30);
+        LocalDateTime pendingAt = fixtureBaseTime.minusMinutes(50);
+        createCharge(buyer, "pending", 10_000L, pendingAt);
+
+        PointCharge paid = createCharge(buyer, "paid", 30_000L, fixtureBaseTime.minusMinutes(40));
+        approveCharge(buyer, paid, fixtureBaseTime.minusMinutes(39));
+
+        PointCharge failed = createCharge(buyer, "failed", 50_000L, fixtureBaseTime.minusMinutes(30));
+        failed.fail("LOCAL_DEMO_DECLINED", "로컬 demo 충전 실패 QA fixture", fixtureBaseTime.minusMinutes(29));
+
+        PointCharge canceled = createCharge(buyer, "canceled", 100_000L, fixtureBaseTime.minusMinutes(20));
+        canceled.cancel(fixtureBaseTime.minusMinutes(19));
+
+        PointCharge refunded = createCharge(buyer, "refunded", 30_000L, fixtureBaseTime.minusMinutes(10));
+        approveCharge(buyer, refunded, fixtureBaseTime.minusMinutes(9));
+        refundCharge(buyer, refunded, fixtureBaseTime.minusMinutes(8));
+    }
+
+    private List<PointCharge> chargeHistoryFixtures(User buyer) {
+        List<PointCharge> charges = new ArrayList<>();
+        for (String fixtureName : List.of("pending", "paid", "failed", "canceled", "refunded")) {
+            pointChargeRepository.findByUserIdAndIdempotencyKey(
+                    buyer.getUserId(), "local-demo:charge-history:" + buyer.getUserId() + ":" + fixtureName)
+                    .ifPresent(charges::add);
+        }
+        return charges;
+    }
+
+    private boolean requiresChargeHistoryFixtureMigration(List<PointCharge> charges, LocalDateTime now) {
+        PointCharge paid = charges.stream()
+                .filter(charge -> charge.getIdempotencyKey().endsWith(":paid"))
+                .findFirst().orElse(null);
+        PointCharge refunded = charges.stream()
+                .filter(charge -> charge.getIdempotencyKey().endsWith(":refunded"))
+                .findFirst().orElse(null);
+        return paid != null && refunded != null
+                && (paid.getRequestedAmount() != refunded.getRequestedAmount()
+                || paid.getCreatedAt().isAfter(now.minusDays(1)));
+    }
+
+    private void removeLegacyChargeHistoryFixtures(List<PointCharge> charges, LocalDateTime now) {
+        List<PointTransaction> transactions = chargeTransactions(charges);
+        reverseChargeTransactionBalance(charges.get(0).getUserId(), transactions, now);
+
+        pointChargeRepository.deleteAll(charges);
+        pointChargeRepository.flush();
+
+        removeChargeTransactions(transactions, List.of(
+                PointTransactionType.REFUND,
+                PointTransactionType.ADJUSTMENT_DEBIT));
+        removeChargeTransactions(transactions, List.of(PointTransactionType.DEMO_CHARGE));
+    }
+
+    private List<PointTransaction> chargeTransactions(List<PointCharge> charges) {
+        List<PointTransaction> transactions = new ArrayList<>();
+        for (PointCharge charge : charges) {
+            for (PointTransactionType type : List.of(
+                    PointTransactionType.DEMO_CHARGE,
+                    PointTransactionType.REFUND,
+                    PointTransactionType.ADJUSTMENT_DEBIT)) {
+                pointTransactionRepository.findByReferenceTypeAndReferenceIdAndType(
+                        PointReferenceType.CHARGE, charge.getChargeId().toString(), type)
+                        .ifPresent(transactions::add);
+            }
+        }
+        return transactions;
+    }
+
+    private void reverseChargeTransactionBalance(
+            String userId,
+            List<PointTransaction> transactions,
+            LocalDateTime now) {
+        long availableDelta = transactions.stream()
+                .mapToLong(PointTransaction::getAvailableDelta)
+                .reduce(0L, Math::addExact);
+        if (availableDelta == 0L) {
+            return;
+        }
+
+        PointAccount account = pointAccountRepository.findByUserIdForUpdate(userId).orElseThrow();
+        if (availableDelta > 0L) {
+            account.debit(availableDelta, now);
+        } else {
+            account.credit(Math.negateExact(availableDelta), now);
+        }
+        pointAccountRepository.save(account);
+    }
+
+    private void removeChargeTransactions(
+            List<PointTransaction> transactions,
+            List<PointTransactionType> types) {
+        transactions.stream()
+                .filter(transaction -> types.contains(transaction.getType()))
+                .forEach(pointTransactionRepository::delete);
+        pointTransactionRepository.flush();
+    }
+
+    private PointCharge createCharge(User buyer, String fixtureName, long amount, LocalDateTime createdAt) {
+        String key = "local-demo:charge-history:" + buyer.getUserId() + ":" + fixtureName;
+        return pointChargeRepository.saveAndFlush(PointCharge.pending(
+                buyer.getUserId(), PaymentProvider.INTERNAL,
+                "LOCAL-DEMO-CHARGE-" + fixtureName.toUpperCase(), amount, key, createdAt));
+    }
+
+    private void approveCharge(User buyer, PointCharge charge, LocalDateTime paidAt) {
+        PointAccount account = pointAccountService.initializeAccount(buyer.getUserId());
+        account.credit(charge.getRequestedAmount(), paidAt);
+        pointAccountRepository.save(account);
+        PointTransaction transaction = pointTransactionRepository.saveAndFlush(PointTransaction.record(
+                buyer.getUserId(), PointTransactionType.DEMO_CHARGE,
+                charge.getRequestedAmount(), charge.getRequestedAmount(), 0L,
+                account.getAvailableBalance(), account.getHeldBalance(),
+                PointReferenceType.CHARGE, charge.getChargeId().toString(),
+                "charge:" + charge.getChargeId(), null, "DEMO_CHARGE_APPROVED",
+                "데모 포인트 충전", paidAt));
+        charge.approve(null, charge.getRequestedAmount(), transaction.getTransactionId(), paidAt);
+    }
+
+    private void refundCharge(User buyer, PointCharge charge, LocalDateTime refundedAt) {
+        PointAccount account = pointAccountService.initializeAccount(buyer.getUserId());
+        account.debit(charge.getPaidAmount(), refundedAt);
+        pointAccountRepository.save(account);
+        PointTransaction transaction = pointTransactionRepository.saveAndFlush(PointTransaction.record(
+                buyer.getUserId(), PointTransactionType.REFUND,
+                charge.getPaidAmount(), -charge.getPaidAmount(), 0L,
+                account.getAvailableBalance(), account.getHeldBalance(),
+                PointReferenceType.CHARGE, charge.getChargeId().toString(),
+                "charge-refund:" + charge.getChargeId(), charge.getChargeTransactionId(),
+                "CHARGE_REFUNDED", "포인트 충전 환불", refundedAt));
+        charge.refund(transaction.getTransactionId(), refundedAt);
+    }
+
+    private Art create(DemoArt spec, LocalDateTime now) {
+        Art art = new Art();
+        art.setArtist(spec.artist());
+        art.setName(spec.name());
+        art.setDescript("로컬 demo 화면 검증을 위한 " + spec.name() + " 작품입니다.");
+        art.setMaterial(spec.format() == ArtFormat.DIGITAL ? "Digital archival file" : "Mixed media on archival support");
+        art.setFormat(spec.format());
+        art.setCategory(spec.category());
+        art.setWIntro(spec.artist().getArtistName() + "의 demo 컬렉션");
+        art.setStartPrice(spec.startPrice());
+        art.setCurrentPrice(spec.startPrice());
+        art.setMinimumBidIncrement(spec.increment());
+        applyAuctionWindow(art, spec, now);
+        art.setImgPath("/img/demo-art/" + spec.image());
+        if (spec.role() == DemoArtRole.UNSOLD) {
+            art.setArtStatus(Art.STATUS_UNSOLD);
+            art.setClosedAt(now.minusHours(2));
+        } else {
+            art.setArtStatus(Art.STATUS_ACTIVE);
+        }
+        return artRepository.saveAndFlush(art);
+    }
+
+    private void refreshSafeAuctionWindow(Art art, DemoArt spec, LocalDateTime now) {
+        if ((spec.role() != DemoArtRole.ONGOING && spec.role() != DemoArtRole.UPCOMING
+                && spec.role() != DemoArtRole.QA_ONGOING && spec.role() != DemoArtRole.QA_COMPETING
+                && spec.role() != DemoArtRole.QA_IMMINENT)
+                || !isSafeToRefresh(art)) {
+            return;
+        }
+        applyAuctionWindow(art, spec, now);
+        art.setArtStatus(Art.STATUS_ACTIVE);
+        art.setClosedAt(null);
+        art.setCurrentPrice(art.getStartPrice());
+        artRepository.save(art);
+    }
+
+    private boolean isSafeToRefresh(Art art) {
+        return art.getWinningBid() == null
+                && art.getActivePointHold() == null
+                && !bidRepository.existsByArt(art)
+                && !orderRepository.existsByArtArtId(art.getArtId());
+    }
+
+    private void applyAuctionWindow(Art art, DemoArt spec, LocalDateTime now) {
+        switch (spec.role()) {
+            case ONGOING, QA_ONGOING, QA_COMPETING, QA_IMMINENT -> {
+                art.setBidStartTime(now.minusDays(5));
+                art.setClosingTime(now.plusHours(spec.hoursToClose()));
+            }
+            case UPCOMING -> {
+                art.setBidStartTime(now.plusDays(2));
+                art.setClosingTime(now.plusDays(5));
+            }
+            case SOLD, QA_SOLD, QA_ORDER, QA_SALES_ORDER, QA_LOST, QA_CANCELED -> {
+                art.setBidStartTime(now.minusDays(5));
+                art.setClosingTime(now.plusHours(1));
+            }
+            case UNSOLD -> {
+                art.setBidStartTime(now.minusDays(5));
+                art.setClosingTime(now.minusHours(2));
+            }
+        }
+    }
+
+    private void closeSoldArt(Art art, int bidPrice, User buyer) {
+        createBid(art, bidPrice, buyer);
+        art.setClosingTime(LocalDateTime.now(clock).minusMinutes(1));
+        artRepository.saveAndFlush(art);
+        auctionCloseService.closeAuction(art.getArtId());
+    }
+
+    private void closeLostArt(Art art, int losingBidPrice, int winningBidPrice, User losingBuyer, User winningBuyer) {
+        createBid(art, losingBidPrice, losingBuyer);
+        createBid(art, winningBidPrice, winningBuyer);
+        art.setClosingTime(LocalDateTime.now(clock).minusMinutes(1));
+        artRepository.saveAndFlush(art);
+        auctionCloseService.closeAuction(art.getArtId());
+    }
+
+    private void createBid(Art art, int bidPrice, User buyer) {
+        BidCreateRequestDto request = new BidCreateRequestDto();
+        request.setBidPrice(bidPrice);
+        bidService.createBid(art.getArtId(), buyer.getUserId(), request);
+    }
+
+    private boolean isQaBidFixture(DemoArtRole role) {
+        return role == DemoArtRole.QA_ONGOING || role == DemoArtRole.QA_IMMINENT;
+    }
+
+    private boolean isQaOrderFixture(DemoArtRole role) {
+        return role == DemoArtRole.QA_SOLD || role == DemoArtRole.QA_ORDER || role == DemoArtRole.QA_SALES_ORDER;
+    }
+
+    private void seedOrderStatusFixtures(User buyer) {
+        List<OrderStatusFixture> fixtures = List.of(
+                new OrderStatusFixture("QA 주문 배송지 확정", OrderFixtureState.PAYMENT_PENDING_CONFIRMED),
+                new OrderStatusFixture("QA 주문 결제 완료", OrderFixtureState.PAID),
+                new OrderStatusFixture("QA 주문 결제 완료 환불 요청", OrderFixtureState.PAID_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 결제 완료 환불 거절", OrderFixtureState.PAID_REFUND_REJECTED),
+                new OrderStatusFixture("QA 주문 배송 중", OrderFixtureState.SHIPPED),
+                new OrderStatusFixture("QA 주문 배송 중 환불 요청", OrderFixtureState.SHIPPED_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 배송 완료", OrderFixtureState.DELIVERED),
+                new OrderStatusFixture("QA 주문 배송 완료 환불 요청", OrderFixtureState.DELIVERED_REFUND_REQUESTED),
+                new OrderStatusFixture("QA 주문 구매 확정", OrderFixtureState.CONFIRMED),
+                new OrderStatusFixture("QA 주문 취소", OrderFixtureState.CANCELED),
+                new OrderStatusFixture("QA 주문 환불 완료", OrderFixtureState.REFUNDED),
+                new OrderStatusFixture("판매 QA 주문 배송지 미확정", OrderFixtureState.PAYMENT_PENDING_UNCONFIRMED),
+                new OrderStatusFixture("판매 QA 주문 결제 완료", OrderFixtureState.PAID),
+                new OrderStatusFixture("판매 QA 주문 배송 준비", OrderFixtureState.PREPARING),
+                new OrderStatusFixture("판매 QA 주문 결제 완료 환불 요청", OrderFixtureState.PAID_REFUND_REQUESTED),
+                new OrderStatusFixture("판매 QA 주문 결제 완료 환불 거절", OrderFixtureState.PAID_REFUND_REJECTED),
+                new OrderStatusFixture("판매 QA 주문 배송 중", OrderFixtureState.SHIPPED),
+                new OrderStatusFixture("판매 QA 주문 배송 완료", OrderFixtureState.DELIVERED),
+                new OrderStatusFixture("판매 QA 주문 구매 확정", OrderFixtureState.CONFIRMED),
+                new OrderStatusFixture("판매 QA 주문 취소", OrderFixtureState.CANCELED)
+        );
+        for (OrderStatusFixture fixture : fixtures) {
+            Order order = orderRepository.findByArtArtId(findArtId(fixture.artName())).orElseThrow();
+            if (order.getStatus().name().equals("PAYMENT_PENDING")) {
+                applyOrderFixture(order, buyer, fixture.state());
+            }
+        }
+    }
+
+    private Long findArtId(String artName) {
+        return artRepository.findAll().stream()
+                .filter(art -> art.getName().equals(artName))
+                .findFirst()
+                .orElseThrow()
+                .getArtId();
+    }
+
+    private void applyOrderFixture(Order order, User buyer, OrderFixtureState state) {
+        if (state == OrderFixtureState.CANCELED) {
+            orderStateService.cancelPending(order.getOrderId(), buyer.getUserId());
+            return;
+        }
+        if (state == OrderFixtureState.PAYMENT_PENDING_UNCONFIRMED) return;
+        confirmShippingAddress(order, buyer);
+        if (state == OrderFixtureState.PAYMENT_PENDING_CONFIRMED) return;
+
+        orderStateService.markPaid(order.getOrderId(), buyer.getUserId(),
+                "local-demo:order-payment:" + order.getOrderId());
+        if (state == OrderFixtureState.PAID) return;
+        if (state == OrderFixtureState.PREPARING) {
+            orderStateService.startPreparing(order.getOrderId(), order.getSellerIdSnapshot());
+            return;
+        }
+        if (state == OrderFixtureState.PAID_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+        if (state == OrderFixtureState.PAID_REFUND_REJECTED) {
+            requestRefund(order, buyer);
+            orderStateService.rejectRefund(order.getOrderId(), order.getSellerIdSnapshot());
+            return;
+        }
+
+        orderStateService.startPreparing(order.getOrderId(), order.getSellerIdSnapshot());
+        orderStateService.ship(order.getOrderId(), order.getSellerIdSnapshot(),
+                "데모택배", "DEMO-" + order.getOrderId());
+        if (state == OrderFixtureState.SHIPPED) return;
+        if (state == OrderFixtureState.SHIPPED_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+
+        orderStateService.markDelivered(order.getOrderId(), buyer.getUserId());
+        if (state == OrderFixtureState.DELIVERED) return;
+        if (state == OrderFixtureState.DELIVERED_REFUND_REQUESTED) {
+            requestRefund(order, buyer);
+            return;
+        }
+        if (state == OrderFixtureState.CONFIRMED) {
+            orderStateService.confirm(order.getOrderId(), buyer.getUserId());
+            return;
+        }
+        requestRefund(order, buyer);
+        orderStateService.approveRefund(order.getOrderId(), order.getSellerIdSnapshot(),
+                "local-demo:order-refund:" + order.getOrderId());
+    }
+
+    private void confirmShippingAddress(Order order, User buyer) {
+        OrderShippingAddressRequestDto request = new OrderShippingAddressRequestDto();
+        request.setRecipientName("주문 QA 수령인");
+        request.setRecipientPhone(buyer.getPhoneNumber());
+        request.setZipCode("04524");
+        request.setAddress1("서울특별시 중구 세종대로 110");
+        request.setAddress2("로컬 데모 주문 QA");
+        orderService.confirmShippingAddress(order.getOrderId(), buyer.getUserId(), request);
+    }
+
+    private void requestRefund(Order order, User buyer) {
+        orderStateService.requestRefund(order.getOrderId(), buyer.getUserId(), "로컬 데모 환불 요청");
+    }
+
+    private User buyerFor(String name, User one, User two, User three) {
+        return switch (Math.floorMod(name.hashCode(), 3)) {
+            case 0 -> one;
+            case 1 -> two;
+            default -> three;
+        };
+    }
+
+    private static DemoArt art(Artist artist, String name, String image, ArtFormat format,
+                               ArtCategory category, int startPrice, int increment, int hoursToClose,
+                               DemoArtRole role) {
+        return new DemoArt(artist, name, image, format, category, startPrice, increment, hoursToClose, role);
+    }
+
+    private record DemoArt(Artist artist, String name, String image, ArtFormat format,
+                           ArtCategory category, int startPrice, int increment, int hoursToClose,
+                           DemoArtRole role) { }
+
+    private record OrderStatusFixture(String artName, OrderFixtureState state) { }
+
+    private enum OrderFixtureState {
+        PAYMENT_PENDING_UNCONFIRMED,
+        PAYMENT_PENDING_CONFIRMED,
+        PAID,
+        PREPARING,
+        PAID_REFUND_REQUESTED,
+        PAID_REFUND_REJECTED,
+        SHIPPED,
+        SHIPPED_REFUND_REQUESTED,
+        DELIVERED,
+        DELIVERED_REFUND_REQUESTED,
+        CONFIRMED,
+        CANCELED,
+        REFUNDED
+    }
+
+    private enum DemoArtRole {
+        ONGOING,
+        QA_ONGOING,
+        QA_COMPETING,
+        QA_IMMINENT,
+        QA_SOLD,
+        QA_ORDER,
+        QA_SALES_ORDER,
+        QA_LOST,
+        QA_CANCELED,
+        UPCOMING,
+        SOLD,
+        UNSOLD
+    }
+
+    @Configuration
+    @Profile("local-demo")
+    @ConditionalOnProperty(prefix = "dailyatelier.local-demo", name = "enabled", havingValue = "true")
+    @EnableConfigurationProperties(LocalDemoSeedProperties.class)
+    static class RunnerConfiguration {
+        @Bean
+        ApplicationRunner localDemoDataSeedRunner(LocalDemoDataSeeder seeder) {
+            return args -> seeder.seed();
+        }
+    }
+}

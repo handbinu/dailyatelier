@@ -1,0 +1,171 @@
+name: UI QA
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      DB_URL: jdbc:mysql://127.0.0.1:3306/dailyatelier_ci?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      DB_USERNAME: dailyatelier
+      DB_PASSWORD: dailyatelier
+      JWT_SECRET: ci-only-jwt-secret-ci-only-jwt-secret-ci-only
+      CLOUDINARY_CLOUD_NAME: ci-placeholder
+      CLOUDINARY_API_KEY: ci-placeholder
+      CLOUDINARY_API_SECRET: ci-placeholder
+      CORS_ALLOWED_ORIGINS: http://127.0.0.1:5173
+      UI_QA_BASE_URL: http://127.0.0.1:5173
+      UI_QA_API_BASE_URL: http://127.0.0.1:8080
+      UI_QA_BUYER_ID: demo-buyer-bid-qa
+      UI_QA_BUYER_PASSWORD: demo-password
+      UI_QA_ARTIST_ID: demo-artist-aria
+      UI_QA_ARTIST_PASSWORD: demo-password
+      UI_QA_ADMIN_ID: demo-admin-inquiry-qa
+      UI_QA_ADMIN_PASSWORD: demo-password
+      CI_LOG_DIR: ${{ github.workspace }}/ci-logs
+      CI_PID_DIR: ${{ github.workspace }}/ci-logs/pids
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: dailyatelier_ci
+          MYSQL_USER: dailyatelier
+          MYSQL_PASSWORD: dailyatelier
+          MYSQL_ROOT_PASSWORD: root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: backend/**/*.gradle*
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run backend tests
+        working-directory: backend
+        run: bash ./gradlew test
+
+      - name: Run frontend unit, component, lint, and build checks
+        working-directory: frontend
+        run: |
+          npm test
+          npm run test:component
+          npm run lint
+          npm run build
+
+      - name: Start MySQL-backed UI QA services
+        env:
+          SPRING_PROFILES_ACTIVE: local-demo
+          DAILYATELIER_LOCAL_DEMO_ENABLED: "true"
+        run: bash .github/scripts/start-ui-qa-services.sh
+
+      - name: Run Playwright UI QA
+        working-directory: frontend
+        run: npm run qa:ui
+
+      - name: Capture UI screenshots
+        working-directory: frontend
+        run: npm run screenshots:ui
+
+      - name: Verify required screenshot artifact
+        id: screenshots
+        if: always()
+        shell: bash
+        run: |
+          ready=false
+          if [[ -d frontend/ui-screenshots ]]; then
+            result="$(node --input-type=module -e '
+              import { readdir, readFile, stat } from "node:fs/promises";
+              import path from "node:path";
+              const root = "frontend/ui-screenshots";
+              const runs = await readdir(root, { withFileTypes: true });
+              const run = runs.find((entry) => entry.isDirectory());
+              if (!run) process.exit(0);
+              const runDir = path.join(root, run.name);
+              const manifest = JSON.parse(await readFile(path.join(runDir, "manifest.json"), "utf8"));
+              const walk = async (directory) => {
+                let count = 0;
+                for (const entry of await readdir(directory, { withFileTypes: true })) {
+                  const target = path.join(directory, entry.name);
+                  if (entry.isDirectory()) count += await walk(target);
+                  else if (entry.isFile() && target.endsWith(".png") && (await stat(target)).size > 0) count += 1;
+                }
+                return count;
+              };
+              const captured = manifest.records?.filter((record) => record.status === "captured").length ?? 0;
+              const pngs = await walk(runDir);
+              if (manifest.failed !== false || captured !== 72 || pngs !== 72) process.exit(0);
+              console.log("ready");
+            ' 2>/dev/null || true)"
+            [[ "${result}" == "ready" ]] && ready=true
+          fi
+          echo "ready=${ready}" >> "$GITHUB_OUTPUT"
+          if [[ "${ready}" != true ]]; then
+            echo "Required screenshot artifact is incomplete; only debug artifacts will be uploaded." >&2
+          fi
+
+      - name: Upload required screenshots
+        if: always() && steps.screenshots.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-${{ github.run_id }}
+          path: frontend/ui-screenshots
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload failure debugging artifacts
+        if: always() && steps.screenshots.outputs.ready != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-qa-debug-${{ github.run_id }}
+          path: |
+            ci-logs
+            frontend/playwright-report
+            frontend/test-results
+            frontend/ui-screenshots
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Fail incomplete screenshot capture
+        if: always() && steps.screenshots.outputs.ready != 'true'
+        run: exit 1
+
+      - name: Stop UI QA services
+        if: always()
+        run: bash .github/scripts/stop-ui-qa-services.sh

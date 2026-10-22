@@ -1,0 +1,659 @@
+/* ============================================================
+   Home.module.css  —  메인 페이지
+   ============================================================ */
+
+.page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ── 히어로 슬라이더 ─────────────────────────────────── */
+.hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  overflow: hidden;
+  background: #1a1a1a;
+  min-height: 280px;
+  max-height: 520px;
+}
+
+.heroMedia {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.slideTrack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.slideActive {
+  opacity: 1;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* 화살표 버튼 */
+.slideArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.slideArrow:hover {
+  background: rgba(255, 255, 255, 0.92);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.slideArrowLeft  { left: var(--space-5); }
+.slideArrowRight { right: var(--space-5); }
+
+.slideArrow svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 페이징 도트 */
+.pageDots {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 10;
+}
+
+.dot {
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.45);
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-base),
+              width var(--transition-base);
+  padding: 0;
+}
+
+.dotActive {
+  background: #fff;
+  width: 44px;
+}
+
+/* ── 소개 배너 ───────────────────────────────────────── */
+.introduce {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: #aec0aa;
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.introduceText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-16) var(--space-12) var(--space-16) var(--space-16);
+}
+
+.introduceHeading {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-5);
+}
+
+.introduceHeading em {
+  font-style: normal;
+  color: #3d5a53;
+}
+
+.introduceSub {
+  font-size: var(--font-size-sm);
+  color: #3d5a53;
+  line-height: 1.8;
+  margin-bottom: var(--space-8);
+}
+
+.introduceBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  align-self: flex-start;
+  transition: background var(--transition-base),
+              transform var(--transition-fast);
+}
+
+.introduceBtn:hover {
+  background: #3d5a53;
+  transform: translateX(3px);
+  color: #fff;
+}
+
+.introduceImages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-10) var(--space-8);
+}
+
+.introImg1 {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+  justify-self: end;
+}
+
+.introImg2 {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+  justify-self: start;
+}
+
+/* ── 공통 섹션 ───────────────────────────────────────── */
+.section {
+  padding: var(--space-10) var(--space-6);
+  max-width: var(--container-xl);
+  margin: 0 auto;
+}
+
+.sectionAlt {
+  max-width: 100%;
+  background: var(--color-page-warm);
+  padding: var(--space-10) 0;
+}
+
+.sectionAlt .sectionHeader,
+.sectionAlt .artGrid {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.bestSectionSingle .sectionHeader {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  max-width: 320px;
+}
+
+.sectionAlt .sectionHeader {
+  align-items: center;
+}
+
+.sectionTitle {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.03em;
+}
+
+.sectionDesc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── 필터 탭 ─────────────────────────────────────────── */
+.filterTabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.filterTab {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.filterTab:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.filterTabActive {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.filterTabActive:hover {
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.sectionMore {
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sectionMore:hover { color: var(--color-accent); }
+
+.sectionActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+/* ── 베스트 아트 그리드 ──────────────────────────────── */
+.bestGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.bestCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+  transition: box-shadow var(--transition-base),
+              transform var(--transition-base);
+}
+
+.bestCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.bestImgWrap {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-surface-alt);
+}
+
+.bestGrid .homeSkeletonImage { aspect-ratio: 4 / 3; }
+
+.bestImgWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.bestInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.bestTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.bestPrice {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── 작품 그리드 ─────────────────────────────────────── */
+.artGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.compactGrid {
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  justify-content: start;
+}
+
+.compactGrid > :only-child {
+  grid-column: 1;
+}
+
+.artCard {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base),
+              transform var(--transition-base);
+}
+
+.artCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.artCardEnd {
+  opacity: 0.88;
+}
+
+.artCardEnd:hover {
+  opacity: 1;
+}
+
+.artImgWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-surface-alt);
+}
+
+.artImgWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.homeStatusBadge {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: 0.34rem 0.68rem;
+  border-radius: var(--radius-full);
+  color: #fff;
+  background: rgba(35, 31, 34, 0.76);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.homeStatusUrgent {
+  border: 2px solid #fff;
+  background: #c2410c;
+  box-shadow: 0 5px 16px rgba(194, 65, 12, 0.34);
+}
+
+.homeStatusClosed { background: rgba(35, 31, 34, 0.72); }
+
+.endedResultSold { background: #7a3f24; }
+.endedResultUnsold { background: #686664; }
+
+/* 호버 오버레이 */
+.artOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(35, 31, 34, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.artCard:hover .artOverlay {
+  opacity: 1;
+}
+
+.artBidBtn {
+  padding: var(--space-3) var(--space-6);
+  background: #fff;
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transform: translateY(6px);
+  transition: transform var(--transition-base);
+}
+
+.artCard:hover .artBidBtn {
+  transform: translateY(0);
+}
+
+.artInfo {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.artTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.artPrice {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.artArtist {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.artTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+.artTimeUrgent { color: #c2410c; font-weight: var(--font-weight-bold); }
+
+.homeFeedback {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.homeFeedback button {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--color-primary);
+  font-family: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.homeSkeletonCard {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.homeSkeletonImage,
+.homeSkeletonBody span {
+  background: linear-gradient(90deg, var(--color-surface-alt), #fff, var(--color-surface-alt));
+  background-size: 200% 100%;
+  animation: homeSkeleton 1.4s ease infinite;
+}
+
+.homeSkeletonImage { aspect-ratio: 4 / 3; }
+.homeSkeletonBody { display: grid; gap: var(--space-2); padding: var(--space-4); }
+.homeSkeletonBody span { display: block; height: 12px; border-radius: var(--radius-sm); }
+.homeSkeletonBody span:nth-child(2) { width: 65%; }
+.homeSkeletonBody span:nth-child(3) { width: 82%; }
+
+@keyframes homeSkeleton {
+  to { background-position: -200% 0; }
+}
+
+/* 빈 상태 */
+.empty {
+  text-align: center;
+  padding: var(--space-16);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── 반응형 ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .bestGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .introduce {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .introduceImages { padding: var(--space-3) var(--space-4) var(--space-6); }
+
+  .introImg1 {
+    max-width: 280px;
+  }
+
+  .introImg2 {
+    max-width: 300px;
+  }
+
+  .introduceText {
+    padding: var(--space-10) var(--space-6);
+  }
+
+  .sectionHeader { flex-direction: column; align-items: flex-start; }
+
+  .section { padding: var(--space-8) var(--space-4); }
+
+  .artGrid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+  .compactGrid { grid-template-columns: repeat(2, minmax(0, 280px)); }
+
+  .sectionAlt .sectionHeader,
+  .sectionAlt .artGrid {
+    padding-inline: var(--space-4);
+    text-align: left;
+  }
+
+  .sectionAlt .sectionHeader {
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .sectionAlt .sectionActions {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 560px) {
+  .hero {
+    aspect-ratio: 16 / 9;
+    min-height: 0;
+  }
+
+  .slide img {
+    object-fit: cover;
+    object-position: center center;
+  }
+
+  .bestGrid { grid-template-columns: repeat(2, 1fr); }
+  .artGrid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .compactGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slideArrow { width: 32px; height: 32px; }
+  .slideArrowLeft { left: var(--space-3); }
+  .slideArrowRight { right: var(--space-3); }
+  .introduceImages { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .introImg1,
+  .introImg2 {
+    justify-self: stretch;
+    width: 100%;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    object-position: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .artGrid { grid-template-columns: 1fr; }
+  .compactGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .slideArrow,
+  .dot,
+  .introduceBtn,
+  .bestCard,
+  .filterTab,
+  .artCard,
+  .artOverlay,
+  .artBidBtn {
+    transition: none;
+  }
+
+  .homeSkeletonImage,
+  .homeSkeletonBody span { animation: none; }
+}

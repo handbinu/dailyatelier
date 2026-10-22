@@ -37,9 +37,18 @@ out/
 .vscode/
 
 ### Security ###
-backend/src/main/resources/application.properties
+backend/.env
+backend/daliyatelier.env
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+frontend/.env.ui-qa.local
+frontend/.playwright/
+frontend/test-results/
+frontend/playwright-report/
+frontend/ui-screenshots/
+
+# Local-only reference materials
+/_local/
