@@ -26,6 +26,11 @@
 - 실제 MySQL에서 동일 사용자·멱등 키·금액의 최초 동시 생성이 같은 `charge_id`를 반환하고 `point_charge` 행 1건으로 수렴함을 검증했다. 운영 코드와 기존 사용자 계정 잠금 구조는 변경하지 않았다.
 - 동일 키의 다른 금액·제공자 재사용은 `409 / IDEMPOTENCY_KEY_REUSED`와 공통 API 오류 DTO 계약을 유지하며, MySQL 관련 테스트와 전체 백엔드 테스트를 통과했다.
 
+## 외부 PG 콜백 최초 동시 수신 멱등성 보완
+
+- `receive()`를 비트랜잭션 조정자로 두고 INSERT만 `REQUIRES_NEW`로 확정해, UNIQUE 충돌 뒤 최신 이벤트를 재조회한다. `payloadHash`와 `pgOrderId`가 모두 일치할 때만 기존 이벤트를 반환하며, 기존 처리 잠금·완료 단락은 유지한다.
+- 실제 MySQL 동시성 테스트 2/2와 H2 서비스 테스트 5/5를 통과했다. 전체 백엔드 테스트는 438개 통과·실패 0·조건부 MySQL 23개 SKIP이며, 전용 스키마에서 Flyway V11과 `uq_callback_provider_event` UNIQUE 제약을 확인했다.
+
 ## API 오류 HTTP 계약 보완
 
 - Likes와 포인트 계정 초기화의 사용자·작품 미존재를 `DomainApiException`으로 통일해 각각 `404 / USER_NOT_FOUND`, `404 / ART_NOT_FOUND` 공통 오류 DTO로 반환한다.
