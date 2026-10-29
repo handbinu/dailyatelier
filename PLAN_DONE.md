@@ -346,6 +346,11 @@ ORDER BY account.user_id;
 - 작품 수정 화면은 경매 시작·종료 시각까지 다음 갱신을 예약해 재진입이나 입력 없이 잠금 상태를 최신화하며, `Date.now()`를 렌더에서 제거했다.
 - 판매 주문 목록과 중복 확인은 렌더 중 ref를 갱신하지 않고 최신 값·요청 판별 계약을 유지했다. `react-hooks/purity`, `react-hooks/refs`를 error로 재활성화했다.
 
+## React Compiler lint 조사·검증
+
+- 비활성 규칙을 임시 적용해 6건/4개 production 파일을 재현했다. `EditArt`의 수동 메모 의존성 1건은 null 안전한 `format` 지역 변수로 정렬하고 `preserve-manual-memoization`을 활성화했다.
+- `set-state-in-effect` 잔여 5건은 `ArtistList` 1건, `AdminInquiry` 1건, `EditArt` 1건, `MyPage` 2건이다. 실제 버그로 확정하지 않았으며 상태 관리 개선을 검토한 뒤 전역 활성화 여부를 판단한다.
+
 ## 홈 1단계 사용성 개선
 
 - 기존 홈 섹션 순서·링크·데이터 조회 계약을 유지하면서 저개수 카드 밀도, 종료 작품 배치·간격, Header 탐색 영역을 조정했다.

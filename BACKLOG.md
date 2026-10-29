@@ -5,8 +5,8 @@
 ## 코드 품질·문서·배포 준비
 
 - [ ] **React Compiler 관련 lint 규칙 도입 검토**
-  - 현재 8개 production 파일에서 발생한 12건이 실제 버그 가능성 또는 코드 품질 문제인지 조사한다.
-  - 규칙을 다시 활성화하기 전에 필요한 코드 수정 범위와 React Compiler 도입 여부를 별도로 판단한다.
+  - 비활성 규칙 임시 적용 결과는 6건/4개 production 파일이며, `EditArt`의 수동 메모 의존성 1건은 해결했다. `preserve-manual-memoization`은 활성화 완료했다.
+  - `set-state-in-effect` 잔여 5건(`ArtistList` 1, `AdminInquiry` 1, `EditArt` 1, `MyPage` 2)은 실제 버그로 확정하지 않는다. 상태 관리 개선 범위와 React Compiler 도입 여부를 검토한 뒤 전역 활성화를 판단한다.
   - 프론트 의존성 보안 업데이트와 분리된 후속 작업으로 진행한다.
 
 - [ ] **포트폴리오용 README 고도화**
