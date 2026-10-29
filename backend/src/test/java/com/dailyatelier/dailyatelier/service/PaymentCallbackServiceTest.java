@@ -22,7 +22,8 @@ import static org.assertj.core.api.Assertions.*;
         "spring.datasource.url=jdbc:h2:mem:callback-inbox;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import({PaymentCallbackService.class, PaymentCallbackTransactionService.class, TimeConfig.class})
+@Import({PaymentCallbackService.class, PaymentCallbackEventCreationService.class,
+        PaymentCallbackReceiveObserver.class, PaymentCallbackTransactionService.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PaymentCallbackServiceTest {
     @Autowired PaymentCallbackService service;
@@ -55,6 +56,14 @@ class PaymentCallbackServiceTest {
         service.receive(PaymentProvider.INTERNAL, "event-2", null, "hash-a");
         assertThatThrownBy(() -> service.receive(
                 PaymentProvider.INTERNAL, "event-2", null, "hash-b"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void rejectsSameEventIdWithDifferentPgOrderId() {
+        service.receive(PaymentProvider.INTERNAL, "event-2-order", "order-a", "hash");
+        assertThatThrownBy(() -> service.receive(
+                PaymentProvider.INTERNAL, "event-2-order", "order-b", "hash"))
                 .isInstanceOf(IllegalStateException.class);
     }
 

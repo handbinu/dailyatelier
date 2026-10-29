@@ -66,6 +66,10 @@ public class PaymentCallbackEvent {
         return this.payloadHash.equals(payloadHash);
     }
 
+    public boolean sameReceipt(String pgOrderId, String payloadHash) {
+        return samePayload(payloadHash) && Objects.equals(this.pgOrderId, pgOrderId);
+    }
+
     public void processed(LocalDateTime now) {
         if (status == PaymentCallbackStatus.PROCESSED) return;
         attemptCount++;
