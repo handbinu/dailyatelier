@@ -14,6 +14,7 @@ import s from './Charge.module.css'
 
 const PRESET_AMOUNTS = [10000, 30000, 50000, 100000, 200000, 300000]
 const PAYMENT_METHOD = 'internal'
+const HISTORY_PAGE_SIZE = 10
 const NOTICES = [
   '이 충전은 포트폴리오 기능 체험을 위한 데모 포인트이며 실제 결제가 아닙니다.',
   '데모 포인트는 계정당 사용 중인 예치 포인트를 포함해 최대 1,000,000P까지 보유할 수 있습니다.',
@@ -146,6 +147,12 @@ function transactionAction(transaction) {
   }
 }
 
+function hasNextPage(pageData, requestedPage) {
+  if (typeof pageData?.last === 'boolean') return !pageData.last
+  if (Number.isInteger(pageData?.totalPages)) return requestedPage + 1 < pageData.totalPages
+  return false
+}
+
 export default function Charge() {
   const navigate = useNavigate()
   const [amount,    setAmount]    = useState(50000)
@@ -159,32 +166,96 @@ export default function Charge() {
   const [loading, setLoading] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [transactions, setTransactions] = useState([])
-  const [charges, setCharges] = useState([])
+  const [transactionHistory, setTransactionHistory] = useState({
+    page: 0, content: [], hasNext: false, loading: false, error: '',
+  })
+  const [chargeHistory, setChargeHistory] = useState({
+    page: 0, content: [], hasNext: false, loading: false, error: '',
+  })
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
   const chargeRequest = useRef(null)
   const chargeSubmitting = useRef(false)
+  const historyRequests = useRef({ transactions: null, charges: null })
 
   const token = localStorage.getItem('token')
 
   const finalAmount = amount
   const predicted   = balance + finalAmount
 
+  const loadHistoryPage = async (kind, page, { append = false, replace = false } = {}) => {
+    const setHistory = kind === 'transactions' ? setTransactionHistory : setChargeHistory
+    const request = historyRequests.current[kind]
+    if (request) {
+      if (!replace) return false
+      request.abort()
+    }
+
+    const controller = new AbortController()
+    historyRequests.current[kind] = controller
+    setHistory((current) => ({ ...current, loading: true, error: '' }))
+
+    try {
+      const response = kind === 'transactions'
+        ? await getPointTransactions({ page, size: HISTORY_PAGE_SIZE, signal: controller.signal })
+        : await getPointCharges({ page, size: HISTORY_PAGE_SIZE, signal: controller.signal })
+      const pageData = response.data ?? {}
+      const content = pageData.content ?? []
+      if (historyRequests.current[kind] !== controller) return false
+      setHistory((current) => ({
+        page: Number.isInteger(pageData.number) ? pageData.number : page,
+        content: append ? [...current.content, ...content] : content,
+        hasNext: hasNextPage(pageData, page),
+        loading: false,
+        error: '',
+      }))
+      return true
+    } catch (requestError) {
+      if (requestError.code !== 'ERR_CANCELED' && historyRequests.current[kind] === controller) {
+        setHistory((current) => ({
+          ...current,
+          loading: false,
+          error: requestError.response?.data?.message || '내역을 불러오지 못했습니다.',
+        }))
+      }
+      throw requestError
+    } finally {
+      if (historyRequests.current[kind] === controller) {
+        historyRequests.current[kind] = null
+      }
+    }
+  }
+
   useEffect(() => {
     if (!token) {
       navigate('/login', { replace: true })
       return undefined
     }
-    const controller = new AbortController()
+    const summaryController = new AbortController()
+    const transactionController = new AbortController()
+    const chargeController = new AbortController()
+    historyRequests.current.transactions = transactionController
+    historyRequests.current.charges = chargeController
     Promise.all([
-      getPointSummary({ signal: controller.signal }),
-      getPointTransactions({ size: 10, signal: controller.signal }),
-      getPointCharges({ size: 10, signal: controller.signal }),
+      getPointSummary({ signal: summaryController.signal }),
+      getPointTransactions({ page: 0, size: HISTORY_PAGE_SIZE, signal: transactionController.signal }),
+      getPointCharges({ page: 0, size: HISTORY_PAGE_SIZE, signal: chargeController.signal }),
     ])
       .then(([summary, transactionHistory, chargeHistory]) => {
         setBalance(Number(summary.data.availablePoint ?? 0))
-        setTransactions(transactionHistory.data?.content ?? [])
-        setCharges(chargeHistory.data?.content ?? [])
+        setTransactionHistory({
+          page: Number.isInteger(transactionHistory.data?.number) ? transactionHistory.data.number : 0,
+          content: transactionHistory.data?.content ?? [],
+          hasNext: hasNextPage(transactionHistory.data, 0),
+          loading: false,
+          error: '',
+        })
+        setChargeHistory({
+          page: Number.isInteger(chargeHistory.data?.number) ? chargeHistory.data.number : 0,
+          content: chargeHistory.data?.content ?? [],
+          hasNext: hasNextPage(chargeHistory.data, 0),
+          loading: false,
+          error: '',
+        })
         setLoaded(true)
       })
       .catch((requestError) => {
@@ -192,8 +263,16 @@ export default function Charge() {
           setError(requestError.response?.data?.message || '포인트 잔액을 불러오지 못했습니다.')
         }
       })
-      .finally(() => setLoading(false))
-    return () => controller.abort()
+      .finally(() => {
+        if (historyRequests.current.transactions === transactionController) historyRequests.current.transactions = null
+        if (historyRequests.current.charges === chargeController) historyRequests.current.charges = null
+        setLoading(false)
+      })
+    return () => {
+      summaryController.abort()
+      transactionController.abort()
+      chargeController.abort()
+    }
   }, [navigate, reloadKey, token])
 
   if (!token) return null
@@ -217,8 +296,8 @@ export default function Charge() {
 
     const results = await Promise.allSettled([
       getPointSummary(),
-      getPointTransactions({ size: 10 }),
-      getPointCharges({ size: 10 }),
+      loadHistoryPage('transactions', 0, { replace: true }),
+      loadHistoryPage('charges', 0, { replace: true }),
     ])
     const [summaryResult, transactionResult, chargeResult] = results
     const failed = []
@@ -234,14 +313,10 @@ export default function Charge() {
     } else {
       failed.push('최신 잔액')
     }
-    if (transactionResult.status === 'fulfilled') {
-      setTransactions(transactionResult.value.data?.content ?? [])
-    } else {
+    if (transactionResult.status !== 'fulfilled') {
       failed.push('포인트 거래 내역')
     }
-    if (chargeResult.status === 'fulfilled') {
-      setCharges(chargeResult.value.data?.content ?? [])
-    } else {
+    if (chargeResult.status !== 'fulfilled') {
       failed.push('충전 내역')
     }
 
@@ -422,12 +497,12 @@ export default function Charge() {
               <p>충전과 포인트 변동 기록을 확인할 수 있습니다.</p>
             </div>
 
-            <section className={`${s.card} ${charges.length === 0 ? s.historyCardEmpty : ''}`}>
+            <section className={`${s.card} ${chargeHistory.content.length === 0 ? s.historyCardEmpty : ''}`}>
               <h3 className={s.cardTitle}>최근 충전 내역</h3>
               <p className={`${s.historyDescription} ${s.chargeHistoryDescription}`}>직접 충전한 포인트 기록</p>
-              {charges.length === 0
+              {chargeHistory.content.length === 0
                 ? <p className={s.emptyHistory}>충전 내역이 없습니다.</p>
-                : charges.map((charge) => (
+                : chargeHistory.content.map((charge) => (
                   <div className={s.chargeHistoryRow} key={charge.chargeId}>
                     <strong className={s.chargeAmount}>
                       {fmt(charge.paidAmount || charge.requestedAmount)}P <span className={s.chargeStatus}>{CHARGE_STATUS_LABELS[charge.status] || charge.status}</span>
@@ -435,6 +510,17 @@ export default function Charge() {
                     <span className={s.chargeDate}>{formatDateTime(charge.paidAt || charge.createdAt)}</span>
                   </div>
                 ))}
+              {chargeHistory.error && <p className={s.historyError} role="alert">{chargeHistory.error}</p>}
+              {chargeHistory.hasNext && (
+                <button
+                  type="button"
+                  className={`${s.historyLoadMore} da-button-secondary`}
+                  onClick={() => loadHistoryPage('charges', chargeHistory.page + 1, { append: true })}
+                  disabled={chargeHistory.loading}
+                >
+                  {chargeHistory.loading ? '불러오는 중…' : '충전 내역 더 보기'}
+                </button>
+              )}
             </section>
 
             <section className={s.card}>
@@ -454,9 +540,9 @@ export default function Charge() {
                   </button>
                 </div>
               </div>
-              {transactions.length === 0
+              {transactionHistory.content.length === 0
                 ? <p className={s.emptyHistory}>포인트 거래 내역이 없습니다.</p>
-                : transactions.map((transaction) => {
+                : transactionHistory.content.map((transaction) => {
                   const meaning = transactionContext(transaction)
                   const balanceDetails = transactionBalanceDetails(transaction)
                   const action = transactionAction(transaction)
@@ -494,6 +580,17 @@ export default function Charge() {
                     </div>
                   )
                 })}
+              {transactionHistory.error && <p className={s.historyError} role="alert">{transactionHistory.error}</p>}
+              {transactionHistory.hasNext && (
+                <button
+                  type="button"
+                  className={`${s.historyLoadMore} da-button-secondary`}
+                  onClick={() => loadHistoryPage('transactions', transactionHistory.page + 1, { append: true })}
+                  disabled={transactionHistory.loading}
+                >
+                  {transactionHistory.loading ? '불러오는 중…' : '포인트 거래 더 보기'}
+                </button>
+              )}
             </section>
           </section>
         </form>

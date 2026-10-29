@@ -16,7 +16,7 @@ vi.mock('../api/pointApi', () => ({
   getPointTransactions: vi.fn(),
 }))
 
-const emptyPage = { data: { content: [] } }
+const emptyPage = { data: { content: [], number: 0, totalPages: 0, last: true } }
 
 function deferred() {
   let resolve
@@ -261,6 +261,75 @@ describe('데모 포인트 충전 화면', () => {
       .toBeTruthy()
   })
 
+  it('충전 내역과 포인트 거래를 각각 다음 페이지로 누적 조회한다', async () => {
+    getPointSummary.mockResolvedValue({ data: { availablePoint: 1_000, heldPoint: 0 } })
+    getPointCharges.mockImplementation(({ page }) => Promise.resolve({
+      data: page === 0
+        ? {
+          content: [{ chargeId: 1, status: 'PAID', requestedAmount: 10_000, createdAt: '2026-09-30T13:30:00' }],
+          number: 0, totalPages: 2, last: false,
+        }
+        : {
+          content: [{ chargeId: 2, status: 'PAID', requestedAmount: 20_000, createdAt: '2026-09-29T13:30:00' }],
+          number: 1, totalPages: 2, last: true,
+        },
+    }))
+    getPointTransactions.mockImplementation(({ page }) => Promise.resolve({
+      data: page === 0
+        ? {
+          content: [{ transactionId: 1, type: 'CHARGE', amount: 10_000, createdAt: '2026-09-30T13:30:00' }],
+          number: 0, totalPages: 2, last: false,
+        }
+        : {
+          content: [{ transactionId: 2, type: 'CHARGE', amount: 20_000, createdAt: '2026-09-29T13:30:00' }],
+          number: 1, totalPages: 2, last: true,
+        },
+    }))
+
+    renderCharge()
+
+    const chargeLoadMore = await screen.findByRole('button', { name: '충전 내역 더 보기' })
+    const transactionLoadMore = screen.getByRole('button', { name: '포인트 거래 더 보기' })
+    fireEvent.click(chargeLoadMore)
+
+    await waitFor(() => expect(getPointCharges).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, size: 10 }),
+    ))
+    expect(screen.getByText('20,000P')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '포인트 거래 더 보기' })).toBeInTheDocument()
+
+    fireEvent.click(transactionLoadMore)
+    await waitFor(() => expect(getPointTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, size: 10 }),
+    ))
+    expect(screen.getByText('+20,000P 충전')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '충전 내역 더 보기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '포인트 거래 더 보기' })).not.toBeInTheDocument()
+  })
+
+  it('더 보기 요청 중 연속 클릭을 중복 호출하지 않는다', async () => {
+    mockSuccessfulLookup(1_000)
+    const nextCharges = deferred()
+    getPointCharges.mockImplementation(({ page }) => (
+      page === 0 ? Promise.resolve({
+        data: {
+          content: [{ chargeId: 1, status: 'PAID', requestedAmount: 10_000, createdAt: '2026-09-30T13:30:00' }],
+          number: 0, totalPages: 2, last: false,
+        },
+      }) : nextCharges.promise
+    ))
+
+    renderCharge()
+
+    const loadMore = await screen.findByRole('button', { name: '충전 내역 더 보기' })
+    fireEvent.click(loadMore)
+    fireEvent.click(loadMore)
+
+    expect(getPointCharges).toHaveBeenCalledTimes(2)
+    nextCharges.resolve({ data: { content: [], number: 1, totalPages: 2, last: true } })
+    await waitFor(() => expect(screen.queryByRole('button', { name: '충전 내역 더 보기' })).not.toBeInTheDocument())
+  })
+
   it('충전 성공 후 최신 잔액을 조회하고 완료 화면을 표시한다', async () => {
     getPointSummary
       .mockResolvedValueOnce({ data: { availablePoint: 1_000, heldPoint: 0 } })
@@ -281,6 +350,10 @@ describe('데모 포인트 충전 화면', () => {
     expect(screen.getByText('51,000P')).toBeInTheDocument()
     expect(chargePoint).toHaveBeenCalledWith(50_000, 'charge-key')
     expect(getPointSummary).toHaveBeenCalledTimes(2)
+    expect(getPointTransactions).toHaveBeenNthCalledWith(2,
+      expect.objectContaining({ page: 0, size: 10 }))
+    expect(getPointCharges).toHaveBeenNthCalledWith(2,
+      expect.objectContaining({ page: 0, size: 10 }))
   })
 
   it('충전 요청 중 입력 변경과 같은 렌더의 연속 제출을 막고 요청 금액을 표시한다', async () => {
