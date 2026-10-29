@@ -27,7 +27,7 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'error',
       'react-hooks/refs': 'error',
-      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/preserve-manual-memoization': 'error',
     },
   },
 ])

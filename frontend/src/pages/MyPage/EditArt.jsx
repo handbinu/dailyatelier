@@ -109,9 +109,10 @@ export default function EditArt() {
   const mutationUnavailable = art && (!art.isOwner || art.artStatus !== 0 || currentTime >= new Date(art.closingTime).getTime())
   const priceAndPeriodLocked = hasBid || mutationUnavailable
   const incrementLocked = auctionStarted || hasBid || mutationUnavailable
+  const format = form?.format
   const categoryOptions = useMemo(
-    () => CATEGORY_OPTIONS.filter(([category]) => isCategoryAllowed(form?.format, category)),
-    [form?.format],
+    () => CATEGORY_OPTIONS.filter(([category]) => isCategoryAllowed(format, category)),
+    [format],
   )
 
   const setValue = (key) => (event) => {
