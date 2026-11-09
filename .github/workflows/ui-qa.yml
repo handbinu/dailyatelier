@@ -32,6 +32,8 @@ jobs:
       UI_QA_ARTIST_PASSWORD: demo-password
       UI_QA_ADMIN_ID: demo-admin-inquiry-qa
       UI_QA_ADMIN_PASSWORD: demo-password
+      DAILYATELIER_LOCALDEMO_PUBLICPASSWORD: demo-password
+      DAILYATELIER_LOCALDEMO_ADMINPASSWORD: demo-password
       CI_LOG_DIR: ${{ github.workspace }}/ci-logs
       CI_PID_DIR: ${{ github.workspace }}/ci-logs/pids
 
