@@ -38,7 +38,8 @@ class CloudinaryServiceTest {
         cloudinaryService = new CloudinaryService(
                 userRepository,
                 builder,
-                validCleanupProperties()
+                validCleanupProperties(),
+                new PublicDemoAccessPolicy(false, "", 5, 600, java.time.Clock.systemUTC())
         );
         server = MockRestServiceServer.bindTo(builder).build();
         ReflectionTestUtils.setField(cloudinaryService, "cloudName", "test-cloud");

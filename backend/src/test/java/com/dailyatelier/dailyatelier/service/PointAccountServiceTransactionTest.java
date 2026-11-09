@@ -69,6 +69,9 @@ class PointAccountServiceTransactionTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private PublicDemoAccessPolicy publicDemoAccessPolicy;
+
     @BeforeEach
     void cleanUp() {
         pointTransactionRepository.deleteAll();

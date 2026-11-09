@@ -44,6 +44,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -58,7 +59,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class LocalDemoDataSeeder {
-    private static final String PASSWORD = "demo-password";
     private static final long BUYER_POINTS = 5_000_000L;
     private static final String PENDING_INQUIRY_QA_TITLE = "QA 문의 목록 모바일 줄바꿈과 상태·날짜 우선순위 확인을 위한 긴 제목입니다";
     private static final String ANSWERED_INQUIRY_QA_TITLE = "QA 답변 완료 문의 상태와 답변 메타 확인용 문의입니다";
@@ -82,6 +82,12 @@ public class LocalDemoDataSeeder {
     private final OrderService orderService;
     private final OrderStateService orderStateService;
     private final Clock clock;
+
+    @Value("${dailyatelier.local-demo.public-password}")
+    private String publicDemoPassword;
+
+    @Value("${dailyatelier.local-demo.admin-password}")
+    private String adminDemoPassword;
 
     @Transactional
     public void seed() {
@@ -270,7 +276,7 @@ public class LocalDemoDataSeeder {
         if (existing != null) return existing;
         User user = new User();
         user.setUserId(id);
-        user.setPassword(passwordEncoder.encode(PASSWORD));
+        user.setPassword(passwordEncoder.encode(status == 2 ? adminDemoPassword : publicDemoPassword));
         user.setName(nickname + " 데모");
         user.setNickname(nickname);
         user.setPhoneNumber("010-0000-" + String.format("%04d", Math.abs(id.hashCode()) % 10000));

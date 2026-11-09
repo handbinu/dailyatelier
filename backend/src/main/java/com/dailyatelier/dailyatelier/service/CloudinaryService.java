@@ -43,12 +43,15 @@ public class CloudinaryService {
 
     private final UserRepository userRepository;
     private final RestClient.Builder restClientBuilder;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     public CloudinaryService(
             UserRepository userRepository,
             RestClient.Builder restClientBuilder,
-            CloudinaryCleanupProperties cleanupProperties) {
+            CloudinaryCleanupProperties cleanupProperties,
+            PublicDemoAccessPolicy publicDemoAccessPolicy) {
         this.userRepository = userRepository;
+        this.publicDemoAccessPolicy = publicDemoAccessPolicy;
         SimpleClientHttpRequestFactory requestFactory =
                 new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(cleanupProperties.getConnectTimeoutMs());
@@ -74,6 +77,7 @@ public class CloudinaryService {
 
     public CloudinarySignatureResponseDto createUploadSignature(String userId, String folder) {
         validateArtist(userId);
+        publicDemoAccessPolicy.assertCloudinarySignatureAllowed(userId);
         String normalizedFolder = normalizeArtFolder(userId, folder);
         long timestamp = System.currentTimeMillis() / 1000L;
         String signature = generateSignature(normalizedFolder, timestamp);

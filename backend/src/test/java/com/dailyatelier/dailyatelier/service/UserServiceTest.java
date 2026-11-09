@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.service;
 import com.dailyatelier.dailyatelier.dto.UserProfileDto;
 import com.dailyatelier.dailyatelier.dto.ProfileUpdateDto;
 import com.dailyatelier.dailyatelier.dto.CloudinaryUploadResult;
+import com.dailyatelier.dailyatelier.dto.ArtistRegisterDto;
 import com.dailyatelier.dailyatelier.entity.PointAccount;
 import com.dailyatelier.dailyatelier.entity.CloudinaryCleanup;
 import com.dailyatelier.dailyatelier.entity.User;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +53,8 @@ class UserServiceTest {
     private CloudinaryService cloudinaryService;
     @Mock
     private CloudinaryCleanupRepository cloudinaryCleanupRepository;
+    @Mock
+    private PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @InjectMocks
     private UserService userService;
@@ -85,6 +89,25 @@ class UserServiceTest {
         UserProfileDto response = userService.getUserProfile("member");
 
         assertThat(response.getProfileImageUrl()).isEqualTo(user.getProfileImageUrl());
+    }
+
+    @Test
+    void blocksArtistRegistrationBeforeCreatingPublicDemoUser() {
+        ArtistRegisterDto dto = new ArtistRegisterDto();
+        dto.setUserId("new-artist");
+        doThrow(new DomainApiException(
+                HttpStatus.FORBIDDEN,
+                "PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED",
+                "공개 데모에서는 새 작가 가입을 지원하지 않습니다"
+        )).when(publicDemoAccessPolicy).assertArtistRegistrationAllowed();
+
+        assertThatThrownBy(() -> userService.registerArtist(dto))
+                .isInstanceOf(DomainApiException.class)
+                .satisfies(error -> assertThat(((DomainApiException) error).getCode())
+                        .isEqualTo("PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED"));
+
+        verify(userRepository, never()).save(any());
+        verify(artistRepository, never()).save(any());
     }
 
     @Test

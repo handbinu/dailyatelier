@@ -64,6 +64,9 @@ class UserServiceImageTransactionTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
+    @MockitoBean
+    private PublicDemoAccessPolicy publicDemoAccessPolicy;
+
     @BeforeEach
     void cleanUp() {
         cloudinaryCleanupRepository.deleteAll();

@@ -48,6 +48,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
         "dailyatelier.local-demo.enabled=true",
+        "dailyatelier.local-demo.public-password=test-public-password",
+        "dailyatelier.local-demo.admin-password=test-admin-password",
         "spring.flyway.enabled=false",
         "spring.datasource.url=jdbc:h2:mem:local-demo-seed-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.username=sa",

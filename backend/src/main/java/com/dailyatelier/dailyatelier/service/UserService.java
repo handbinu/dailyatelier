@@ -44,6 +44,7 @@ public class UserService {
     private final PointAccountService pointAccountService;
     private final CloudinaryService cloudinaryService;
     private final CloudinaryCleanupRepository cloudinaryCleanupRepository;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     //로그인
     public LoginResponseDto login(LoginRequestDto dto){
@@ -74,6 +75,7 @@ public class UserService {
     //작가 회원가입
     @Transactional
     public void registerArtist(ArtistRegisterDto dto){
+        publicDemoAccessPolicy.assertArtistRegistrationAllowed();
         User user = new User();
         user.setUserId(dto.getUserId());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));

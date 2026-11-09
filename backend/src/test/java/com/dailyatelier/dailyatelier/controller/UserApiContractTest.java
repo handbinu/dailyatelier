@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,6 +65,24 @@ class UserApiContractTest {
                 .andExpect(jsonPath("$.message")
                         .value("아이디 또는 비밀번호가 올바르지 않습니다"))
                 .andExpect(jsonPath("$.path").value("/api/auth/login"));
+    }
+
+    @Test
+    void publicDemoArtistRegistrationBlockUsesCommonErrorContract() throws Exception {
+        doThrow(new DomainApiException(
+                HttpStatus.FORBIDDEN,
+                "PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED",
+                "공개 데모에서는 새 작가 가입을 지원하지 않습니다"
+        )).when(userService).registerArtist(any());
+
+        mockMvc.perform(post("/api/auth/register/artist")
+                        .contentType("application/json")
+                        .content("{\"userId\":\"new-artist\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code")
+                        .value("PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED"))
+                .andExpect(jsonPath("$.path").value("/api/auth/register/artist"));
     }
 
     @Test
