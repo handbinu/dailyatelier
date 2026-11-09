@@ -1,0 +1,40 @@
+/* Shared visual roles: layout stays in each screen module. */
+.da-brand-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(110deg, #294F45 0%, #315F52 38%, #4F7F6D 72%, #6AA48B 100%) !important;
+}
+.da-brand-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 320' preserveAspectRatio='none'%3E%3Cfilter id='paper' filterUnits='userSpaceOnUse' x='0' y='0' width='1200' height='320'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.009' numOctaves='2' seed='73' stitchTiles='stitch' result='washNoise'/%3E%3CfeColorMatrix in='washNoise' type='saturate' values='0' result='washLuma'/%3E%3CfeColorMatrix in='washLuma' values='.333 .333 .333 0 0 .333 .333 .333 0 0 .333 .333 .333 0 0 .333 .333 .333 0 0' result='washAlpha'/%3E%3CfeComponentTransfer in='washAlpha' result='washMask'%3E%3CfeFuncA type='table' tableValues='0 .14'/%3E%3C/feComponentTransfer%3E%3CfeFlood flood-color='%23dbe7df' flood-opacity='.28' result='washColor'/%3E%3CfeComposite in='washColor' in2='washMask' operator='in' result='wash'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.18 .64' numOctaves='4' seed='31' stitchTiles='stitch' result='fiberNoise'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.42' numOctaves='2' seed='107' stitchTiles='stitch' result='fiberWarp'/%3E%3CfeDisplacementMap in='fiberNoise' in2='fiberWarp' scale='16' xChannelSelector='R' yChannelSelector='G' result='fiberWarped'/%3E%3CfeColorMatrix in='fiberWarped' type='saturate' values='0' result='fiberLuma'/%3E%3CfeColorMatrix in='fiberLuma' values='.333 .333 .333 0 0 .333 .333 .333 0 0 .333 .333 .333 0 0 .333 .333 .333 0 0' result='fiberAlpha'/%3E%3CfeComponentTransfer in='fiberAlpha' result='fiberMask'%3E%3CfeFuncA type='table' tableValues='0 .34'/%3E%3C/feComponentTransfer%3E%3CfeFlood flood-color='%23fff9e9' flood-opacity='.78' result='fiberColor'/%3E%3CfeComposite in='fiberColor' in2='fiberMask' operator='in' result='fiber'/%3E%3CfeMerge%3E%3CfeMergeNode in='wash'/%3E%3CfeMergeNode in='fiber'/%3E%3C/feMerge%3E%3C/filter%3E%3Crect width='1200' height='320' fill-opacity='0' filter='url(%23paper)'/%3E%3C/svg%3E") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+.da-brand-banner > * { position: relative; z-index: 1; }
+
+.da-button-final { background: var(--color-action-final) !important; border-color: var(--color-action-final) !important; color: var(--color-action-final-text) !important; font-weight: 700 !important; }
+.da-button-final:hover:not(:disabled) { background: var(--color-action-final-hover) !important; border-color: var(--color-action-final-hover) !important; }
+.da-button-secondary { background: var(--color-surface) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
+.da-button-secondary:hover:not(:disabled) { background: var(--color-notice-bg) !important; border-color: var(--color-action-primary-hover) !important; color: var(--color-action-primary-hover) !important; }
+.da-button-secondary-soft { background: var(--color-notice-bg) !important; border-color: var(--color-notice-border) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
+.da-button-secondary-soft:hover:not(:disabled) { background: var(--color-notice-border) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary-hover) !important; }
+.da-button-state, .da-pagination-current { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; font-weight: 700 !important; }
+.da-button-filter-search { background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: #fff !important; font-weight: 700 !important; }
+.da-button-filter-search:hover:not(:disabled) { background: var(--color-action-primary-hover) !important; border-color: var(--color-action-primary-hover) !important; }
+.da-button-filter-search--inverse { background: #e6dcc9 !important; border-color: #e6dcc9 !important; color: #292829 !important; font-weight: 700 !important; }
+.da-button-filter-search--inverse:hover:not(:disabled) { background: #dacdb5 !important; border-color: #dacdb5 !important; color: #292829 !important; }
+.da-button-filter-reset { background: #dbe7df !important; border-color: var(--color-action-primary) !important; color: var(--color-action-primary) !important; font-weight: 600 !important; }
+.da-button-filter-reset:hover:not(:disabled) { background: var(--color-notice-bg) !important; border-color: var(--color-action-primary-hover) !important; color: var(--color-action-primary-hover) !important; }
+.da-button-danger { background: var(--color-surface) !important; border-color: var(--color-error) !important; color: var(--color-error) !important; font-weight: 600 !important; }
+.da-button-danger:hover:not(:disabled) { background: var(--color-error-bg) !important; }
+.da-button-final:disabled, .da-button-secondary:disabled, .da-button-state:disabled { background: var(--color-surface-alt) !important; border-color: var(--color-border) !important; color: var(--color-text-muted) !important; cursor: not-allowed; }
+
+.da-notice { background: var(--color-notice-bg) !important; border-color: var(--color-notice-border) !important; }

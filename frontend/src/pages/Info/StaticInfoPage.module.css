@@ -1,0 +1,106 @@
+.page {
+  min-height: 58vh;
+  padding: var(--space-16) var(--space-6);
+  background: var(--color-page-warm);
+}
+
+.card {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.eyebrow {
+  margin-bottom: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.16em;
+}
+
+.card h1 {
+  color: var(--color-primary);
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+}
+
+.intro {
+  margin-top: var(--space-4);
+  color: var(--color-text-sub);
+  line-height: 1.8;
+}
+
+.sections { margin-top: var(--space-8); }
+
+.section { padding: var(--space-5) 0; }
+.section + .section { border-top: 1px solid var(--color-border); }
+
+.section h2 {
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+}
+
+.section p {
+  margin-top: var(--space-2);
+  color: var(--color-text-sub);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+}
+
+.textLink {
+  display: inline-block;
+  margin-top: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.primaryLink,
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.primaryLink {
+  color: #fff;
+  background: var(--color-action-primary);
+}
+
+.primaryLink:hover {
+  color: #fff;
+  background: var(--color-action-primary-hover);
+}
+
+.secondaryLink {
+  color: var(--color-action-primary);
+  border: 1px solid var(--color-action-primary);
+  background: var(--color-surface);
+}
+
+.secondaryLink:hover {
+  color: var(--color-action-primary-hover);
+  border-color: var(--color-action-primary-hover);
+  background: var(--color-notice-bg);
+}
+
+@media (max-width: 560px) {
+  .page { padding: var(--space-10) var(--space-4); }
+  .card { padding: var(--space-8) var(--space-5); }
+  .actions { flex-direction: column; }
+}

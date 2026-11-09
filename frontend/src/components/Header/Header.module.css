@@ -1,0 +1,433 @@
+/* ============================================================
+   Header.module.css  —  데일리 아틀리에 글로벌 헤더
+   ============================================================ */
+
+/* ── 헤더 컨테이너 ───────────────────────────────────────── */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow var(--transition-base),
+              background var(--transition-base);
+}
+
+.header.scrolled {
+  box-shadow: 0 2px 20px rgba(35, 31, 34, 0.1);
+}
+
+/* ── 내부 레이아웃 ───────────────────────────────────────── */
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  height: var(--header-height, 4.5rem);
+}
+
+/* ── 로고 ────────────────────────────────────────────────── */
+.logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  height: 3.25rem;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ── GNB (데스크톱) ──────────────────────────────────────── */
+.gnb {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: 100%;
+  flex: 0 1 auto;
+  margin-right: var(--space-3);
+}
+
+.gnbItem {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.gnbTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-5);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: color var(--transition-base);
+  height: 100%;
+}
+
+.gnbTrigger:hover,
+.gnbItem.open .gnbTrigger {
+  color: var(--color-accent);
+}
+
+/* ── 드롭다운 ────────────────────────────────────────────── */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -8px) scale(0.98);
+  min-width: 130px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-md);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: top center;
+  transition: opacity 160ms ease,
+              transform 180ms ease,
+              visibility 0s linear 180ms;
+}
+
+.gnbItem.open .dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0) scale(1);
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.dropdownList {
+  padding: var(--space-2) 0;
+  list-style: none;
+}
+
+.dropdownLink {
+  display: block;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-sub);
+  white-space: nowrap;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.dropdownLink:hover,
+.dropdownLink.active {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+/* ── 헤더 배경 (드롭다운 오버레이) ──────────────────────── */
+.hdBg {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 6px 20px rgba(35, 31, 34, 0.08);
+  transition: opacity var(--transition-base);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hdBgVisible {
+  opacity: 1;
+}
+
+/* ── 검색 ────────────────────────────────────────────────── */
+.searchWrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base);
+}
+
+.searchWrap:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(119, 140, 134, 0.15);
+}
+
+.gnbTrigger:focus-visible,
+.dropdownLink:focus-visible,
+.hamburger:focus-visible,
+.mobileLink:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: -3px;
+}
+
+.searchType {
+  align-self: stretch;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  outline: none;
+  cursor: pointer;
+}
+
+.searchInput {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  width: 200px;
+  color: var(--color-text);
+  outline: none;
+  box-shadow: none;
+}
+
+.searchInput:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.searchBtn:hover { color: var(--color-accent); }
+
+/* ── 사용자 메뉴 ─────────────────────────────────────────── */
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.nickname {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  padding: 0 var(--space-2);
+}
+
+.authActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.userLink {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.userLink:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-alt);
+}
+
+.loginBtn:hover {
+  color: var(--color-action-primary);
+  background: var(--color-notice-bg);
+}
+
+.registerBtn {
+  background: var(--color-action-primary);
+  color: #fff !important;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-weight: var(--font-weight-medium);
+}
+
+.registerBtn:hover {
+  background: var(--color-action-primary-hover) !important;
+  color: #fff !important;
+}
+
+.registerBtn:focus-visible { outline-color: var(--color-action-primary); }
+
+/* ── 햄버거 (모바일) ─────────────────────────────────────── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transform-origin: center;
+  transition: transform var(--transition-base),
+              opacity var(--transition-base);
+}
+
+.hamburgerOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburgerOpen span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburgerOpen span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ── 모바일 메뉴 ─────────────────────────────────────────── */
+.mobileMenu {
+  display: none;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+}
+
+.mobileSection {
+  padding: var(--space-2) 0;
+}
+
+.mobileSectionLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-2) var(--space-6);
+}
+
+.mobileLink {
+  display: block;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.mobileLink:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.mobileDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-2) var(--space-6);
+}
+
+/* ── 반응형 ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .inner { gap: var(--space-3); }
+  .searchInput { width: 105px; padding-inline: var(--space-2); }
+  .searchType { padding-inline: var(--space-2); }
+  .gnbTrigger { padding: 0 var(--space-3); }
+  .userLink { padding-inline: var(--space-2); }
+}
+
+@media (max-width: 900px) {
+  .inner { padding-inline: 16px; }
+  .gnb,
+  .searchWrap,
+  .userMenu {
+    display: none;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .mobileMenu {
+    display: flex;
+    height: calc(100dvh - var(--header-height));
+  }
+
+  .mobileSearch {
+    display: flex;
+    flex-shrink: 0;
+    margin: 0 16px var(--space-4);
+  }
+
+  .mobileSectionLabel,
+  .mobileLink { padding-inline: 16px; }
+  .mobileDivider { margin-inline: 16px; }
+
+  .mobileSearch .searchInput {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .gnbTrigger,
+  .dropdown,
+  .hdBg,
+  .searchWrap,
+  .searchBtn,
+  .userLink,
+  .hamburger span,
+  .mobileLink {
+    transition: none;
+  }
+}
