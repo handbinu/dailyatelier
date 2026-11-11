@@ -1,20 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getArts, searchArts } from '../../api/artApi'
-import { formatClosingTime, formatPrice, getDeadlineMeta } from '../../utils/artDisplay'
+import { formatClosingTime, formatPrice, formatRemainingTime, getAuctionStatusMeta, getDeadlineMeta } from '../../utils/artDisplay'
 import {
   applyArtImageFallback,
   applyArtImageFallbackIfBlank,
   getArtImageSrc,
 } from '../../utils/artImage'
 import styles from './Home.module.css'
-
-/* ── 슬라이드 데이터 ───────────────────────────────────── */
-const SLIDES = [
-  { src: './img/main/001.jpg', alt: '슬라이드 1' },
-  { src: './img/main/002.jpg', alt: '슬라이드 2' },
-  { src: './img/main/003.jpg', alt: '슬라이드 3' },
-]
 
 /* ── 탭 필터 옵션 ──────────────────────────────────────── */
 const ART_FILTERS = [
@@ -26,7 +19,7 @@ const ART_FILTERS = [
 /* ────────────────────────────────────────────────────────── */
 
 export default function Home() {
-  const [slideIdx, setSlideIdx] = useState(0)
+  const [now, setNow] = useState(0)
   const [endFilter, setEndFilter] = useState('all')
   const [newArts, setNewArts] = useState([])
   const [newArtsLoading, setNewArtsLoading] = useState(true)
@@ -40,37 +33,11 @@ export default function Home() {
   const [endedArtsLoading, setEndedArtsLoading] = useState(true)
   const [endedArtsError, setEndedArtsError] = useState('')
   const [endedArtsRetryKey, setEndedArtsRetryKey] = useState(0)
-  const timerRef = useRef(null)
-  const reduceMotionRef = useRef(false)
-
-  /* 자동 슬라이드 */
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-
-    const stopTimer = () => {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-    const startTimer = () => {
-      stopTimer()
-      if (reduceMotionRef.current) return
-      timerRef.current = setInterval(() => {
-        setSlideIdx((i) => (i + 1) % SLIDES.length)
-      }, 4000)
-    }
-    const syncMotionPreference = (event) => {
-      reduceMotionRef.current = event.matches
-      if (event.matches) stopTimer()
-      else startTimer()
-    }
-
-    reduceMotionRef.current = mediaQuery.matches
-    startTimer()
-    mediaQuery.addEventListener('change', syncMotionPreference)
-    return () => {
-      stopTimer()
-      mediaQuery.removeEventListener('change', syncMotionPreference)
-    }
+    const syncNow = () => setNow(Date.now())
+    syncNow()
+    const timer = window.setInterval(syncNow, 60_000)
+    return () => window.clearInterval(timer)
   }, [])
 
   useEffect(() => {
@@ -81,7 +48,7 @@ export default function Home() {
       setNewArtsError('')
 
       try {
-        const { data } = await getArts({ page: 0, size: 6, signal: controller.signal })
+        const { data } = await getArts({ page: 0, size: 3, signal: controller.signal })
         setNewArts(data.content ?? [])
       } catch (requestError) {
         if (requestError.code === 'ERR_CANCELED') return
@@ -139,7 +106,7 @@ export default function Home() {
           sort: 'RECENTLY_ENDED',
           format: endFilter === 'all' ? undefined : endFilter,
           page: 0,
-          size: 6,
+          size: 4,
           signal: controller.signal,
         })
         if (controller.signal.aborted) return
@@ -157,17 +124,6 @@ export default function Home() {
     return () => controller.abort()
   }, [endFilter, endedArtsRetryKey])
 
-  const goSlide = (idx) => {
-    clearInterval(timerRef.current)
-    timerRef.current = null
-    setSlideIdx(idx)
-    if (reduceMotionRef.current) return
-    timerRef.current = setInterval(
-      () => setSlideIdx((i) => (i + 1) % SLIDES.length),
-      4000
-    )
-  }
-
   const endedArtsParams = new URLSearchParams({
     status: 'ENDED',
     sort: 'RECENTLY_ENDED',
@@ -177,94 +133,16 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      {/* ── 히어로 슬라이더 ─────────────────────────── */}
-      <section className={styles.hero} aria-label="메인 슬라이더">
-        <div className={styles.heroMedia}>
-          <div className={styles.slideTrack}>
-            {SLIDES.map((s, i) => (
-              <div
-                key={i}
-                className={`${styles.slide} ${i === slideIdx ? styles.slideActive : ''}`}
-                aria-hidden={i !== slideIdx}
-              >
-                <img src={s.src} alt={s.alt} draggable={false} />
-              </div>
-            ))}
-          </div>
-
-          {/* 이전/다음 버튼 */}
-          <button
-            className={`${styles.slideArrow} ${styles.slideArrowLeft}`}
-            onClick={() => goSlide((slideIdx - 1 + SLIDES.length) % SLIDES.length)}
-            aria-label="이전 슬라이드"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            className={`${styles.slideArrow} ${styles.slideArrowRight}`}
-            onClick={() => goSlide((slideIdx + 1) % SLIDES.length)}
-            aria-label="다음 슬라이드"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 페이징 */}
-        <div className={styles.pageDots} role="tablist" aria-label="슬라이드 선택">
-          {SLIDES.map((_, i) => (
-            <button
-              key={i}
-              role="tab"
-              aria-selected={i === slideIdx}
-              className={`${styles.dot} ${i === slideIdx ? styles.dotActive : ''}`}
-              onClick={() => goSlide(i)}
-              aria-label={`슬라이드 ${i + 1}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── 소개 배너 ───────────────────────────────── */}
-      <section className={styles.introduce} aria-label="서비스 소개">
-        <div className={styles.introduceText}>
-          <h2 className={styles.introduceHeading}>
-            누구나 가볍게<br />
-            참여 할 수 있는<br />
-            <em>미술 경매사이트</em>
-          </h2>
-          <p className={styles.introduceSub}>
-            당신의 작품을 선보일 기회가 적었나요?<br />
-            신인 작가와 기회가 적었던 작가들을 위한 사이트
-          </p>
-          <Link to="/auction/total" className={styles.introduceBtn}>
-            경매 참여하기 →
-          </Link>
-        </div>
-        <div className={styles.introduceImages}>
-          <img
-            src="/img/home-intro-primary.jpg"
-            alt="갤러리 소개 1"
-            className={styles.introImg1}
-          />
-          <img
-            src="/img/home-intro-secondary.jpg"
-            alt="갤러리 소개 2"
-            className={styles.introImg2}
-          />
-        </div>
-      </section>
+      <Hero art={newArts[0]} loading={newArtsLoading} error={newArtsError} now={now} />
 
       {/* ── Best Art ────────────────────────────────── */}
-      <section className={`${styles.section} ${!bestArtsLoading && !bestArtsError && bestArts.length === 1 ? styles.bestSectionSingle : ''}`} aria-label="베스트 작품">
+      <section className={`${styles.section} ${styles.bestSection} ${!bestArtsLoading && !bestArtsError && bestArts.length === 1 ? styles.bestSectionSingle : ''}`} aria-label="베스트 작품">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Art</h2>
-          <p className={styles.sectionDesc}>
-            종료된 작품 중 현재가가 높은 작품을 소개합니다
-          </p>
+          <div>
+            <p className={styles.eyebrow}>Auction records</p>
+            <h2 className={styles.sectionTitle}>Best Art</h2>
+          </div>
+          <Link to="/search?status=ENDED&sort=PRICE_DESC" className={styles.sectionMore}>전체 결과 보기 →</Link>
         </div>
         <BestArtGrid
           arts={bestArts}
@@ -275,15 +153,19 @@ export default function Home() {
       </section>
 
       {/* ── 신규 작품 ────────────────────────────────── */}
-      <section className={styles.section} aria-label="신규 작품">
+      <section className={`${styles.section} ${styles.newSection}`} aria-label="신규 작품">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>신규 작품</h2>
+          <div>
+            <p className={styles.eyebrow}>New to auction</p>
+            <h2 className={styles.sectionTitle}>신규 작품</h2>
+          </div>
           <Link to="/auction/total?page=1" className={styles.sectionMore}>전체 작품 보기 →</Link>
         </div>
         <NewArtGrid
           arts={newArts}
           loading={newArtsLoading}
           error={newArtsError}
+          now={now}
           onRetry={() => setNewArtsRetryKey((key) => key + 1)}
         />
       </section>
@@ -291,7 +173,10 @@ export default function Home() {
       {/* ── 종료 작품 ────────────────────────────────── */}
       <section className={`${styles.section} ${styles.sectionAlt}`} aria-label="종료 작품">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>종료 작품</h2>
+          <div>
+            <p className={styles.eyebrow}>Closed auction</p>
+            <h2 className={styles.sectionTitle}>종료 작품</h2>
+          </div>
           <div className={styles.sectionActions}>
             <FilterTabs
               options={ART_FILTERS}
@@ -310,6 +195,53 @@ export default function Home() {
         />
       </section>
     </div>
+  )
+}
+
+function Hero({ art, loading, error, now }) {
+  const auction = art ? getAuctionStatusMeta(art, now) : null
+  const canBid = auction?.phase === 'ONGOING'
+
+  return (
+    <section className={styles.hero} aria-label="Daily Atelier 소개">
+      <div className={styles.noticeBand}>
+        <Link to="/info" className={styles.noticeStrip}><strong>NOTICE</strong><span>경매 이용 안내와 참여 방법을 확인하세요</span><span aria-hidden="true">→</span></Link>
+      </div>
+      <div className={styles.heroInner}>
+        <div className={styles.heroCopy}>
+          <p className={styles.heroEyebrow}>NOW BIDDING</p>
+          <h1>
+            오늘,<br />
+            새로운 <em>작품</em>을<br />
+            만나다
+          </h1>
+          <p>
+            당신의 작품을 선보일 기회가 적었나요?<br />
+            신인 작가와 기회가 적었던 작가들을 위한 사이트
+          </p>
+          <Link to="/auction/total" className={styles.heroCta}>경매 참여하기 <span aria-hidden="true">→</span></Link>
+        </div>
+
+        {!loading && !error && art && (
+          <Link to={`/auction/${art.artId}`} state={{ from: '/' }} className={styles.heroArt} aria-label={`${art.name} 작품 상세 보기`}>
+            <div className={styles.heroArtImage}>
+              <img
+                src={getArtImageSrc(art.imgPath)}
+                alt={art.name}
+                onError={applyArtImageFallback}
+                onLoad={applyArtImageFallbackIfBlank}
+              />
+              <span className={styles.heroArtIndex}>01</span>
+            </div>
+            <div className={styles.heroArtMeta}>
+              <span>{art.artistName || '작가 미상'}</span>
+              <strong>{art.name}</strong>
+              <span>{canBid ? `현재가 ${formatPrice(art.currentPrice)}원 · ${formatRemainingTime(art.closingTime, now)}` : auction.label}</span>
+            </div>
+          </Link>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -369,6 +301,7 @@ function BestArtGrid({ arts, loading, error, onRetry }) {
         </Link>
         )
       })}
+      {arts.length === 4 && <span className={styles.bestEmptyRank} aria-hidden="true">05</span>}
     </div>
   )
 }
@@ -382,7 +315,7 @@ function FilterTabs({ options, value, onChange }) {
           key={opt.value}
           role="tab"
           aria-selected={value === opt.value}
-          className={`${styles.filterTab} ${value === opt.value ? `${styles.filterTabActive} da-button-state` : ''}`}
+          className={`${styles.filterTab} ${value === opt.value ? styles.filterTabActive : ''}`}
           onClick={() => onChange(opt.value)}
         >
           {opt.label}
@@ -392,7 +325,7 @@ function FilterTabs({ options, value, onChange }) {
   )
 }
 
-function NewArtGrid({ arts, loading, error, onRetry }) {
+function NewArtGrid({ arts, loading, error, onRetry, now }) {
   if (loading) {
     return (
       <div className={styles.artGrid} aria-label="신규 작품을 불러오는 중" aria-busy="true">
@@ -422,7 +355,9 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
   return (
     <div className={`${styles.artGrid} ${arts.length <= 2 ? styles.compactGrid : ''}`}>
       {arts.map((art) => {
-        const deadline = getDeadlineMeta(art.closingTime)
+        const auction = getAuctionStatusMeta(art, now)
+        const deadline = getDeadlineMeta(art.closingTime, now)
+        const canBid = auction.phase === 'ONGOING'
         return (
           <Link
             key={art.artId}
@@ -438,20 +373,22 @@ function NewArtGrid({ arts, loading, error, onRetry }) {
                 onError={applyArtImageFallback}
                 onLoad={applyArtImageFallbackIfBlank}
               />
-              <span className={`${styles.homeStatusBadge} ${deadline.isUrgent ? styles.homeStatusUrgent : ''} ${deadline.isClosed ? styles.homeStatusClosed : ''}`}>
-                {deadline.label}
+              <span className={`${styles.homeStatusBadge} ${auction.phase === 'ONGOING' && deadline.isUrgent ? styles.homeStatusUrgent : ''} ${auction.phase !== 'ONGOING' ? styles.homeStatusClosed : ''}`}>
+                {auction.label}
               </span>
               <div className={styles.artOverlay}>
-                <span className={styles.artBidBtn}>작품 보기</span>
+                <span className={styles.artBidBtn}>{canBid ? '응찰하기' : '작품 보기'}</span>
               </div>
             </div>
             <div className={styles.artInfo}>
               <p className={styles.artTitle}>{art.name}</p>
               <p className={styles.artArtist}>by {art.artistName || '작가 미상'}</p>
-              <p className={styles.artPrice}>현재가: {formatPrice(art.currentPrice)}원</p>
-              <p className={`${styles.artTime} ${deadline.isUrgent ? styles.artTimeUrgent : ''}`}>
-                마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time>
+              <p className={`${styles.artTime} ${auction.phase === 'ONGOING' && deadline.isUrgent ? styles.artTimeUrgent : ''}`}>
+                {canBid ? formatRemainingTime(art.closingTime, now) : auction.label}
               </p>
+              <p className={styles.artClosing}>마감 <time dateTime={art.closingTime}>{formatClosingTime(art.closingTime)}</time></p>
+              <p className={styles.artPrice}><span>현재가</span><strong>{formatPrice(art.currentPrice)}원</strong></p>
+              {canBid && <span className={styles.inlineBidCta}>응찰하기 <span aria-hidden="true">→</span></span>}
             </div>
           </Link>
         )
@@ -515,7 +452,7 @@ function EndedArtGrid({ arts, loading, error, from, onRetry }) {
             <div className={styles.artInfo}>
               <p className={styles.artTitle}>{art.name}</p>
               <p className={styles.artPrice}>
-                {sold ? '낙찰가' : '최종가'}: {formatPrice(art.currentPrice)}원
+                <span>{sold ? '낙찰가' : '최종가'}</span><strong>{formatPrice(art.currentPrice)}원</strong>
               </p>
             </div>
           </Link>

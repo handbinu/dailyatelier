@@ -160,7 +160,7 @@ export default function Header() {
   return (
     <header
       ref={headerRef}
-      className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}
+      className={`${styles.header} ${location.pathname === '/' ? styles.homeHeader : ''} ${scrolled ? styles.scrolled : ''}`}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpenIdx(null)
       }}

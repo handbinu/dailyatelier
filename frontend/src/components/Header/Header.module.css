@@ -431,3 +431,63 @@
     transition: none;
   }
 }
+
+/* B. Auction Journal의 직선형 공통 헤더 */
+.header { background: rgba(255, 253, 247, .96); border-bottom: 1px solid rgba(41, 70, 61, .16); }
+.header.scrolled { box-shadow: 0 4px 20px rgba(27, 51, 43, .09); }
+.inner { max-width: 1440px; height: 72px; padding-inline: 5.2vw; }
+.logo img { height: 2.65rem; }
+.gnbTrigger { font-size: 14px; color: #29463d; }
+.gnbTrigger:hover, .gnbItem.open .gnbTrigger { color: #71866e; }
+.dropdown { border-color: #c7d0c3; border-top-color: #29463d; border-radius: 0; box-shadow: 0 10px 24px rgba(27, 51, 43, .12); }
+.dropdownLink:hover, .dropdownLink.active { color: #29463d; background: #eef1e8; }
+.searchWrap { border-radius: 0; border-color: #b9c6b5; background: transparent; }
+.searchWrap:focus-within { border-color: #29463d; box-shadow: 0 0 0 3px rgba(41, 70, 61, .12); }
+.searchBtn:hover { color: #29463d; }
+.userLink { border-radius: 0; }
+.userLink:hover { color: #29463d; background: #eef1e8; }
+.registerBtn { border-radius: 0; background: #29463d; }
+.registerBtn:hover { background: #1c342c !important; }
+.hamburger span { border-radius: 0; background: #29463d; }
+.mobileMenu { background: #fffdf7; border-top-color: #c7d0c3; }
+.mobileLink:hover { background: #eef1e8; color: #29463d; }
+
+@media (max-width: 900px) {
+  .inner { height: 64px; padding-inline: 16px; }
+  .logo img { height: 2.35rem; }
+}
+
+/* 홈에서만 B안 히어로와 연속되는 dark-sage 헤더 */
+.homeHeader { background: #25362f; border-bottom-color: rgba(255,255,255,.2); }
+.homeHeader .logo { gap: 14px; }
+.homeHeader .logo img { display: block; height: 2.2rem; filter: brightness(0) invert(1); }
+.homeHeader .logo::after { content: 'DailyAtelier'; color: #fff; font-family: Georgia, 'Nanum Myeongjo', serif; font-size: 27px; letter-spacing: -.05em; white-space: nowrap; }
+.homeHeader .gnbTrigger, .homeHeader .userLink, .homeHeader .nickname { color: #fff; background: transparent; }
+.homeHeader .gnbTrigger:hover, .homeHeader .gnbItem.open .gnbTrigger { color: #dfe9de; }
+.homeHeader .searchWrap { border-color: #698074; background-color: #25362f; color: #fff; }
+.homeHeader .searchWrap:focus-within { border-color: #dfe9de; background-color: #25362f; box-shadow: 0 0 0 3px rgba(223, 233, 222, .22); }
+.homeHeader .searchType { min-width: 70px; padding-left: 10px; padding-right: 24px; border-right-color: #698074; background-color: #25362f; color: #dfe9de; }
+.homeHeader .searchInput, .homeHeader .searchBtn { background-color: #25362f; color: #fff; }
+.homeHeader .searchInput::placeholder { color: #b9c9bd; }
+.homeHeader .userLink:hover { color: #fff; background: rgba(255,255,255,.1); }
+.homeHeader .registerBtn { color: #25362f !important; background: #dfe9de; }
+.homeHeader .registerBtn:hover { background: #fff !important; }
+.homeHeader .hamburger span { background: #fff; }
+.homeHeader .mobileMenu { background: #25362f; border-top-color: #698074; }
+.homeHeader .mobileLink { color: #fff; }
+.homeHeader .mobileSectionLabel { color: #b9c9bd; }
+.homeHeader .mobileDivider { background: #698074; }
+.homeHeader .mobileLink:hover { color: #fff; background: rgba(255,255,255,.1); }
+.homeHeader .dropdown { background:#30443b; border-color:#698074; border-top-color:#dfe9de; box-shadow:0 10px 24px rgba(13, 28, 23, .28); }
+.homeHeader .dropdownLink { color:#f3f5ef; }
+.homeHeader .dropdownLink:hover, .homeHeader .dropdownLink.active { color:#fff; background:#41594d; }
+.homeHeader .dropdownLink:focus-visible { outline-color:#dfe9de; outline-offset:-3px; background:#41594d; }
+.homeHeader .gnbTrigger:focus-visible, .homeHeader .userLink:focus-visible, .homeHeader .searchBtn:focus-visible, .homeHeader .hamburger:focus-visible { outline:2px solid #dfe9de; outline-offset:3px; }
+.homeHeader .gnbTrigger:focus, .homeHeader .gnbTrigger:focus-visible { color: #fff; background: rgba(255,255,255,.12); }
+.homeHeader .searchType:focus, .homeHeader .searchInput:focus, .homeHeader .searchBtn:focus, .homeHeader .searchBtn:focus-visible { color: #fff; background-color: #25362f; box-shadow: none; }
+
+@media (max-width: 900px) {
+  .homeHeader .logo { gap: 12px; }
+  .homeHeader .logo img { height: 1.95rem; }
+  .homeHeader .logo::after { font-size: 21px; }
+}

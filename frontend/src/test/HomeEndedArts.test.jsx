@@ -42,6 +42,45 @@ describe('홈 종료 작품', () => {
     expect(searchArts).toHaveBeenCalledWith(expect.objectContaining({ status: 'ENDED', sort: 'PRICE_DESC', page: 0, size: 4 }))
   })
 
+  it('실제 신규 작품을 히어로에 사용하고 하트 없이 진행 상태의 응찰 CTA만 표시한다', async () => {
+    const activeArt = {
+      artId: 41,
+      name: '실제 진행 작품',
+      artistName: '실제 작가',
+      imgPath: '/active.jpg',
+      currentPrice: 250000,
+      artStatus: 0,
+      bidStartTime: '2020-01-01T00:00:00.000Z',
+      closingTime: '2099-01-01T00:00:00.000Z',
+    }
+    getArts.mockResolvedValue({ data: { content: [activeArt] } })
+    searchArts.mockResolvedValue({ data: { content: [] } })
+    renderHome()
+
+    expect(await screen.findByRole('link', { name: '실제 진행 작품 작품 상세 보기' })).toHaveAttribute('href', '/auction/41')
+    expect(screen.getAllByText('응찰하기')).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: /찜/ })).not.toBeInTheDocument()
+  })
+
+  it('서버 상태가 종료이거나 마감 시각이 지난 작품에는 응찰 가능 문구를 표시하지 않는다', async () => {
+    const endedArt = {
+      artId: 42,
+      name: '종료된 신규 작품',
+      imgPath: '/ended.jpg',
+      currentPrice: 1000,
+      artStatus: 1,
+      bidStartTime: '2020-01-01T00:00:00.000Z',
+      closingTime: '2099-01-01T00:00:00.000Z',
+    }
+    getArts.mockResolvedValue({ data: { content: [endedArt] } })
+    searchArts.mockResolvedValue({ data: { content: [] } })
+    renderHome()
+
+    await screen.findByRole('link', { name: '종료된 신규 작품 작품 상세 보기' })
+    expect(screen.queryByText('응찰하기')).not.toBeInTheDocument()
+    expect(screen.getAllByText('작품 보기').length).toBeGreaterThan(0)
+  })
+
   it('Best Art의 빈 결과와 오류 재시도 상태에서 가짜 카드나 링크를 표시하지 않는다', async () => {
     searchArts
       .mockRejectedValueOnce({ response: { data: { message: 'Best Art 조회 실패' } } })
@@ -62,13 +101,15 @@ describe('홈 종료 작품', () => {
     expect(screen.getByLabelText('종료 작품을 불러오는 중')).toHaveAttribute('aria-busy', 'true')
     expect((await screen.findAllByText('낙찰 작품')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('유찰 작품').length).toBeGreaterThan(0)
-    expect(screen.getByText('낙찰가: 120,000원')).toBeInTheDocument()
-    expect(screen.getByText('최종가: 80,000원')).toBeInTheDocument()
+    expect(screen.getByText('낙찰가')).toBeInTheDocument()
+    expect(screen.getByText('120,000원')).toBeInTheDocument()
+    expect(screen.getByText('최종가')).toBeInTheDocument()
+    expect(screen.getByText('80,000원')).toBeInTheDocument()
     expect(screen.getByText('낙찰')).toBeInTheDocument()
     expect(screen.getByText('유찰')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '낙찰 작품 종료 작품 상세 보기' })).toHaveAttribute('href', '/auction/7')
     expect(document.querySelector('a[href^="/auction/e"]')).not.toBeInTheDocument()
-    expect(searchArts).toHaveBeenCalledWith(expect.objectContaining({ status: 'ENDED', sort: 'RECENTLY_ENDED', format: undefined, page: 0, size: 6 }))
+    expect(searchArts).toHaveBeenCalledWith(expect.objectContaining({ status: 'ENDED', sort: 'RECENTLY_ENDED', format: undefined, page: 0, size: 4 }))
     expect(screen.getByRole('link', { name: '종료 작품 전체 보기 →' })).toHaveAttribute('href', '/search?status=ENDED&sort=RECENTLY_ENDED')
   })
 

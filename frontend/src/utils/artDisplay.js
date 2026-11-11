@@ -16,13 +16,13 @@ export const formatClosingTime = (closingTime) => {
   return Number.isNaN(date.getTime()) ? '마감 일시 미정' : closingFormatter.format(date)
 }
 
-export const getDeadlineMeta = (closingTime) => {
+export const getDeadlineMeta = (closingTime, now = Date.now()) => {
   const closingTimestamp = new Date(closingTime).getTime()
   if (Number.isNaN(closingTimestamp)) {
     return { label: '마감 일시 미정', isUrgent: false, isClosed: false }
   }
 
-  const remaining = closingTimestamp - Date.now()
+  const remaining = closingTimestamp - now
   if (remaining <= 0) {
     return { label: '마감됨', isUrgent: false, isClosed: true }
   }
@@ -30,6 +30,19 @@ export const getDeadlineMeta = (closingTime) => {
     return { label: '마감 임박', isUrgent: true, isClosed: false }
   }
   return { label: '진행 중', isUrgent: false, isClosed: false }
+}
+
+export const formatRemainingTime = (closingTime, now = Date.now()) => {
+  const remaining = new Date(closingTime).getTime() - now
+  if (!Number.isFinite(remaining) || remaining <= 0) return '마감됨'
+
+  const totalMinutes = Math.ceil(remaining / 60_000)
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+  const minutes = totalMinutes % 60
+  if (days > 0) return `${days}일 ${hours}시간 남음`
+  if (hours > 0) return `${hours}시간 ${minutes}분 남음`
+  return `${Math.max(minutes, 1)}분 남음`
 }
 
 export const getAuctionStatusMeta = ({ artStatus, bidStartTime, closingTime }, now = Date.now()) => {

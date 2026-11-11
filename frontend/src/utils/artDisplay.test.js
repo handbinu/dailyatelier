@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getAuctionStatusMeta } from './artDisplay.js'
+import { formatRemainingTime, getAuctionStatusMeta } from './artDisplay.js'
 
 const start = '2026-08-11T10:00:00.000Z'
 const closing = '2026-08-11T11:00:00.000Z'
@@ -26,4 +26,10 @@ test('취소 상태는 일반 종료와 구분해 표시한다', () => {
     getAuctionStatusMeta({ artStatus: 3, bidStartTime: null, closingTime: null }),
     { label: '경매 취소', tone: 'ended', phase: 'CANCELED' },
   )
+})
+
+test('짧은 남은 시간은 유효한 마감 시각에만 표시한다', () => {
+  assert.equal(formatRemainingTime(closing, Date.parse('2026-08-11T10:30:00.000Z')), '30분 남음')
+  assert.equal(formatRemainingTime(closing, Date.parse(closing)), '마감됨')
+  assert.equal(formatRemainingTime('invalid', Date.parse(start)), '마감됨')
 })

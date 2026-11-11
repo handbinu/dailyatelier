@@ -72,3 +72,25 @@
   .top { flex-direction: column; align-items: flex-start; }
   .inner { padding: var(--space-8) var(--space-4) var(--space-6); }
 }
+
+/* B. Auction Journal의 정보형 푸터 */
+.footer { background: #203a32; }
+.inner { max-width: 1440px; padding: 52px 5.2vw 30px; gap: 26px; }
+.top { align-items: flex-start; padding-bottom: 34px; border-bottom-color: rgba(255,255,255,.18); }
+.brand { display: grid; gap: 12px; max-width: 310px; }
+.brand img { display: none; }
+.brand::before { content: 'DailyAtelier'; color: #fff; font-family: Georgia, 'Nanum Myeongjo', serif; font-size: 31px; letter-spacing: -.05em; }
+.brand p { color: rgba(255,255,255,.7); font-size: 13px; line-height: 1.65; }
+.links { gap: 0; }
+.linkItem { min-width: 112px; color: rgba(255,255,255,.86); font-size: 13px; }
+.linkItem:hover { color: #d7e6c2; }
+.divider { display: none; }
+.bottom { gap: 0; }
+.copy { margin-top: 0; color: rgba(255,255,255,.48); font-size: 11px; }
+
+@media (max-width: 768px) {
+  .inner { padding: 42px 16px 22px; }
+  .top { gap: 32px; padding-bottom: 28px; }
+  .links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; width: 100%; }
+  .linkItem { min-width: 0; font-size: 13px; }
+}
