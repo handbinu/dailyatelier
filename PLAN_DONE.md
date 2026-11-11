@@ -9,6 +9,11 @@
 > 구현 과정, 조사 과정, QA 실행 절차, 테스트 케이스별 상세 내용,
 > 커밋 해시·커밋 목록은 반복 기록하지 않는다.
 
+## B. Auction Journal 홈 UI
+
+- 실제 API·경매 상태·상세 이동 계약을 유지하며 작품 중심 Hero, Best Art 4건, 신규 3건, 종료 4건과 반응형 Header·Footer를 B안으로 정리했다. 홈의 자동 슬라이드 표시는 제거했고, 응찰 CTA는 실제 진행 상태에서만 표시한다.
+- 전용 로컬 `dailyatelier_ui_qa` DB에서 Flyway와 local-demo fixture를 적용해 Playwright desktop/mobile 28/28을 통과했다. 컴포넌트 테스트 225/225, lint·build, 1440px·390px 시각 QA도 완료했다.
+
 ## README·기술 문서 통합
 
 - README는 서비스 소개·대표 화면·기능·거래 흐름·기술 결정·검증 요약과 로컬 실행 안내를 유지하고, 상세 설계와 주제별 검증 결과·코드·테스트 근거는 `docs/TECHNICAL.md`로 통합했다. 별도 SETUP·VERIFICATION 문서는 제거했다.
