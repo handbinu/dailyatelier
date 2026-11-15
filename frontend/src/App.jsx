@@ -1,120 +1,118 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Layout      from './layouts/Layout'
+import PrivateRoute from './pages/auth/PrivateRoute'
+import ArtistRoute from './pages/auth/ArtistRoute'
+import AdminRoute from './pages/auth/AdminRoute'
+
+// ── 인증
+import Login          from './pages/auth/Login'
+import RegisterSelect from './pages/auth/RegisterSelect'
+import RegisterUser   from './pages/auth/RegisterUser'
+import RegisterArtist from './pages/auth/RegisterArtist'
+
+// ── 메인
+import Home from './pages/Home/Home'
+
+// ── 마이페이지 허브
+import MyPage from './pages/MyPage/MyPage'
+
+// ── 마이페이지 세부 — 공통 (일반·작가 모두)
+import BidStatus      from './pages/MyPage/BidStatus'
+import Likes          from './pages/MyPage/Likes'
+import SuccessfulBid  from './pages/MyPage/SuccessfulBid'
+import MyReview       from './pages/MyPage/MyReview'
+import WriteReview    from './pages/MyPage/WriteReview'
+import ProfileEdit    from './pages/MyPage/ProfileEdit'
+import Charge         from './pages/MyPage/Charge'
+import OrderStatus    from './pages/MyPage/OrderStatus'
+import InquiryList    from './pages/MyPage/InquiryList'
+import InquiryWrite   from './pages/MyPage/InquiryWrite'
+import AdminInquiry   from './pages/MyPage/AdminInquiry'
+
+// ── 마이페이지 세부 — 작가 전용
+import UploadSell   from './pages/MyPage/UploadSell'
+import ManageArts   from './pages/MyPage/ManageArts'
+import EditArt      from './pages/MyPage/EditArt'
+import ArtistReview from './pages/MyPage/ArtistReview.jsx'
+import SalesOrders  from './pages/MyPage/SalesOrders'
+import ArtDetail    from './pages/Auction/ArtDetail'
+import AuctionTotal from './pages/Auction/AuctionTotal'
+import ArtistList   from './pages/Artist/ArtistList'
+import ArtistDetail from './pages/Artist/ArtistDetail'
+import ArtSearch from './pages/Search/ArtSearch'
+import StaticInfoPage from './pages/Info/StaticInfoPage'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <Routes>
+        {/*
+         * Layout이 모든 라우트를 감쌉니다.
+         * ─ BARE_ROUTES(로그인·회원가입) : 헤더·푸터 없음
+         * ─ 그 외 모든 페이지             : Header + Footer 항상 표시
+         */}
+        <Route element={<Layout />}>
 
-      <div className="ticks"></div>
+          {/* ── 공개 인증 페이지 ── */}
+          <Route path="/login"           element={<Login />} />
+          <Route path="/register"        element={<RegisterSelect />} />
+          <Route path="/register/user"   element={<RegisterUser />} />
+          <Route path="/register/artist" element={<RegisterArtist />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {/* ── 공개 페이지 ── */}
+          <Route path="/"                element={<Home />} />
+          <Route path="/auction/total"   element={<AuctionTotal />} />
+          <Route path="/auction/digital" element={<AuctionTotal type="digital" />} />
+          <Route path="/auction/analog"  element={<AuctionTotal type="analog" />} />
+          <Route path="/auction/:id"     element={<ArtDetail />} />
+          <Route path="/artists"         element={<ArtistList />} />
+          <Route path="/artists/:artistId" element={<ArtistDetail />} />
+          <Route path="/info"            element={<StaticInfoPage type="info" />} />
+          <Route path="/qna"             element={<StaticInfoPage type="qna" />} />
+          <Route path="/search"          element={<ArtSearch />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          {/* ── 보호된 라우트 (로그인 필수) ── */}
+          <Route element={<PrivateRoute />}>
+
+            {/* ── 마이페이지 ── */}
+            <Route path="/mypage"                element={<MyPage />} />
+            <Route path="/reliable-status"       element={<BidStatus />} />
+
+            {/* 공통 세부 페이지 */}
+            <Route path="/mypage/bid-status"     element={<BidStatus />} />
+            <Route path="/mypage/likes"          element={<Likes />} />
+            <Route path="/mypage/successful-bid" element={<SuccessfulBid />} />
+            <Route path="/mypage/my-review"      element={<MyReview />} />
+            <Route path="/mypage/profile-edit"   element={<ProfileEdit />} />
+            <Route path="/mypage/order-status"   element={<OrderStatus />} />
+            <Route path="/mypage/inquiry"        element={<InquiryList />} />
+            <Route path="/mypage/inquiry/write"  element={<InquiryWrite />} />
+            <Route path="/charge"                element={<Charge />} />
+
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/inquiries" element={<AdminInquiry />} />
+            </Route>
+
+            {/* 리뷰 작성/수정 — orderId 파라미터 */}
+            <Route path="/write-review/:orderId" element={<WriteReview />} />
+
+            {/* 작가 전용 */}
+            <Route element={<ArtistRoute />}>
+              <Route path="/upload"                element={<UploadSell />} />
+              <Route path="/mypage/manage-arts"    element={<ManageArts />} />
+              <Route path="/mypage/manage-arts/:artId/edit" element={<EditArt />} />
+              <Route path="/mypage/artist-review"  element={<ArtistReview />} />
+              <Route path="/mypage/sales-orders"   element={<SalesOrders />} />
+            </Route>
+
+          </Route>
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 

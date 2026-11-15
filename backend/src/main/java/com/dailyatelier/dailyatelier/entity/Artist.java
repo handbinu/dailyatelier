@@ -15,8 +15,8 @@ public class Artist {
     @Column(name = "artist_code", length = 36, updatable = false, nullable = false)
     private String artistCode;
 
-    @OneToOne
-    @JoinColumn(name = "user_id")
+    @OneToOne(optional = false, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
     @Column(length = 50)

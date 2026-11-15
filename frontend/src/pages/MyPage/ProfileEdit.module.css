@@ -1,0 +1,265 @@
+/* ProfileEdit.module.css */
+.body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+/* 저장 완료 배너 */
+.savedBanner {
+  padding: var(--space-3) var(--space-5);
+  background: rgba(30,140,79,.1);
+  border: 1px solid rgba(30,140,79,.25);
+  border-radius: var(--radius-md);
+  color: #1e8c4f;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+  text-align: center;
+  animation: slideDown .3s ease;
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+.form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* 카드 섹션 */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
+}
+.cardTitle {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.optional { font-size: var(--font-size-xs); color: var(--color-text-muted); font-weight: 400; }
+
+/* 프로필 아바타 */
+.avatarRow { display: flex; align-items: center; gap: var(--space-5); }
+.avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent), #4a7a72);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.avatarInitial { font-size: 2rem; font-weight: 700; color: #fff; }
+.avatarImage { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--color-surface); }
+.avatarInfo { display: flex; flex-direction: column; gap: var(--space-2); }
+.avatarGuide { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.avatarActions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  min-height: 36px;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.fileLabel { color: var(--color-action-primary); }
+.fileLabel:hover { border-color: var(--color-action-primary); color: var(--color-action-primary); background: var(--color-surface); }
+.fileLabelDisabled { cursor: not-allowed; opacity: .65; }
+.fileInput { display: none; }
+.imageSaveBtn {
+  padding: var(--space-2) var(--space-4);
+  min-height: 36px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-action-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.imageSaveBtn:hover:not(:disabled) { color: var(--color-action-primary); background: var(--color-surface); border-color: var(--color-action-primary); }
+.imageSaveBtn:disabled { background: var(--color-surface-alt); border-color: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; }
+
+/* 필드 그리드 */
+.fieldGrid { display: flex; flex-direction: column; gap: var(--space-5); }
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.fieldLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-action-primary);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.fieldLabel { color: var(--color-text-sub); }
+
+/* 인풋 공통 */
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+.input:focus { outline: none; border-color: var(--color-action-primary); box-shadow: 0 0 0 3px rgba(119,140,134,.18); background: var(--color-surface); }
+.inputOk  { border-color: #1e8c4f !important; }
+.inputErr { border-color: var(--color-error) !important; }
+
+.select {
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.select:focus { border-color: var(--color-action-primary); box-shadow: 0 0 0 3px rgba(119,140,134,.18); }
+
+/* 복합 인풋 행 */
+.inlineRow { display: flex; gap: var(--space-2); align-items: center; }
+.inlineRow .input { flex: 1; }
+
+.telRow { display: flex; align-items: center; gap: var(--space-2); }
+.telPart { width: 80px; flex-shrink: 0; }
+.telDash { color: var(--color-text-muted); flex-shrink: 0; }
+
+.emailRow { display: flex; align-items: center; gap: var(--space-2); }
+.emailRow .input { flex: 1; }
+
+.emailPreview {
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  font-weight: 600;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+/* 중복확인 버튼 */
+.checkBtn {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.checkBtn:hover:not(:disabled) { color: var(--color-action-primary); border-color: var(--color-action-primary); }
+.checkBtn { color: var(--color-action-primary); border-color: var(--color-action-primary); }
+
+.postcodeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, .55);
+}
+.postcodeDialog {
+  width: min(100%, 560px);
+  max-height: calc(100vh - var(--space-8));
+  padding: var(--space-5);
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.postcodeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.postcodeHeader h2 { color: var(--color-primary); font-size: var(--font-size-lg); }
+.postcodeHeader p { margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.postcodeClose {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+.postcodeHost {
+  min-height: 400px;
+  overflow: hidden;
+}
+.postcodeHost iframe { display: block; width: 100% !important; min-height: 400px; border: 0; }
+
+/* 라디오 */
+.radioRow { display: flex; gap: var(--space-5); }
+.radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+/* 피드백 메시지 */
+.fieldMsg { font-size: var(--font-size-xs); padding-left: 2px; min-height: 1.1em; }
+.fieldOk  { color: #1e8c4f; }
+.fieldErr { color: var(--color-error); }
+
+/* 하단 버튼 */
+.btnRow { display: flex; gap: var(--space-3); }
+.submitBtn {
+  flex: 1;
+  padding: var(--space-4);
+  background: var(--color-action-final);
+  color: var(--color-action-final-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.submitBtn:hover:not(:disabled) { background: var(--color-action-final-hover); }
+.submitBtn:active:not(:disabled) { transform: translateY(1px); }
+.submitBtn:disabled { background: var(--color-border-dark); cursor: not-allowed; }
+
+.cancelBtn {
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.cancelBtn:hover { background: var(--color-surface-alt); }
+
+@media (max-width: 560px) {
+  .card { padding: var(--space-5) var(--space-4); }
+  .telRow { flex-wrap: wrap; }
+  .emailRow { flex-wrap: wrap; }
+  .postcodeDialog { padding: var(--space-4); }
+}

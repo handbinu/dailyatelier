@@ -1,0 +1,124 @@
+.body {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.content {
+  padding: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.artist,
+.meta {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-sub);
+}
+
+.price {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.actions {
+  margin-top: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actions:has(> a:nth-child(2)) > a:last-child {
+  background: var(--color-accent-hover);
+  color: #fff;
+  border-color: var(--color-accent-hover);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.actions:has(> a:nth-child(2)) > a:last-child:hover,
+.actions:has(> a:nth-child(2)) > a:last-child:focus-visible,
+.actions:has(> a:nth-child(2)) > a:last-child:active {
+  background-color: color-mix(in srgb, var(--color-accent-hover) 76%, var(--color-primary));
+  color: #fff;
+}
+
+.actions:has(> a:nth-child(2)) > a:last-child:focus-visible {
+  outline-color: var(--color-primary);
+}
+
+.orderUnavailable {
+  align-self: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+}
+
+.feedback {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.pagination {
+  margin-top: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.pagination button,
+.paginationCurrent {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination button { cursor: pointer; }
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .body { padding-inline: 16px; }
+  .thumb {
+    aspect-ratio: 4 / 3;
+  }
+}

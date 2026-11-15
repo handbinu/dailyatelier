@@ -1,0 +1,499 @@
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getAllMyBids, getAllMyWins, getUserProfile } from '../../api/userApi'
+import { getMyArts } from '../../api/artApi'
+import { getMyInquiries } from '../../api/inquiryApi'
+import { formatPrice } from '../../utils/artDisplay'
+import { applyArtImageFallback, getArtImageSrc } from '../../utils/artImage'
+import { fmt } from './mockData'
+import { Badge } from './components/atoms'
+import styles from './MyPage.module.css'
+
+const BID_STATUS_META = {
+  ONGOING: { label: '진행 중', color: 'green' },
+  IMMINENT: { label: '24시간 내 마감', color: 'orange' },
+  ENDED: { label: '종료', color: 'gray' },
+}
+
+const T = {
+  home: '홈',
+  mypage: '마이페이지',
+  artist: '작가 회원',
+  loading: '로딩 중...',
+  loginRequired: '로그인이 필요합니다.',
+  profileLoadFail: '프로필 조회 실패',
+  profileChanged: '회원 정보가 수정되었습니다.',
+  editFail: '정보 수정에 실패했습니다.',
+  logoutConfirm: '로그아웃 하시겠습니까?',
+  save: '저장',
+  saving: '저장 중...',
+  close: '닫기',
+  editProfile: '프로필 수정',
+  changePhoto: '프로필 사진 변경',
+  user: '사용자',
+  emailNone: '이메일 정보 없음',
+  point: '보유 포인트',
+  charge: '충전하기',
+  artUpload: '작품 등록',
+  artManage: '작품 관리',
+  logout: '로그아웃',
+  recentBids: '최근 입찰 현황',
+  successful: '낙찰 작품',
+  noBids: '진행 중인 입찰이 없습니다.',
+  noSuccess: '낙찰 작품이 없습니다.',
+  currentBid: '현재 입찰가',
+  finalBid: '낙찰가',
+  myArts: '내 작품',
+  noInquiry: '문의 항목이 없습니다.',
+  tabs: {
+    home: '홈',
+    bid: '입찰 현황',
+    likes: '찜한 작품',
+    success: '낙찰 작품',
+    review: '작성한 리뷰',
+    order: '구매 주문',
+    inquiry: '문의 현황',
+    manage: '작품 관리',
+    artistReview: '판매 작품 리뷰',
+    salesOrder: '판매 주문 관리',
+  },
+}
+
+const USER_TABS = [
+  { name: T.tabs.home, path: '/mypage' },
+  { name: T.tabs.bid, path: '/mypage/bid-status' },
+  { name: T.tabs.likes, path: '/mypage/likes' },
+  { name: T.tabs.success, path: '/mypage/successful-bid' },
+  { name: T.tabs.review, path: '/mypage/my-review' },
+  { name: T.tabs.order, path: '/mypage/order-status' },
+  { name: T.tabs.inquiry, path: '/mypage/inquiry' },
+]
+
+const ARTIST_TABS = [
+  { name: T.artUpload, path: '/upload' },
+  { name: T.tabs.manage, path: '/mypage/manage-arts' },
+  { name: T.tabs.artistReview, path: '/mypage/artist-review' },
+  { name: T.tabs.salesOrder, path: '/mypage/sales-orders' },
+]
+
+export default function MyPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [profileError, setProfileError] = useState('')
+  const [profileUpdated] = useState(location.state?.profileUpdated === true)
+  const [bids, setBids] = useState([])
+  const [bidsLoading, setBidsLoading] = useState(true)
+  const [bidsError, setBidsError] = useState('')
+  const [wins, setWins] = useState([])
+  const [winsLoading, setWinsLoading] = useState(true)
+  const [winsError, setWinsError] = useState('')
+  const [myArtsCount, setMyArtsCount] = useState(0)
+  const [myArtsLoading, setMyArtsLoading] = useState(true)
+  const [myArtsError, setMyArtsError] = useState('')
+  const [inquiryCount, setInquiryCount] = useState(0)
+  const [inquiryLoading, setInquiryLoading] = useState(true)
+  const [inquiryError, setInquiryError] = useState('')
+  const [retryKey, setRetryKey] = useState(0)
+
+  const token = localStorage.getItem('token')
+  const userStatus = Number(localStorage.getItem('userStatus') ?? 0)
+  const isArtist = userStatus === 1
+  const isAdmin = userStatus === 2
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true)
+    setProfileError('')
+    try {
+      const response = await getUserProfile()
+      setUser(response.data)
+    } catch (error) {
+      console.error(T.profileLoadFail, error)
+      setUser(null)
+      setProfileError(error.response?.data?.message || '프로필 정보를 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!token) {
+      alert(T.loginRequired)
+      navigate('/login', { replace: true })
+      return undefined
+    }
+
+    loadProfile()
+    return undefined
+  }, [loadProfile, navigate, token])
+
+  useEffect(() => {
+    if (location.state?.profileUpdated !== true) return
+    const remainingState = { ...location.state }
+    delete remainingState.profileUpdated
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      {
+        replace: true,
+        state: Object.keys(remainingState).length > 0 ? remainingState : null,
+      },
+    )
+  }, [location.hash, location.pathname, location.search, location.state, navigate])
+
+  useEffect(() => {
+    if (!token) return undefined
+
+    getAllMyBids()
+      .then((items) => {
+        setBids(items)
+        setBidsError('')
+      })
+      .catch((err) => {
+        console.error('입찰 현황 조회 실패', err)
+        setBidsError(err.response?.data?.message || '입찰 현황을 불러오지 못했습니다.')
+      })
+      .finally(() => setBidsLoading(false))
+
+    getAllMyWins()
+      .then((items) => {
+        setWins(items)
+        setWinsError('')
+      })
+      .catch((err) => {
+        console.error('낙찰 작품 조회 실패', err)
+        setWinsError(err.response?.data?.message || '낙찰 작품을 불러오지 못했습니다.')
+      })
+      .finally(() => setWinsLoading(false))
+
+    if (isArtist) {
+      getMyArts({ state: 'ALL', page: 0, size: 1 })
+        .then(({ data }) => {
+          setMyArtsCount(Number(data?.totalElements ?? 0))
+          setMyArtsError('')
+        })
+        .catch((err) => {
+          console.error('내 작품 수 조회 실패', err)
+          setMyArtsError(err.response?.data?.message || '내 작품 수를 불러오지 못했습니다.')
+        })
+        .finally(() => setMyArtsLoading(false))
+    }
+
+    setInquiryLoading(true)
+    setInquiryError('')
+    getMyInquiries({ status: 'PENDING', size: 1 })
+      .then(({ data }) => {
+        setInquiryCount(Number(data?.totalElements ?? 0))
+      })
+      .catch(() => setInquiryError('문의 대기 수를 불러오지 못했습니다.'))
+      .finally(() => setInquiryLoading(false))
+  }, [isArtist, navigate, retryKey, token])
+
+  if (!token) return null
+
+  const retryOverview = () => {
+    setBidsLoading(true)
+    setBidsError('')
+    setWinsLoading(true)
+    setWinsError('')
+    if (isArtist) {
+      setMyArtsLoading(true)
+      setMyArtsError('')
+    }
+    setRetryKey((key) => key + 1)
+  }
+
+  return (
+    <div className={styles.page}>
+      <div className={`${styles.heroBanner} da-brand-banner`}>
+        <div className={styles.heroBannerInner}>
+          <span className={styles.heroBreadcrumb}>{T.home} · {T.mypage}</span>
+          <h1 className={styles.heroTitle}>MY PAGE</h1>
+          {isArtist && <span className={styles.artistBadge}>{T.artist}</span>}
+        </div>
+      </div>
+
+      {profileUpdated && (
+        <div className={styles.profileUpdateNotice} role="status">
+          {T.profileChanged}
+        </div>
+      )}
+
+      <div className={styles.layout}>
+        <aside className={styles.sidebar}>
+          {loading ? (
+            <ProfileLoadState message="프로필 정보를 불러오는 중입니다." />
+          ) : profileError ? (
+            <ProfileLoadState message={profileError} onRetry={loadProfile} error />
+          ) : user ? (
+            <>
+              <ProfileCard user={user} isArtist={isArtist} />
+              <PointCard user={user} />
+            </>
+          ) : null}
+          <QuickActions isAdmin={isAdmin} navigate={navigate} />
+        </aside>
+
+        <main className={styles.content}>
+          <div className={styles.menuGroups}>
+            <MyPageMenu
+              title="내 활동"
+              items={USER_TABS}
+              pathname={location.pathname}
+              bidsCount={bidsLoading || bidsError
+                ? '-'
+                : bids.filter((bid) => bid.auctionStatus !== 'ENDED').length}
+              inquiryCount={inquiryLoading || inquiryError ? '-' : inquiryCount}
+            />
+            {isArtist && (
+              <MyPageMenu
+                title="작가 관리"
+                items={ARTIST_TABS}
+                pathname={location.pathname}
+                artist
+              />
+            )}
+          </div>
+
+          <div className={styles.overviewPanel}>
+            <OverviewTab
+              bids={bids}
+              bidsLoading={bidsLoading}
+              bidsError={bidsError}
+              wins={wins}
+              winsLoading={winsLoading}
+              winsError={winsError}
+              isArtist={isArtist}
+              myArtsCount={myArtsCount}
+              myArtsLoading={myArtsLoading}
+              myArtsError={myArtsError}
+              onRetry={retryOverview}
+            />
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function MyPageMenu({ title, items, pathname, bidsCount, inquiryCount, artist = false }) {
+  return (
+    <nav className={styles.menuGroup} aria-label={title}>
+      <h2 className={styles.menuGroupTitle}>{title}</h2>
+      <div className={styles.menuLinks}>
+        {items.map((item) => {
+          const isActive = pathname === item.path
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              aria-current={isActive ? 'page' : undefined}
+              className={`${styles.menuLink} ${isActive ? styles.menuLinkActive : ''} ${artist ? styles.menuLinkArtist : ''}`}
+            >
+              {item.name}
+              {item.name === T.tabs.bid && <span className={styles.tabBadge}>{bidsCount}</span>}
+              {item.name === T.tabs.inquiry && <span className={styles.tabBadge}>{inquiryCount}</span>}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+function ProfileLoadState({ message, onRetry, error = false }) {
+  return (
+    <div className={styles.profileLoadState} role={error ? 'alert' : 'status'}>
+      <p>{message}</p>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>다시 시도</button>
+      )}
+    </div>
+  )
+}
+
+function ProfileCard({ user, isArtist }) {
+  const initial = user?.nickname?.[0] ?? '?'
+  const [failedImageUrl, setFailedImageUrl] = useState('')
+
+  return (
+    <div className={styles.profileCard}>
+      <div className={styles.avatar}>
+        {user?.profileImageUrl && failedImageUrl !== user.profileImageUrl ? (
+          <img
+            src={user.profileImageUrl}
+            alt={`${user?.nickname || T.user} 프로필`}
+            onError={() => setFailedImageUrl(user.profileImageUrl)}
+          />
+        ) : (
+          <span className={styles.avatarInitial}>{initial}</span>
+        )}
+        <Link className={styles.avatarEditBtn} aria-label={T.changePhoto} to="/mypage/profile-edit#profile-image">+</Link>
+      </div>
+      <p className={styles.profileNickname}>{user?.nickname || T.user}</p>
+      <p className={styles.profileEmail}>{user?.email || T.emailNone}</p>
+      {isArtist && <span className={styles.profileArtistTag}>{T.artist}</span>}
+      <Link className={styles.editProfileBtn} to="/mypage/profile-edit">{T.editProfile}</Link>
+    </div>
+  )
+}
+
+function PointCard({ user }) {
+  return (
+    <div className={styles.pointCard}>
+      <div className={styles.pointRow}>
+        <span className={styles.pointLabel}>사용 가능 포인트</span>
+        <span className={styles.pointValue}>{fmt(user?.availablePoint ?? user?.reserve ?? 0)}원</span>
+      </div>
+      <div className={styles.pointRow}>
+        <span className={styles.pointLabel}>입찰 예치 포인트</span>
+        <span className={styles.pointValue}>{fmt(user?.heldPoint ?? 0)}원</span>
+      </div>
+      <Link to="/charge" className={styles.chargeBtn}>
+        {T.charge}
+      </Link>
+    </div>
+  )
+}
+
+function QuickActions({ isAdmin, navigate }) {
+  const logout = () => {
+    if (!window.confirm(T.logoutConfirm)) return
+    ;['token', 'userId', 'nickname', 'userStatus'].forEach((k) => localStorage.removeItem(k))
+    navigate('/login')
+  }
+
+  return (
+    <div className={`${styles.quickActions} ${!isAdmin ? styles.quickActionsSingle : ''}`}>
+      {isAdmin && (
+        <Link to="/admin/inquiries" className={styles.quickBtn}>관리자 문의 관리</Link>
+      )}
+      <button className={styles.quickBtnLogout} onClick={logout}>{T.logout}</button>
+    </div>
+  )
+}
+
+function OverviewTab({
+  bids,
+  bidsLoading,
+  bidsError,
+  wins,
+  winsLoading,
+  winsError,
+  isArtist,
+  myArtsCount,
+  myArtsLoading,
+  myArtsError,
+  onRetry,
+}) {
+  const ongoing = bids.filter((bid) => bid.auctionStatus !== 'ENDED')
+  const imminent = bids.filter((bid) => bid.auctionStatus === 'IMMINENT')
+  const stats = [
+    { label: '\uC9C4\uD589 \uC911 \uC785\uCC30', value: bidsLoading || bidsError ? '-' : ongoing.length, unit: '건' },
+    { label: '24시간 내 마감', value: bidsLoading || bidsError ? '-' : imminent.length, unit: '건' },
+    {
+      label: T.successful,
+      value: winsLoading || winsError ? '-' : wins.length,
+      unit: '건',
+    },
+    ...(isArtist ? [{
+      label: T.myArts,
+      value: myArtsLoading ? '-' : myArtsError ? '-' : myArtsCount,
+      unit: '건',
+    }] : []),
+  ]
+
+  return (
+    <div className={styles.overviewWrap}>
+      <div className={`${styles.statGrid} ${isArtist ? styles.statGridArtist : ''}`}>
+        {stats.map((st) => (
+          <div key={st.label} className={styles.statCard}>
+            <span className={styles.statValue}>{st.value}<small>{st.unit}</small></span>
+            <span className={styles.statLabel}>{st.label}</span>
+          </div>
+        ))}
+      </div>
+      {isArtist && myArtsError && <EmptyState msg={myArtsError} onRetry={onRetry} />}
+
+      <section className={styles.overviewSection}>
+        <h3 className={styles.overviewSectionTitle}>{T.recentBids}</h3>
+        {bidsLoading ? (
+          <EmptyState msg="입찰 현황을 불러오는 중입니다." />
+        ) : bidsError ? (
+          <EmptyState msg={bidsError} onRetry={onRetry} />
+        ) : ongoing.length === 0 ? (
+          <EmptyState msg={T.noBids} />
+        ) : (
+          <div className={styles.miniList}>
+            {ongoing.map((b) => (
+              <MiniArtRow
+                key={b.artId}
+                img={getArtImageSrc(b.imgPath)}
+                title={b.artName}
+                sub={`${T.currentBid} ${formatPrice(b.myBidPrice)}원`}
+                badge={(BID_STATUS_META[b.auctionStatus] ?? BID_STATUS_META.ENDED).label}
+                badgeColor={(BID_STATUS_META[b.auctionStatus] ?? BID_STATUS_META.ENDED).color}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className={styles.overviewSection}>
+        <h3 className={styles.overviewSectionTitle}>{T.successful}</h3>
+        {winsLoading ? (
+          <EmptyState msg="낙찰 작품을 불러오는 중입니다." />
+        ) : winsError ? (
+          <EmptyState msg={winsError} onRetry={onRetry} />
+        ) : wins.length === 0 ? (
+          <EmptyState msg={T.noSuccess} />
+        ) : (
+          <div className={styles.miniList}>
+            {wins.slice(0, 3).map((win) => (
+              <MiniArtRow
+                key={win.artId}
+                img={getArtImageSrc(win.imgPath)}
+                title={win.artName}
+                sub={`${T.finalBid} ${formatPrice(win.winningPrice)}원`}
+                badge="낙찰"
+                badgeColor="blue"
+                orderPath={`/mypage/order-status?artId=${win.artId}`}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function EmptyState({ msg, onRetry }) {
+  return (
+    <div className={styles.emptyState}>
+      <span>{msg}</span>
+      {onRetry && (
+        <button type="button" className={styles.emptyRetryButton} onClick={onRetry}>
+          다시 시도
+        </button>
+      )}
+    </div>
+  )
+}
+
+function MiniArtRow({ img, title, sub, badge, badgeColor, orderPath }) {
+  return (
+    <div className={styles.miniRow}>
+      <img src={img} alt={title} className={styles.miniImg} onError={applyArtImageFallback} />
+      <div className={styles.miniInfo}>
+        <div className={styles.miniTop}>
+          <strong>{title}</strong>
+          <Badge label={badge} color={badgeColor} />
+        </div>
+        <p className={styles.miniSub}>{sub}</p>
+        {orderPath && (
+          <Link to={orderPath} className={styles.miniOrderLink}>주문 확인</Link>
+        )}
+      </div>
+    </div>
+  )
+}
