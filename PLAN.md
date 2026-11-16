@@ -9,61 +9,68 @@
 >
 > 새 계획이나 범위 변경은 사용자 승인 후 반영한다.
 
-## 무료 포트폴리오 배포 검증
+## 통합 마이페이지 React 구현
 
-### 목표
+> 상태: 구현 승인 대기. 확정 정적 시안의 정보 구조와 기존 기능을 결합하되, 정적 시안·기존 route·권한 계약은 변경하지 않는다.
 
-- Cloudflare Worker Static Assets Free + Cloudtype Free + Aiven MySQL Free + 기존 Cloudinary로 공개 URL과 핵심 흐름을 검증한다.
-- 상시 운영·유료 전환·PG 연동은 범위에서 제외한다.
+### 목표와 범위
 
-### 전제와 완료 기준
+- 확정 정적 시안 `design-prototypes/mypage-unified-menu-refined/`의 구매·판매 통합 정보 구조와 반응형 레이아웃을 `/mypage`에 적용한다.
+- 일반 구매자는 구매 활동만, 작가는 판매 관리 기본 진입과 구매 활동 전환을 제공한다.
+- 기존 Header, `PrivateRoute`/`ArtistRoute`, 개별 기능 route 및 주문 상세 동작을 보존한다.
+- React·프런트 테스트가 주 변경 후보이며, 판매 긴급 업무와 대표 입찰에 한해 선택적 API query를 최소 추가한다. DB migration은 포함하지 않는다.
 
-- Cloudtype Free의 하루 1회 중지와 Aiven Free의 유휴 power-off 가능성을 수용한다.
-- 개인 개발 DB와 분리된 Aiven 전용 demo 스키마만 사용한다.
-- Worker Static Assets URL에서 작품 조회, 로그인, 데모 포인트 충전, 입찰, 기존 Cloudinary 이미지 표시를 확인한다.
-- 실제 비밀값은 각 서비스의 환경변수/secret에만 넣고 저장소에는 추가하지 않는다.
-- 관리자 기능은 유지하되, 관리자 계정은 개발자만 사용하는 비공개 시연 계정으로 둔다. 공개 방문자에게 관리자 권한이나 읽기 전용 관리자 체험 계정은 제공하지 않는다.
+### 보존할 기존 계약
 
-### 작업 순서
+| 정적 메뉴/CTA | 유지할 기존 경로 또는 동작 |
+| --- | --- |
+| 입찰 현황 / 다시 입찰 | `/mypage/bid-status`, `/auction/:artId` |
+| 낙찰 작품 | `/mypage/successful-bid` |
+| 구매 주문 / 결제 대기 | `/mypage/order-status`, 대상 주문은 `?orderId=:id` |
+| 찜한 작품 / 작성한 리뷰 / 문의 / 프로필 | `/mypage/likes`, `/mypage/my-review`, `/mypage/inquiry`, `/mypage/profile-edit` |
+| 포인트·입찰 예치 포인트 | `/charge` 및 기존 포인트 내역 진입 동선 |
+| 작품 등록 / 관리 / 판매 주문 / 판매 작품 리뷰 | `/upload`, `/mypage/manage-arts`, `/mypage/sales-orders`, `/mypage/artist-review` |
+| 배송 준비·발송·환불 판단 | 기존 `SalesOrders`의 상태 전이·상세 UI를 재사용 |
 
-1. **Aiven demo DB 준비**
-   - Aiven Free MySQL을 생성하고 전용 DB·사용자를 발급한다.
-   - TLS JDBC 연결을 먼저 검증한 뒤, Cloudtype backend에 DB URL·계정·비밀번호를 secret으로 등록한다.
-   - Flyway V1~V11 적용과 Hibernate validate 성공을 로그로 확인한다.
+`사용 가능 포인트`와 `입찰 예치 포인트` 명칭은 기존 프로필의 `availablePoint`, `heldPoint`를 그대로 사용한다. `예치금`으로 통합하거나 금전 잔액처럼 표시하지 않는다.
 
-2. **Cloudtype backend 배포**
-   - `backend` 하위 경로, Java 17/Spring Boot 설정, Gradle build와 실행 명령, 포트 `8080`을 지정한다.
-   - DB/JWT/Cloudinary/CORS 및 `TZ=Asia/Seoul`을 환경변수로 설정한다.
-   - 공개 demo DB의 최초 fixture 준비에만 `local-demo` profile과 enabled flag를 켜고, 완료 후에는 `DAILYATELIER_LOCAL_DEMO_ENABLED=false`로 유지한다. 재기동으로 fixture를 재생성하지 않는다.
-   - API·Flyway·Cloudinary 설정 오류가 없는지 실행 로그를 확인한다.
+### 구현 단계
 
-3. **공개 데모 안전 경계 구현과 backend 검증**
-   - **관리자·데모 계정**: 공개 소스에 있던 관리자 비밀번호를 Aiven 전용 demo DB에서만 랜덤 비밀번호 해시로 교체한다. 관리자 로그인 정보는 Git, README, 공개 프론트 환경변수, 화면 안내에 노출하지 않는다.
-   - 관리자 비밀번호 교체는 기존 `authVersion`을 증가시키는 사용자 비밀번호 변경 경로와 동일한 원칙으로 수행한다. 교체 전 발급된 관리자 JWT가 이후 `401`이 되는 것을 확인한다. 작품·주문·포인트·문의 fixture는 변경하지 않는다.
-   - 공개 구매자·작가 계정은 핵심 시연용으로 유지하되, 공개 demo 전용 비밀번호를 환경변수로 분리하고 관리자 계정과 공유하지 않는다. 로컬 fixture 설정은 Git 제외 `_local`에만 둔다.
-   - **Cloudinary**: 공개 demo에서는 신규 작가 가입을 제한하고, 서명 발급은 환경변수에 지정한 demo 작가만 허용한다. 사용자별 서명 발급 횟수를 제한하되, 기존 `arts/<사용자>` 폴더 제한과 작품 등록 흐름은 유지한다.
-   - 업로드 기능은 허용 demo 작가로 수동 확인하고, Cloudinary 사용량 알림과 전용 폴더를 설정한다. 콘텐츠 심사·분산 rate limit·사용자별 저장량 제한은 BACKLOG로 분리한다.
-   - **공유 데이터**: 공개 계정의 입찰·주문·포인트 변경은 권한 우회가 아닌 공유 demo 데이터의 운영상 변경으로 분류한다. 자동 초기화·재시딩은 만들지 않고, 공유 상태 안내와 필요 시 승인된 수동 복구 절차만 둔다.
-   - Cloudtype에는 `CORS_ALLOWED_ORIGINS`로 확정된 Cloudflare Worker origin과 로컬 origin만 명시하고, `SPRING_JPA_SHOW_SQL=false`를 적용한다. Aiven JDBC TLS `sslMode=REQUIRED`와 Hibernate validate는 유지한다.
-   - 공개 프론트 배포 전에 backend 자동 테스트와 Cloudtype 환경변수 검토를 완료한다. 이미 공개된 Cloudtype API는 이 보안 조치와 환경변수 반영이 끝날 때까지 프론트에서 연결·안내하지 않는다.
+1. **통합 셸과 권한별 탐색**
+   - 현재 `/mypage`의 sidebar 기반 허브를 시안의 제목·자산 요약·탭·메뉴 구조로 교체한다.
+   - 작가만 `판매 관리 / 구매 활동` 탭을 보며 기본값은 판매 관리다. 일반 구매자는 탭과 판매 메뉴·판매 데이터 요청을 렌더·마운트하지 않고 구매 활동만 표시한다.
+   - 메뉴는 위 표의 기존 route를 `Link`로 연결한다. 모바일은 시안의 2열 구매 6개·판매 4개와 공통 메뉴 구분을 유지한다.
 
-4. **Cloudflare Worker Static Assets frontend 배포와 연결 확인**
-   - 보안 조치가 적용된 backend 검증 이후에만 `frontend`를 Worker build root로 지정한다.
-   - `frontend/wrangler.jsonc`의 `assets.directory=./dist`, `not_found_handling=single-page-application`을 사용하고 `npm run build`를 수행한다.
-   - build 환경변수 `VITE_API_BASE_URL`에 Cloudtype HTTPS API URL을 넣고, backend CORS에는 확정된 Worker origin만 등록한다.
-   - HTTPS Worker URL에서 API 호출이 CORS 오류 없이 동작하는지와 SPA 직접 경로 fallback을 확인한다.
-   - 작품 탐색 → 공개 구매자 로그인 → 데모 충전 → 입찰 → 기존 이미지 표시와 비공개 관리자 로그인 → 관리자 기능 시연을 수동 확인한다. Cloudtype/Aiven free-tier 중단 뒤 재기동 절차도 확인한다.
+2. **구매 활동 요약과 결제 우선순위**
+   - 프로필 1회 조회로 제목과 `availablePoint`/`heldPoint`를 표시한다. 통합 홈은 전체 페이지 순회 helper를 사용하지 않고 대표 항목만 작은 페이지 크기로 조회한다.
+   - 대표 입찰은 새 선택 query `state=ACTIVE&page=0&size=1`로 조회한다. DB에서 진행 중 작품만 먼저 좁히고 기존 `max(bidTime) DESC, artId DESC` 순서를 유지한다. `totalElements === 0`일 때만 진행 중 입찰 0건으로 표시한다.
+   - 대표 진행 작품은 기존 `getMyArts({ state: 'ACTIVE', page: 0, size: 2 })`를 사용한다. 현재 `artId DESC`는 가장 최근 등록된 진행 작품 선정 기준이며, `totalElements === 0`일 때만 0건이다.
+   - 결제 대기는 `getBuyerOrders({ status: 'PAYMENT_PENDING', page: 0, size: 1 })`로 확인하고 없으면 안내를 렌더하지 않는다. `shippingAddressConfirmed`가 거짓이면 `배송지 입력하기`, 참이면 `결제하기`를 표시하고, 모두 `/mypage/order-status?orderId=:id`의 기존 상세 흐름으로 연결한다. 로딩·오류에는 추측 CTA를 표시하지 않는다.
+   - 최근 활동은 통합 API 없이 입찰·주문·문의의 제한된 페이지 0 후보에서 실제 시각(`lastBidTime`, `createdAt`, `answeredAt ?? createdAt`)이 있는 항목만 합쳐 내림차순으로 정렬한 상위 2행이다. 전역 전체 시간순 feed로 표현하지 않으며, 출처와 기존 상세 목적지를 분명히 한다.
 
-### 변경 예상 범위와 승인 경계
+3. **판매 관리 요약과 긴급 업무**
+   - 작가 프로필과 `getMyArts` 첫 페이지로 소개·진행 작품을 표시하고, 판매 리뷰는 기존 `getArtistReviews` 첫 페이지 요약과 기존 전체 route를 사용한다.
+   - 배송 준비는 기존 `status=PAID&priority=OLDEST_WAITING`으로 `paidAt ASC, orderId ASC` 정렬과 전체 건수를 표시한다.
+   - 환불 요청은 선택적 `refundRequestStatus=REQUESTED&priority=OLDEST_WAITING`으로 `refundRequestedAt ASC, orderId ASC` 정렬과 전체 건수를 표시한다. `paidAt`, `refundRequestedAt`은 주문 상태 전이 시각으로 저장되어 별도 migration이 필요 없다.
+   - 기본 판매 주문 목록의 `createdAt DESC`는 유지한다. 긴급 `priority`는 홈과 긴급 업무용 전체 보기에서만 사용한다.
+   - 긴급 카드의 전체 보기는 각각 `/mypage/sales-orders?status=PAID&priority=OLDEST_WAITING`, `/mypage/sales-orders?refundRequestStatus=REQUESTED&priority=OLDEST_WAITING`로 연결한다. 카드 자체에는 `orderId=:id`를 더한다.
+   - `SalesOrders`는 `?orderId=:id` 진입 시 현재 목록 페이지와 무관하게 `getSellerOrder(orderId)`를 직접 조회해 대상 상세를 자동으로 연다. 대상이 목록 첫 페이지에 없어도 주문 맥락·환불 사유·판단 버튼을 보장한다.
 
-- backend의 demo 계정 비밀번호 설정, 공개 demo 작가 가입·Cloudinary 서명 제한, 관련 단위·API 테스트와 배포 문서만 최소 변경한다. 기존 Flyway migration과 주요 거래·작품 등록 계약은 변경하지 않는다.
-- Aiven 계정 비밀번호 해시 교체와 Cloudtype 환경변수 입력은 구현 검토·별도 승인 후에만 수행하며, 대상은 `dailyatelier_portfolio_demo`로 한정한다.
-- 기존 로컬 개발·테스트 환경은 공개 demo feature property가 명시적으로 활성화된 Cloudtype 배포에서만 제한되도록 유지한다.
-- Cloudtype이 `8080` 고정 포트를 허용하면 애플리케이션 코드는 변경하지 않는다. Aiven CA 검증 또는 SPA fallback이 현 설정만으로 불가능한 경우에만, 원인과 최소 변경안을 별도로 승인받는다.
+4. **반응형·상태 처리와 탭 복귀**
+   - 1440px 가로 탐색, 390px 2열 메뉴와 결제 우선순위를 적용한다. 긴 작품명·보조 정보는 CTA와 같은 행을 강제하지 않는다.
+   - 빈 데이터에는 예시 작품명·금액을 남기지 않고 역할별 빈 상태를 표시한다. 다수 데이터는 요약과 전체 보기로 기존 전용 화면에 위임한다.
+   - 기존 `createLatestRequest`/`AbortSignal` 패턴으로 탭 전환·unmount 뒤 오래된 응답이 화면을 덮지 않게 한다. 전역 상태·새 캐시는 도입하지 않는다.
+   - 작가 탭은 `/mypage?view=sell|buy`를 단일 상태 원천으로 사용한다. 기본값은 판매 관리이고, 탭 클릭은 browser history에 남겨 뒤로 가기·앞으로 가기에서 직전 탭으로 복귀한다. 일반 구매자는 query와 무관하게 구매 활동만 표시한다.
 
-### BACKLOG 후보
+5. **변경 대상과 검증**
+   - 변경 후보: `frontend/src/pages/MyPage/MyPage.jsx`, `MyPage.module.css`, 필요한 작은 표시 전용 컴포넌트, `SalesOrders.jsx`, `orderApi.js`, `userApi.js`, 판매 주문·입찰 controller/service/repository 및 API 계약 테스트, `MyPage.test.jsx`와 판매 주문 딥링크 회귀 테스트. `App.jsx`, Header, Flyway, 기존 route 이름은 바꾸지 않는다.
+   - 컴포넌트 테스트: 권한별 UI·요청, 작가 기본 탭·history 복귀, 메뉴 목적지, 결제 대기·배송지 상태 CTA, 대표 항목 0건 기준, 최근 활동 2행, 로딩·오류·긴 제목을 확인한다.
+   - 판매 주문 API·화면 테스트: 환불 필터, 긴급 정렬·페이지네이션, 기본 정렬 불변, 필터된 전체 목록, 목록 밖 `?orderId=` 상세를 확인한다. 입찰 API·화면 테스트: `state=ACTIVE`가 종료 작품을 제외하고 정확한 0건 판단에 쓰이는지 확인한다.
+   - 자동 검증: `npm run test:component`, `npm run lint`, `npm run build` 및 기존 주문·입찰·리뷰·작품 관리·권한 route 회귀. 브라우저 QA는 구매자·작가의 1440px/390px, 결제 대기 유무, `PAYMENT_PENDING`·`PAID`·`PREPARING`·환불 요청, 빈·다수 데이터, 긴 제목과 메뉴 목적지를 읽기 중심으로 확인한다. 실제 상태 변경은 승인된 테스트 환경·방법에서만 수행한다.
 
-- 로그인·회원가입 API의 전역 rate limit과 계정 생성 spam 방지
-- Cloudinary 콘텐츠 심사, 사용자별 저장량 제한, 분산 rate limit
-- 공유 demo DB의 수동 스냅샷·복구 문서화와 방문자별 임시 계정
-- Cloudtype 로그 보존·알림 정책 및 프론트 번들 분할 경고 개선
+### 완료 기준
+
+- 일반 구매자에게 판매 탐색·요청이 없고, 작가에게 판매 기본 진입과 구매 전환이 있다.
+- 기존 메뉴·CTA가 실제 route 또는 기존 상세 흐름으로 연결되며, 결제 대기 CTA의 문구와 다음 행동이 일치한다.
+- 결제 대기 0건은 안내와 빈 여백 없이 사라지고, 상태별 CTA는 `availableActions` 및 배송지 확정 상태를 벗어나지 않는다.
+- 1440px·390px에서 승인 시안의 우선순위·메뉴 구조를 유지하며, 기존 전용 기능 화면과 권한 검사가 회귀하지 않는다.

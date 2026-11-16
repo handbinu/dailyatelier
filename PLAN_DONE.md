@@ -417,3 +417,8 @@ ORDER BY account.user_id;
 - 공통 CTA 색 역할을 `UI_GUIDE.md`에 맞추고, 주요 CTA는 진한 세이지·차콜 fill hover는 차콜 계열로 정리했다.
 - 모바일 주요 화면의 외곽 기준선을 16px로 통일하고, `/mypage` 프로필 갱신 알림의 기준선을 hero·layout에 맞췄다.
 - 구매·판매 주문의 진행 CTA와 위험 액션 표현을 구분하고, 모바일 주문 취소 안내를 세로 배치로 정리했다.
+
+## 무료 포트폴리오 배포 검증
+
+- Aiven 전용 demo DB와 Cloudtype backend, Cloudflare Workers Static Assets 공개 데모를 분리해 구성했다. 공개 데모 보안 확인에서 허용 작가·구매자 로그인과 작가 서명은 성공했고, 신규 작가 등록 차단은 `403 PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED`로 확인했다.
+- Worker는 Vite `dist`와 SPA fallback을 사용하고, 허용된 Cloudflare origin의 CORS·credentials 응답을 확인했다. README의 공개 데모는 별도 수동 배포본이므로 이후 소스/UI 변경의 재배포 검증은 별도 작업으로 둔다.
