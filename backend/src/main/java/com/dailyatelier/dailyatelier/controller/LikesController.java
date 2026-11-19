@@ -3,6 +3,7 @@ package com.dailyatelier.dailyatelier.controller;
 import com.dailyatelier.dailyatelier.dto.LikeItemDto;
 import com.dailyatelier.dailyatelier.dto.LikeStatusDto;
 import com.dailyatelier.dailyatelier.service.LikesService;
+import com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LikesController {
     private final LikesService likesService;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @GetMapping("/users/me/likes")
     public ResponseEntity<Page<LikeItemDto>> getMyLikes(
@@ -43,6 +45,7 @@ public class LikesController {
     public ResponseEntity<LikeStatusDto> addLike(
             @AuthenticationPrincipal String userId,
             @PathVariable Long artId) {
+        publicDemoAccessPolicy.assertPublicDemoContentMutationAllowed(userId);
         return ResponseEntity.ok(likesService.addLike(userId, artId));
     }
 
@@ -50,6 +53,7 @@ public class LikesController {
     public ResponseEntity<LikeStatusDto> removeLike(
             @AuthenticationPrincipal String userId,
             @PathVariable Long artId) {
+        publicDemoAccessPolicy.assertPublicDemoContentMutationAllowed(userId);
         return ResponseEntity.ok(likesService.removeLike(userId, artId));
     }
 }

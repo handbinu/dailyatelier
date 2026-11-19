@@ -5,6 +5,7 @@ import com.dailyatelier.dailyatelier.dto.InquiryDetailResponseDto;
 import com.dailyatelier.dailyatelier.dto.InquiryListResponseDto;
 import com.dailyatelier.dailyatelier.dto.InquiryStatus;
 import com.dailyatelier.dailyatelier.service.InquiryService;
+import com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,12 +30,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class InquiryController {
     private final InquiryService inquiryService;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<InquiryDetailResponseDto> createInquiry(
             @AuthenticationPrincipal String userId,
             @Valid @RequestPart("request") InquiryCreateRequestDto request,
             @RequestPart(value = "attachment", required = false) MultipartFile attachment) {
+        publicDemoAccessPolicy.assertPublicDemoContentMutationAllowed(userId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inquiryService.createInquiry(userId, request, attachment));
     }

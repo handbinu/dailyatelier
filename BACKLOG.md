@@ -155,6 +155,10 @@
   - 작품 이미지 업로드 성공 후 생성·수정 API까지 도달하지 못한 자산은 현재 cleanup 등록 대상이 아니다.
   - 업로드 intent 또는 사용자별 namespace의 미참조 자산을 유예기간 후 정리하는 방식을 별도 설계한다.
 
+- [ ] **잘못된 multipart 요청의 구조화 오류 응답**
+  - `/api/uploads/cloudinary/public-demo-art`에 `application/json`을 보내면 현재 `HttpMediaTypeNotSupportedException`이 일반 500으로 처리된다.
+  - 정상 화면은 multipart 전송으로 수정·QA 완료됐으므로, 후속으로 공통 `ApiErrorResponseDto`의 415 응답과 MVC 계약 테스트를 추가한다.
+
 - [ ] **실제 배포 전 MySQL 비관적 락 타임아웃 검증**
   - 배포 환경과 동일한 MySQL 버전·설정에서 요청 단위 3초 timeout이 유지되는지 재확인한다.
   - 배포 환경의 DB 권한과 커넥션 프록시가 `SET SESSION`을 허용하는지 확인한다.

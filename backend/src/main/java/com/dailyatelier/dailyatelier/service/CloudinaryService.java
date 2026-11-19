@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
+import java.io.IOException;
 
 @Service
 public class CloudinaryService {
@@ -40,6 +41,7 @@ public class CloudinaryService {
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE
     );
+    private static final long MAX_ART_IMAGE_SIZE = 5L * 1024 * 1024;
 
     private final UserRepository userRepository;
     private final RestClient.Builder restClientBuilder;
@@ -138,9 +140,10 @@ public class CloudinaryService {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", image.getResource());
         body.add("folder", folder);
+        body.add("overwrite", "false");
         body.add("timestamp", String.valueOf(timestamp));
         body.add("api_key", apiKey);
-        body.add("signature", generateSignature(folder, timestamp));
+        body.add("signature", generateSignature("folder=" + folder + "&overwrite=false&timestamp=" + timestamp));
 
         try {
             Map<?, ?> response = restClientBuilder.build()
@@ -169,6 +172,34 @@ public class CloudinaryService {
                     "프로필 이미지 업로드에 실패했습니다.",
                     exception
             );
+        }
+    }
+
+    public CloudinaryUploadResult uploadPublicDemoArtImage(String userId, MultipartFile image) {
+        publicDemoAccessPolicy.assertPublicArtistUploadAllowed(userId);
+        validatePublicDemoArtImage(image);
+        String folder = "arts/" + userId;
+        long timestamp = System.currentTimeMillis() / 1000L;
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", image.getResource());
+        body.add("folder", folder);
+        body.add("overwrite", "false");
+        body.add("timestamp", String.valueOf(timestamp));
+        body.add("api_key", apiKey);
+        body.add("signature", generateSignature(
+                "folder=" + folder + "&overwrite=false&timestamp=" + timestamp
+        ));
+        try {
+            Map<?, ?> response = restClientBuilder.build().post().uri(buildUploadUrl())
+                    .contentType(MediaType.MULTIPART_FORM_DATA).body(body).retrieve().body(Map.class);
+            String secureUrl = response == null ? null : (String) response.get("secure_url");
+            String publicId = response == null ? null : (String) response.get("public_id");
+            if (isBlank(secureUrl) || isBlank(publicId) || !publicId.startsWith(folder + "/")) {
+                throw new DomainApiException(HttpStatus.BAD_GATEWAY, "ART_IMAGE_UPLOAD_FAILED", "작품 이미지 업로드에 실패했습니다.");
+            }
+            return new CloudinaryUploadResult(secureUrl, publicId);
+        } catch (RestClientException exception) {
+            throw new DomainApiException(HttpStatus.BAD_GATEWAY, "ART_IMAGE_UPLOAD_FAILED", "작품 이미지 업로드에 실패했습니다.", exception);
         }
     }
 
@@ -338,6 +369,22 @@ public class CloudinaryService {
                     "INVALID_PROFILE_IMAGE_TYPE",
                     "JPG, PNG 이미지만 업로드할 수 있습니다."
             );
+        }
+    }
+
+    private void validatePublicDemoArtImage(MultipartFile image) {
+        if (image == null || image.isEmpty() || image.getSize() > MAX_ART_IMAGE_SIZE) {
+            throw new DomainApiException(HttpStatus.BAD_REQUEST, "INVALID_ART_IMAGE", "작품 이미지는 5MB 이하의 JPG, PNG, WEBP 파일이어야 합니다.");
+        }
+        try {
+            byte[] header = image.getInputStream().readNBytes(12);
+            boolean jpeg = header.length >= 3 && header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF;
+            boolean png = header.length >= 8 && header[0] == (byte) 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47;
+            boolean webp = header.length >= 12 && header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F'
+                    && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P';
+            if (!jpeg && !png && !webp) throw new DomainApiException(HttpStatus.BAD_REQUEST, "INVALID_ART_IMAGE", "작품 이미지는 JPG, PNG, WEBP 파일만 업로드할 수 있습니다.");
+        } catch (IOException exception) {
+            throw new DomainApiException(HttpStatus.BAD_REQUEST, "INVALID_ART_IMAGE", "작품 이미지를 읽을 수 없습니다.", exception);
         }
     }
 

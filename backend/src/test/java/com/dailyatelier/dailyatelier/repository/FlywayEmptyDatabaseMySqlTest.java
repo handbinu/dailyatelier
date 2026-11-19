@@ -44,7 +44,7 @@ class FlywayEmptyDatabaseMySqlTest {
     private static final Map<String, Integer> EXPECTED_COLUMN_COUNTS = Map.ofEntries(
             Map.entry("users", 13),
             Map.entry("artist", 6),
-            Map.entry("art", 20),
+            Map.entry("art", 22),
             Map.entry("bid", 5),
             Map.entry("orders", 44),
             Map.entry("address", 4),
@@ -64,6 +64,7 @@ class FlywayEmptyDatabaseMySqlTest {
             "idx_art_public_search",
             "idx_art_created",
             "idx_art_current_price",
+            "idx_art_public_demo_active",
             "idx_orders_buyer_status_created",
             "idx_orders_seller_status_created",
             "idx_orders_payment_expiration",
@@ -84,6 +85,7 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("idx_art_public_search", "art_status,format,category,closing_time,art_id"),
             Map.entry("idx_art_created", "created_at,art_id"),
             Map.entry("idx_art_current_price", "current_price,art_id"),
+            Map.entry("idx_art_public_demo_active", "public_demo_type,art_status,closing_time,art_id"),
             Map.entry("idx_art_close_candidates", "art_status,closing_time,art_id"),
             Map.entry("idx_orders_buyer_status_created", "buyer_id,status,created_at"),
             Map.entry("idx_orders_seller_status_created", "seller_id,status,created_at"),
@@ -115,7 +117,8 @@ class FlywayEmptyDatabaseMySqlTest {
             "uq_callback_provider_event",
             "uq_art_cloudinary_public_id",
             "uq_users_profile_image_public_id",
-            "uq_cloudinary_cleanup_active_public_id"
+            "uq_cloudinary_cleanup_active_public_id",
+            "uq_art_public_demo_creation_key"
     );
 
     private static final Map<String, String> EXPECTED_UNIQUE_COLUMNS = Map.ofEntries(
@@ -132,7 +135,8 @@ class FlywayEmptyDatabaseMySqlTest {
             Map.entry("uq_callback_provider_event", "provider,provider_event_id"),
             Map.entry("uq_art_cloudinary_public_id", "cloudinary_public_id"),
             Map.entry("uq_users_profile_image_public_id", "profile_image_public_id"),
-            Map.entry("uq_cloudinary_cleanup_active_public_id", "active_public_id")
+            Map.entry("uq_cloudinary_cleanup_active_public_id", "active_public_id"),
+            Map.entry("uq_art_public_demo_creation_key", "public_demo_creation_key")
     );
 
     private static final Set<String> EXPECTED_FOREIGN_KEYS = Set.of(
@@ -235,7 +239,7 @@ class FlywayEmptyDatabaseMySqlTest {
     @Test
     void flywayCreatesLatestSchemaAndHibernateValidationStarts() {
         assertThat(appliedVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
         assertThat(tableNames()).isEqualTo(EXPECTED_TABLES);
         assertThat(columnCounts()).isEqualTo(EXPECTED_COLUMN_COUNTS);
         assertThat(constraintCount("PRIMARY KEY")).isEqualTo(15);
@@ -262,6 +266,8 @@ class FlywayEmptyDatabaseMySqlTest {
         assertImportantColumn("art", "created_at", "datetime", false, null);
         assertImportantColumn("art", "minimum_bid_increment", "int", false, "1000");
         assertImportantColumn("art", "cloudinary_public_id", "varchar", true, null);
+        assertImportantColumn("art", "public_demo_type", "varchar", true, null);
+        assertImportantColumn("art", "public_demo_creation_key", "varchar", true, null);
         assertImportantColumn("cloudinary_cleanup", "status", "varchar", false, null);
         assertImportantColumn("cloudinary_cleanup", "attempt_count", "int", false, "0");
         assertImportantColumn("cloudinary_cleanup", "processing_token", "varchar", true, null);

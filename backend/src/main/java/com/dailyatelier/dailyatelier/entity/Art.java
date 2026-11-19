@@ -73,6 +73,13 @@ public class Art {
     @Column(name = "cloudinary_public_id", length = 320, unique = true)
     private String cloudinaryPublicId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "public_demo_type", length = 30)
+    private PublicDemoArtType publicDemoType;
+
+    @Column(name = "public_demo_creation_key", length = 120, unique = true)
+    private String publicDemoCreationKey;
+
     @Column(nullable = false)
     private Integer artStatus;
 

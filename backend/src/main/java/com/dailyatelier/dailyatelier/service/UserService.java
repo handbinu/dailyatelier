@@ -160,6 +160,7 @@ public class UserService {
     public UserProfileDto updateProfileImage(
             String userId,
             org.springframework.web.multipart.MultipartFile image) {
+        publicDemoAccessPolicy.assertAccountMutationAllowed(userId);
         if (!userRepository.existsById(userId)) {
             throw userNotFound();
         }
@@ -204,6 +205,7 @@ public class UserService {
     // 마이페이지 프로필 수정
     @Transactional
     public void updateUserProfile(String userId, ProfileUpdateDto dto) {
+        publicDemoAccessPolicy.assertAccountMutationAllowed(userId);
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(this::userNotFound);
 

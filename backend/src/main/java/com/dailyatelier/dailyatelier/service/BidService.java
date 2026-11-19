@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -51,6 +52,12 @@ public class BidService {
     private final PointTransactionRepository pointTransactionRepository;
     private final Clock clock;
     private final BidLockTimeoutExecutor bidLockTimeoutExecutor;
+    @Value("${dailyatelier.public-demo.enabled:false}")
+    private boolean publicDemoEnabled;
+    @Value("${dailyatelier.public-demo.buyer-id:demo-buyer-bid-qa}")
+    private String publicDemoBuyerId;
+    @Value("${dailyatelier.public-demo.artist-id:demo-artist-aria}")
+    private String publicDemoArtistId;
 
     @Transactional
     public BidCreateResponseDto createBid(
@@ -90,6 +97,16 @@ public class BidService {
                     "UNAUTHORIZED",
                     "인증된 사용자를 찾을 수 없습니다."
             );
+        }
+
+        if (publicDemoEnabled && publicDemoBuyerId.equals(userId)) {
+            boolean permittedType = art.getPublicDemoType() == com.dailyatelier.dailyatelier.entity.PublicDemoArtType.MANAGED
+                    || art.getPublicDemoType() == com.dailyatelier.dailyatelier.entity.PublicDemoArtType.ARTIST_CREATED;
+            boolean publicArtist = art.getArtist() != null && art.getArtist().getUser() != null
+                    && publicDemoArtistId.equals(art.getArtist().getUser().getUserId());
+            if (!permittedType || !publicArtist) {
+                throw new BidApiException(HttpStatus.FORBIDDEN, "PUBLIC_DEMO_BID_FORBIDDEN", "공개 데모 구매자는 체험 작품에만 입찰할 수 있습니다.");
+            }
         }
 
         validateBidderIsNotSeller(art, userId);

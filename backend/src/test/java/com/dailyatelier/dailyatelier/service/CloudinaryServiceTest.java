@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -39,7 +40,7 @@ class CloudinaryServiceTest {
                 userRepository,
                 builder,
                 validCleanupProperties(),
-                new PublicDemoAccessPolicy(false, "", 5, 600, java.time.Clock.systemUTC())
+                new PublicDemoAccessPolicy(false, "", "demo-artist-aria", "demo-buyer-bid-qa", 5, 600, java.time.Clock.systemUTC())
         );
         server = MockRestServiceServer.bindTo(builder).build();
         ReflectionTestUtils.setField(cloudinaryService, "cloudName", "test-cloud");
@@ -74,6 +75,53 @@ class CloudinaryServiceTest {
 
         assertThat(cloudinaryService.createUploadSignature("artist1", "arts").getFolder())
                 .isEqualTo("arts/artist1");
+    }
+
+    @Test
+    void uploadsPublicDemoArtWithFixedNamespaceAndOverwriteDisabled() {
+        PublicDemoAccessPolicy policy = new PublicDemoAccessPolicy(
+                true, "", "demo-artist-aria", "demo-buyer-bid-qa", 5, 600,
+                java.time.Clock.systemUTC()
+        );
+        RestClient.Builder builder = RestClient.builder();
+        CloudinaryService service = new CloudinaryService(
+                userRepository, builder, validCleanupProperties(), policy
+        );
+        MockRestServiceServer publicDemoServer = MockRestServiceServer.bindTo(builder).build();
+        ReflectionTestUtils.setField(service, "cloudName", "test-cloud");
+        ReflectionTestUtils.setField(service, "apiKey", "test-key");
+        ReflectionTestUtils.setField(service, "apiSecret", "test-secret");
+        publicDemoServer.expect(requestTo("https://api.cloudinary.com/v1_1/test-cloud/image/upload"))
+                .andExpect(content().string(org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("name=\"folder\""),
+                        org.hamcrest.Matchers.containsString("arts/demo-artist-aria"),
+                        org.hamcrest.Matchers.containsString("name=\"overwrite\""),
+                        org.hamcrest.Matchers.containsString("false")
+                )))
+                .andRespond(withSuccess(
+                        "{\"secure_url\":\"https://res.cloudinary.com/test-cloud/image/upload/v1/arts/demo-artist-aria/work.png\","
+                                + "\"public_id\":\"arts/demo-artist-aria/work\"}",
+                        MediaType.APPLICATION_JSON
+                ));
+
+        CloudinaryUploadResult result = service.uploadPublicDemoArtImage(
+                "demo-artist-aria",
+                new MockMultipartFile("image", "work.png", "image/png",
+                        new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0, 0, 0, 0})
+        );
+
+        assertThat(result.publicId()).isEqualTo("arts/demo-artist-aria/work");
+        publicDemoServer.verify();
+    }
+
+    @Test
+    void signsPublicDemoArtOverwriteFlagWithTheUploadPayload() {
+        Object signature = ReflectionTestUtils.invokeMethod(
+                cloudinaryService,
+                "generateSignature",
+                "folder=arts/demo-artist-aria&overwrite=false&timestamp=1700000000"
+        );
+        assertThat(signature).isEqualTo("211d5d6e915dc11e4b282fa22a8aabb6b3dbb5ed");
     }
 
     @Test
