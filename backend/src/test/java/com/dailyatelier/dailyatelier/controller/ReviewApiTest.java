@@ -41,6 +41,9 @@ class ReviewApiTest {
     private ReviewService reviewService;
 
     @MockitoBean
+    private com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy publicDemoAccessPolicy;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean

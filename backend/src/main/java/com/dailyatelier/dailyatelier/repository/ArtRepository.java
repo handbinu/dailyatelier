@@ -4,6 +4,7 @@ import com.dailyatelier.dailyatelier.dto.MyArtQueryDto;
 import com.dailyatelier.dailyatelier.dto.WinningArtResponseDto;
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.entity.Artist;
+import com.dailyatelier.dailyatelier.entity.PublicDemoArtType;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
@@ -36,6 +37,11 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
     long countByArtistUserUserIdAndArtStatus(
             String userId,
             Integer artStatus);
+
+    long countByPublicDemoTypeAndArtStatusAndClosingTimeAfter(
+            PublicDemoArtType publicDemoType, Integer artStatus, LocalDateTime closingTime);
+
+    boolean existsByPublicDemoCreationKey(String publicDemoCreationKey);
 
     @Query("""
             select art

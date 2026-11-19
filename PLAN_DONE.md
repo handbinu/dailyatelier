@@ -422,3 +422,9 @@ ORDER BY account.user_id;
 
 - Aiven 전용 demo DB와 Cloudtype backend, Cloudflare Workers Static Assets 공개 데모를 분리해 구성했다. 공개 데모 보안 확인에서 허용 작가·구매자 로그인과 작가 서명은 성공했고, 신규 작가 등록 차단은 `403 PUBLIC_DEMO_ARTIST_REGISTRATION_DISABLED`로 확인했다.
 - Worker는 Vite `dist`와 SPA fallback을 사용하고, 허용된 Cloudflare origin의 CORS·credentials 응답을 확인했다. README의 공개 데모는 별도 수동 배포본이므로 이후 소스/UI 변경의 재배포 검증은 별도 작업으로 둔다.
+
+## 공개 데모 운영 안정화
+
+- V12으로 LEGACY·MANAGED·ARTIST_CREATED를 분리하고, 생성 키 unique 제약을 둔 관리형 경매 bootstrap/일일 보충으로 기존 거래 행을 보존한다.
+- 공개 구매자·작가의 계정·콘텐츠·주문 변경을 제한하면서, 아리아의 proxy 이미지 업로드·자기 생성 작품 관리와 구매자의 체험 경매 입찰·MANAGED 결제 대기 취소를 유지한다. 일반 작가는 allowlist에서 기존 직접 업로드를 사용한다.
+- 대상 정책·경매 보충 테스트, MySQL Flyway V1→V12/보존 검증, HTTP 원장 검증 및 사용자 브라우저 QA를 완료했다. 운영 배포 전 실제 포인트 상한·환경변수·health는 별도 확인한다.

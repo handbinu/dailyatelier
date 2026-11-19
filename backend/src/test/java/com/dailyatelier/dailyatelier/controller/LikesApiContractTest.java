@@ -36,6 +36,9 @@ class LikesApiContractTest {
     private LikesService likesService;
 
     @MockitoBean
+    private com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy publicDemoAccessPolicy;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean

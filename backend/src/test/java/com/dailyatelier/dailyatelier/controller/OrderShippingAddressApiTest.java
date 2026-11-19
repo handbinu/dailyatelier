@@ -47,6 +47,12 @@ class OrderShippingAddressApiTest {
     private OrderStateService orderStateService;
 
     @MockitoBean
+    private com.dailyatelier.dailyatelier.repository.OrderRepository orderRepository;
+
+    @MockitoBean
+    private com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy publicDemoAccessPolicy;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean

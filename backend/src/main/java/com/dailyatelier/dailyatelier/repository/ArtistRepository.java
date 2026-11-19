@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface ArtistRepository extends JpaRepository<Artist, String> {
+    Optional<Artist> findByUser_UserId(String userId);
+
     Optional<Artist> findByUser(User user);
 
     @Query(

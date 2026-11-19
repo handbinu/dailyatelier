@@ -21,6 +21,7 @@ import com.dailyatelier.dailyatelier.entity.PointReferenceType;
 import com.dailyatelier.dailyatelier.entity.PointTransaction;
 import com.dailyatelier.dailyatelier.entity.PointTransactionType;
 import com.dailyatelier.dailyatelier.entity.User;
+import com.dailyatelier.dailyatelier.entity.PublicDemoArtType;
 import com.dailyatelier.dailyatelier.exception.DomainApiException;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
 import com.dailyatelier.dailyatelier.repository.ArtistRepository;
@@ -44,6 +45,7 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -72,6 +74,10 @@ public class ArtService {
     private final CloudinaryCleanupRepository cloudinaryCleanupRepository;
     private final CloudinaryService cloudinaryService;
     private final Clock clock;
+    @Value("${dailyatelier.public-demo.enabled:false}")
+    private boolean publicDemoEnabled;
+    @Value("${dailyatelier.public-demo.artist-id:demo-artist-aria}")
+    private String publicDemoArtistId;
 
     public Page<ArtResponseDto> getActiveArts(int page, int size) {
         PageRequest pageable = createPageRequest(page, size);
@@ -207,6 +213,9 @@ public class ArtService {
         art.setCloudinaryPublicId(dto.getPublicId().trim());
         art.setArtStatus(Art.STATUS_ACTIVE);
         art.setCreatedAt(LocalDateTime.now(clock));
+        if (publicDemoEnabled && publicDemoArtistId.equals(userId)) {
+            art.setPublicDemoType(PublicDemoArtType.ARTIST_CREATED);
+        }
 
         return toResponse(artRepository.save(art));
     }
@@ -378,6 +387,10 @@ public class ArtService {
             String userId,
             LocalDateTime now) {
         Artist artist = art.getArtist();
+        if (publicDemoEnabled && publicDemoArtistId.equals(userId)
+                && art.getPublicDemoType() != PublicDemoArtType.ARTIST_CREATED) {
+            throw new DomainApiException(HttpStatus.FORBIDDEN, "PUBLIC_DEMO_ART_PROTECTED", "기존 전시 및 관리형 데모 작품은 변경할 수 없습니다");
+        }
         User owner = artist == null ? null : artist.getUser();
         boolean isOwnerArtist = userId != null
                 && owner != null

@@ -7,6 +7,7 @@ import com.dailyatelier.dailyatelier.dto.ReviewSort;
 import com.dailyatelier.dailyatelier.dto.ReviewUpdateRequestDto;
 import com.dailyatelier.dailyatelier.dto.ReviewWriteResponseDto;
 import com.dailyatelier.dailyatelier.service.ReviewService;
+import com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ReviewController {
     private final ReviewService reviewService;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @GetMapping("/orders/{orderId}/review")
     public ResponseEntity<ReviewWriteResponseDto> getWriteReview(
@@ -38,6 +40,7 @@ public class ReviewController {
     public ResponseEntity<ReviewResponseDto> createReview(
             @AuthenticationPrincipal String userId,
             @Valid @RequestBody ReviewCreateRequestDto request) {
+        publicDemoAccessPolicy.assertPublicDemoContentMutationAllowed(userId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reviewService.create(userId, request));
     }
@@ -47,6 +50,7 @@ public class ReviewController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewUpdateRequestDto request) {
+        publicDemoAccessPolicy.assertPublicDemoContentMutationAllowed(userId);
         return ResponseEntity.ok(reviewService.update(userId, reviewId, request));
     }
 
