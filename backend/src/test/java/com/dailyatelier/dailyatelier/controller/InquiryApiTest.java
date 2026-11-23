@@ -44,6 +44,9 @@ class InquiryApiTest {
     private InquiryService inquiryService;
 
     @MockitoBean
+    private com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy publicDemoAccessPolicy;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean

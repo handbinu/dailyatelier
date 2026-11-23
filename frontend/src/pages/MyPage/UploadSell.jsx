@@ -200,6 +200,16 @@ export default function UploadSell() {
   }
 
   const uploadToCloudinary = async (file) => {
+    try {
+      const body = new FormData()
+      body.append('image', file)
+      const { data } = await api.post('/api/uploads/cloudinary/public-demo-art', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return { secure_url: data.secureUrl, public_id: data.publicId }
+    } catch (error) {
+      if (error.response?.status !== 403) throw error
+    }
     const signatureData = await fetchCloudinarySignature()
     const formData = new FormData()
     formData.append('file', file)

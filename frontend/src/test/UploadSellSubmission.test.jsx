@@ -81,7 +81,12 @@ describe('작품 등록 제출 제어', () => {
       revokeObjectURL: vi.fn(),
     })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(uploadResponse))
-    api.post.mockResolvedValue(signatureResponse)
+    api.post.mockImplementation((url) => {
+      if (url === '/api/uploads/cloudinary/public-demo-art') {
+        return Promise.reject({ response: { status: 403 } })
+      }
+      return Promise.resolve(signatureResponse)
+    })
     createArt.mockResolvedValue(createdArtResponse)
   })
 
@@ -93,7 +98,12 @@ describe('작품 등록 제출 제어', () => {
     const signatureRequest = deferred()
     const cloudinaryRequest = deferred()
     const artRequest = deferred()
-    api.post.mockReturnValue(signatureRequest.promise)
+    api.post.mockImplementation((url) => {
+      if (url === '/api/uploads/cloudinary/public-demo-art') {
+        return Promise.reject({ response: { status: 403 } })
+      }
+      return signatureRequest.promise
+    })
     fetch.mockReturnValue(cloudinaryRequest.promise)
     createArt.mockReturnValue(artRequest.promise)
     const { form } = renderValidForm()
@@ -102,13 +112,19 @@ describe('작품 등록 제출 제어', () => {
     fireEvent.submit(form)
 
     expect(api.post).toHaveBeenCalledTimes(1)
-    expect(api.post).toHaveBeenCalledWith('/api/uploads/cloudinary/signature', { folder: 'arts' })
+    expect(api.post).toHaveBeenCalledWith(
+      '/api/uploads/cloudinary/public-demo-art',
+      expect.any(FormData),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    )
     expect(fetch).not.toHaveBeenCalled()
     expect(createArt).not.toHaveBeenCalled()
     form.querySelectorAll('input, textarea, select, button')
       .forEach((control) => expect(control).toBeDisabled())
 
     signatureRequest.resolve(signatureResponse)
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2))
+    expect(api.post).toHaveBeenLastCalledWith('/api/uploads/cloudinary/signature', { folder: 'arts' })
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     expect(createArt).not.toHaveBeenCalled()
 
@@ -121,15 +137,15 @@ describe('작품 등록 제출 제어', () => {
 
     artRequest.resolve(createdArtResponse)
     expect(await screen.findByRole('heading', { name: '새 작품' })).toBeVisible()
-    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledTimes(2)
     expect(fetch).toHaveBeenCalledTimes(1)
     expect(createArt).toHaveBeenCalledTimes(1)
   })
 
   it.each([
-    ['서명', '서명 요청 실패', 2, 1, 1],
-    ['업로드', 'Cloudinary 업로드 실패', 2, 2, 1],
-    ['작품 생성', '작품 생성 실패', 2, 2, 2],
+    ['서명', '서명 요청 실패', 4, 1, 1],
+    ['업로드', 'Cloudinary 업로드 실패', 4, 2, 1],
+    ['작품 생성', '작품 생성 실패', 4, 2, 2],
   ])('%s 실패 후 입력과 파일을 유지하고 다시 제출한다', async (
     stage,
     message,
@@ -138,6 +154,7 @@ describe('작품 등록 제출 제어', () => {
     createCalls,
   ) => {
     if (stage === '서명') {
+      api.post.mockImplementationOnce(() => Promise.reject({ response: { status: 403 } }))
       api.post.mockRejectedValueOnce(new Error(message))
     } else if (stage === '업로드') {
       fetch.mockRejectedValueOnce(new Error(message))

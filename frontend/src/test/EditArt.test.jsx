@@ -38,10 +38,15 @@ describe('작품 편집·삭제 화면', () => {
     getArt.mockResolvedValue({ data: baseArt })
     updateArt.mockResolvedValue({ data: baseArt })
     deleteArt.mockResolvedValue({ data: { artId: 7, action: 'DELETED', artStatus: null } })
-    api.post.mockResolvedValue({ data: {
-      apiKey: 'key', timestamp: 1, signature: 'signature',
-      folder: 'arts/artist1', uploadUrl: '/cloudinary/upload',
-    } })
+    api.post.mockImplementation((url) => {
+      if (url === '/api/uploads/cloudinary/public-demo-art') {
+        return Promise.reject({ response: { status: 403 } })
+      }
+      return Promise.resolve({ data: {
+        apiKey: 'key', timestamp: 1, signature: 'signature',
+        folder: 'arts/artist1', uploadUrl: '/cloudinary/upload',
+      } })
+    })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -120,6 +125,11 @@ describe('작품 편집·삭제 화면', () => {
     expect(screen.getByText('새 이미지 선택됨')).toBeVisible()
     fireEvent.click(await screen.findByRole('button', { name: '수정 저장' }))
 
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(
+      '/api/uploads/cloudinary/public-demo-art',
+      expect.any(FormData),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    ))
     await waitFor(() => expect(updateArt).toHaveBeenCalledWith('7', expect.objectContaining({
       imgPath: 'https://res.cloudinary.com/test/image/upload/v1/arts/artist1/new-art.jpg',
       publicId: 'arts/artist1/new-art',

@@ -164,6 +164,16 @@ export default function EditArt() {
 
   const uploadImage = async () => {
     if (!selectedFile) return null
+    try {
+      const body = new FormData()
+      body.append('image', selectedFile)
+      const { data } = await api.post('/api/uploads/cloudinary/public-demo-art', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return { imgPath: data.secureUrl, publicId: data.publicId }
+    } catch (error) {
+      if (error.response?.status !== 403) throw error
+    }
     const { data: signature } = await api.post('/api/uploads/cloudinary/signature', { folder: CLOUDINARY_FOLDER })
     const body = new FormData()
     body.append('file', selectedFile)

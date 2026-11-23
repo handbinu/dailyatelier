@@ -9,6 +9,8 @@ import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.service.OrderQueryService;
 import com.dailyatelier.dailyatelier.service.OrderService;
 import com.dailyatelier.dailyatelier.service.OrderStateService;
+import com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy;
+import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,8 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderQueryService orderQueryService;
     private final OrderStateService orderStateService;
+    private final OrderRepository orderRepository;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @GetMapping
     public ResponseEntity<OrderPageResponseDto> getOrders(
@@ -61,6 +65,7 @@ public class OrderController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId,
             @Valid @RequestBody OrderShippingAddressRequestDto request) {
+        assertOrderMutationAllowed(userId, orderId, false);
         return ResponseEntity.ok(
                 orderService.confirmShippingAddress(orderId, userId, request)
         );
@@ -70,6 +75,7 @@ public class OrderController {
     public ResponseEntity<OrderDetailResponseDto> cancelOrder(
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId) {
+        assertOrderMutationAllowed(userId, orderId, true);
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.cancelPending(orderId, userId)
         ));
@@ -79,6 +85,7 @@ public class OrderController {
     public ResponseEntity<OrderDetailResponseDto> confirmOrder(
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId) {
+        assertOrderMutationAllowed(userId, orderId, false);
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.confirm(orderId, userId)
         ));
@@ -88,6 +95,7 @@ public class OrderController {
     public ResponseEntity<OrderDetailResponseDto> markDelivered(
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId) {
+        assertOrderMutationAllowed(userId, orderId, false);
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.markDelivered(orderId, userId)
         ));
@@ -98,6 +106,7 @@ public class OrderController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId,
             @Valid @RequestBody OrderRefundRequestDto request) {
+        assertOrderMutationAllowed(userId, orderId, false);
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.requestRefund(orderId, userId, request.getReason())
         ));
@@ -108,8 +117,23 @@ public class OrderController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        assertOrderMutationAllowed(userId, orderId, false);
         return ResponseEntity.ok(OrderDetailResponseDto.forBuyer(
                 orderStateService.markPaid(orderId, userId, idempotencyKey)
         ));
     }
+
+    private com.dailyatelier.dailyatelier.entity.Art orderArt(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new com.dailyatelier.dailyatelier.exception.OrderApiException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "주문을 찾을 수 없습니다."))
+                .getArt();
+    }
+
+    private void assertOrderMutationAllowed(String userId, Long orderId, boolean cancel) {
+        if (publicDemoAccessPolicy.requiresPublicBuyerOrderRestrictions(userId)) {
+            publicDemoAccessPolicy.assertPublicBuyerOrderMutationAllowed(userId, orderArt(orderId), cancel);
+        }
+    }
+
 }

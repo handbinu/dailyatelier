@@ -8,6 +8,7 @@ import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.exception.OrderApiException;
 import com.dailyatelier.dailyatelier.service.OrderQueryService;
 import com.dailyatelier.dailyatelier.service.OrderStateService;
+import com.dailyatelier.dailyatelier.service.PublicDemoAccessPolicy;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public class SellerOrderController {
     private final OrderQueryService orderQueryService;
     private final OrderStateService orderStateService;
+    private final PublicDemoAccessPolicy publicDemoAccessPolicy;
 
     @GetMapping
     public ResponseEntity<OrderPageResponseDto> getOrders(
@@ -60,6 +62,7 @@ public class SellerOrderController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId,
             @Valid @RequestBody SellerOrderStatusUpdateRequestDto request) {
+        publicDemoAccessPolicy.assertPublicArtistOrderMutationAllowed(userId);
         Order updatedOrder = switch (request.getStatus()) {
             case PREPARING -> orderStateService.startPreparing(orderId, userId);
             case SHIPPED -> orderStateService.ship(
@@ -84,6 +87,7 @@ public class SellerOrderController {
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId,
             @RequestHeader("Idempotency-Key") String idempotencyKey) {
+        publicDemoAccessPolicy.assertPublicArtistOrderMutationAllowed(userId);
         return ResponseEntity.ok(OrderDetailResponseDto.forSeller(
                 orderStateService.approveRefund(orderId, userId, idempotencyKey)
         ));
@@ -93,6 +97,7 @@ public class SellerOrderController {
     public ResponseEntity<OrderDetailResponseDto> rejectRefund(
             @AuthenticationPrincipal String userId,
             @PathVariable Long orderId) {
+        publicDemoAccessPolicy.assertPublicArtistOrderMutationAllowed(userId);
         return ResponseEntity.ok(OrderDetailResponseDto.forSeller(
                 orderStateService.rejectRefund(orderId, userId)
         ));

@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+import com.dailyatelier.dailyatelier.dto.CloudinaryUploadResult;
 
 @RestController
 @RequestMapping("/api/uploads/cloudinary")
@@ -23,5 +27,12 @@ public class CloudinaryController {
             @AuthenticationPrincipal String userId,
             @Valid @RequestBody CloudinarySignatureRequestDto dto) {
         return ResponseEntity.ok(cloudinaryService.createUploadSignature(userId, dto.getFolder()));
+    }
+
+    @PostMapping(value = "/public-demo-art", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CloudinaryUploadResult> uploadPublicDemoArt(
+            @AuthenticationPrincipal String userId,
+            @RequestPart("image") MultipartFile image) {
+        return ResponseEntity.ok(cloudinaryService.uploadPublicDemoArtImage(userId, image));
     }
 }
