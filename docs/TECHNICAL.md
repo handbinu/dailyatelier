@@ -36,7 +36,9 @@ MySQL 8                  Cloudinary
 
 배포 환경과 동일한 MySQL 설정에서의 재검증과 21억 원 경계 입찰 이후 UI 검증은 남아 있습니다.
 
-대표 증빙: [동시 입찰 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/BidServiceConcurrencyTest.java) · [주문 생성 실패 rollback 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/AuctionCloseOrderRollbackTest.java).
+**H2 서비스 테스트:** [동시 입찰 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/BidServiceConcurrencyTest.java) · [주문 생성 실패 rollback 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/AuctionCloseOrderRollbackTest.java). `BidServiceConcurrencyTest`의 16개 계정·4개 작품 경합은 H2 `MODE=MySQL` 환경에서 계정별 원장 합계와 활성 예치 4건을 확인하며, MySQL 실험으로 표현하지 않습니다.
+
+**실제 MySQL 검증:** [SessionLockTimeoutMySqlTest](../backend/src/test/java/com/dailyatelier/dailyatelier/loadtest/SessionLockTimeoutMySqlTest.java)는 timeout·rollback과 세션 값 복원을 확인합니다. 동시 입찰과 자동 마감의 실행 기록은 [완료 기록](../PLAN_DONE.md#동시-입찰-부하-검증-및-hikari-pool-비교)과 [경매 마감 기록](../PLAN_DONE.md#경매-마감-낙찰)에서 확인할 수 있습니다.
 
 ## 포인트 예치와 불변 원장
 
@@ -52,9 +54,9 @@ MySQL 8                  Cloudinary
 
 동시 충전·포인트 변경, 입찰 예치 교체, 낙찰 결제, 만료와 환불을 테스트했습니다. 계정과 원장 합계뿐 아니라 활성 예치, 주문과 충전 상태 사이의 의미적 불일치도 검사합니다.
 
-대표 증빙: [의미적 불일치 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/PointLedgerConsistencyServiceTest.java) · [MySQL 계정 잠금·deadlock rollback 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/repository/PointLedgerMySqlConcurrencyTest.java).
+대표 증빙: [의미적 불일치 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/PointLedgerConsistencyServiceTest.java) · [MySQL 계정 잠금·deadlock rollback 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/repository/PointLedgerMySqlConcurrencyTest.java) · [callback inbox H2 서비스 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/PaymentCallbackServiceTest.java) · [최초 동시 수신 MySQL 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/PaymentCallbackServiceMySqlConcurrencyTest.java).
 
-현재 충전 provider는 권한이 제한된 `INTERNAL` 데모 구현입니다. 실제 PG 승인·취소·서명 검증, 운영 정산과 동시 최초 callback unique 충돌은 검증하지 않았습니다.
+현재 충전 provider는 권한이 제한된 `INTERNAL` 데모 구현입니다. callback inbox는 `(provider, provider_event_id)` unique 충돌 뒤 최신 이벤트를 재조회하며, 동일 `payloadHash`·`pgOrderId`인 최초 동시 수신은 전용 MySQL 테스트 2/2, 중복·불일치·재시도·실패 기록은 H2 서비스 테스트 5/5로 검증했습니다. 이는 내부 callback 처리 로직의 검증이며 실제 외부 PG 승인·취소·웹훅 서명 검증, 운영 정산은 미구현 또는 미검증입니다.
 
 ## Cloudinary cleanup
 
@@ -70,11 +72,11 @@ DB의 이미지 참조 변경과 Cloudinary 삭제는 하나의 ACID 트랜잭�
 
 [cleanup 트랜잭션 코드](../backend/src/main/java/com/dailyatelier/dailyatelier/service/CloudinaryCleanupTransactionService.java) · [worker 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/service/CloudinaryCleanupWorkerTest.java)
 
-브라우저 업로드 후 작품 생성·수정 API에 도달하지 못한 이미지와 URL만 저장된 기존 데이터는 현재 자동 cleanup 대상이 아닙니다.
+문의 첨부 이미지는 현재 cleanup outbox 대상이 아닙니다. 브라우저 업로드 후 작품 생성·수정 API에 도달하지 못한 이미지와 URL만 저장된 기존 데이터는 현재 자동 cleanup 대상이 아닙니다.
 
 ## JWT 인증과 현재 권한
 
-JWT는 [발급 시](../backend/src/main/java/com/dailyatelier/dailyatelier/jwt/JwtTokenProvider.java) 포함한 `authVersion`을 [인증 필터](../backend/src/main/java/com/dailyatelier/dailyatelier/jwt/JwtAuthenticationFilter.java)에서 `users.auth_version`과 비교해 비밀번호·권한 변경 전 토큰을 무효화합니다. 인가에는 매 요청 DB에서 읽은 현재 역할을 사용합니다. [사용자 서비스](../backend/src/main/java/com/dailyatelier/dailyatelier/service/UserService.java)는 비밀번호 변경과 버전 증가를 사용자 행 잠금이 있는 하나의 트랜잭션으로 처리합니다.
+[JWT 발급](../backend/src/main/java/com/dailyatelier/dailyatelier/jwt/JwtTokenProvider.java) 시 토큰에 포함한 `authVersion`을 [인증 필터](../backend/src/main/java/com/dailyatelier/dailyatelier/jwt/JwtAuthenticationFilter.java)에서 `users.auth_version`과 비교해 비밀번호·권한 변경 전 토큰을 무효화합니다. 인가에는 매 요청 DB에서 읽은 현재 역할을 사용합니다. [사용자 서비스](../backend/src/main/java/com/dailyatelier/dailyatelier/service/UserService.java)는 비밀번호 변경과 버전 증가를 사용자 행 잠금이 있는 하나의 트랜잭션으로 처리합니다.
 
 [JWT MySQL 통합 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/jwt/JwtInvalidationMySqlIntegrationTest.java)는 변경 성공·실패 rollback·동시 변경과 권한 변경 뒤의 인증·인가 계약을 검사합니다.
 
@@ -84,13 +86,13 @@ MySQL 전용 테스트의 실행 조건은 [공통 검증 환경](#검증-환경
 
 기존 migration만으로 빈 MySQL에 전체 스키마를 만들 수 없었고, H2로는 MySQL의 락·DDL 동작을 충분히 확인하기 어려웠습니다.
 
-- 운영·공유 DB가 없는 개발 단계라는 전제에서 `V1__create_baseline_schema.sql`을 현재 기준 스키마로 재구성했습니다.
+- V1 baseline 재구성 당시 운영·공유 DB가 없는 개발 단계라는 전제에서 `V1__create_baseline_schema.sql`을 현재 기준 스키마로 재구성했습니다.
 - 이후 변경은 V2 이상으로 누적하고 Hibernate는 `ddl-auto=validate`로 결과만 검사합니다.
 - DBMS별 동작은 격리된 MySQL 스키마에서 별도 검증합니다.
 
-빈 MySQL 8.0에서 Flyway V1~V9, Hibernate validation, 재실행 migration 0건, 주요 제약, 락 timeout과 `SKIP LOCKED`를 확인했습니다.
+빈 MySQL 8.0에서 전체 migration 적용, Hibernate validation, 재실행 시 migration 0건, 주요 제약과 DBMS별 락 timeout·`SKIP LOCKED` 동작을 검증했습니다. 현재 빈 DB 검증 코드는 [FlywayEmptyDatabaseMySqlTest](../backend/src/test/java/com/dailyatelier/dailyatelier/repository/FlywayEmptyDatabaseMySqlTest.java)에서 확인할 수 있습니다.
 
-이후 JWT 작업에서 빈 DB V1→V11 적용·Hibernate validation과 기존 DB V10→V11 적용을 검증했습니다([완료 기록](../PLAN_DONE.md#jwt-무효화와-현재-권한-재검증)). 현재 빈 DB 검증 코드는 [FlywayEmptyDatabaseMySqlTest](../backend/src/test/java/com/dailyatelier/dailyatelier/repository/FlywayEmptyDatabaseMySqlTest.java)에서 확인할 수 있습니다. 앞선 락·제약 검증 이력과 migration 확장 검증은 구분합니다.
+JWT 스키마 확장과 공개 데모 계약 변경에서는 기존 DB 적용 및 기존 거래 행 보존을 별도로 검증했습니다. 구체적인 migration 검증 이력은 [JWT 완료 기록](../PLAN_DONE.md#jwt-무효화와-현재-권한-재검증)과 [공개 데모 완료 기록](../PLAN_DONE.md#공개-데모-운영-안정화)을 참고하세요.
 
 기존 DB에도 미적용 migration은 실행됩니다. [Flyway 안내](../backend/FLYWAY.md)의 기존 DB 처리 원칙을 따릅니다.
 
@@ -102,7 +104,7 @@ DB 락과 커넥션 대기가 입찰 지연에 미치는 영향을 살펴보기 
 - 여러 작품에 입찰 분산
 - 동일 포인트 계정에 요청 집중
 
-**측정 결과:** Hikari 커넥션 풀 크기 10·20·30을 비교했지만, 처리량과 상위 백분위 응답 시간이 일관되게 개선되지 않아 기본값 10을 유지했습니다.
+**로컬 관찰 결과:** Hikari 커넥션 풀 크기 10·20·30을 비교했지만, 처리량과 상위 백분위 응답 시간이 일관되게 개선되지 않아 기본값 10을 유지했습니다.
 
 측정은 로컬 단일 장비에서 진행했습니다. 배포 환경에서의 반복 측정과 실제 데이터 기반 실행 계획 검증은 수행하지 않았습니다.
 
@@ -124,6 +126,8 @@ API 오류는 다음 형식으로 통일했습니다.
 }
 ```
 
+대표 근거: [입찰 API 오류 계약 테스트](../backend/src/test/java/com/dailyatelier/dailyatelier/controller/BidApiTest.java) · [입찰 화면 오류 처리](../frontend/src/pages/Auction/ArtDetail.jsx).
+
 ## 검증 환경과 CI
 
 | 검증 환경 | 주요 대상 |
@@ -135,11 +139,13 @@ API 오류는 다음 형식으로 통일했습니다.
 | 프론트 테스트 | 요청 순서 역전, 중복 제출과 부분 성공 |
 | k6 | 작품·계정 락과 커넥션 대기 관찰 |
 
-**GitHub Actions:** [UI QA workflow](../.github/workflows/ui-qa.yml)에서 일반 백엔드·프론트 테스트, lint·build, MySQL `local-demo` 기반 Playwright UI QA를 실행하도록 구성했습니다. 스크린샷은 캡처·파일 확인 후 artifact로 보관하며, 자동 시각 평가는 수행하지 않습니다.
+**검증 기록:** 콜백 멱등성 보완 시점에 백엔드 테스트 438개 통과·실패 0, 조건부 MySQL 테스트 23개 SKIP을 기록했습니다. UI QA는 전용 로컬 `dailyatelier_ui_qa` DB와 `local-demo` fixture에서 Playwright desktop/mobile 28/28을 통과했고, PR #1 CI run에서도 28/28과 스크린샷 72/72 artifact 업로드를 확인했습니다([완료 기록](../PLAN_DONE.md#외부-pg-콜백-최초-동시-수신-멱등성-보완), [UI QA 기록](../PLAN_DONE.md#github-actions-ui-qa-ci-1단계)).
 
-**별도 MySQL 검증:** `DAILYATELIER_MYSQL_SCHEMA_TEST`, `DAILYATELIER_JWT_MYSQL_TEST` 조건의 테스트는 해당 CI에서 실행하지 않습니다. 테스트 목적에 맞는 환경변수와 격리 DB가 필요합니다. 빈 DB migration 검증은 빈 스키마에서 실행하며, 다른 테스트는 각각의 DB 준비 조건을 따릅니다. 스키마를 자동 삭제하지 않습니다.
+**GitHub Actions:** [UI QA workflow](../.github/workflows/ui-qa.yml)에서 일반 백엔드·프론트 테스트, lint·build, MySQL `local-demo` 기반 Playwright UI QA를 실행하도록 구성했습니다. 스크린샷은 캡처·파일 수 확인 후 artifact로 보관하며, 자동 시각 평가는 수행하지 않습니다.
 
-## 테스트와 빌드 실행
+**별도 MySQL 검증:** `DAILYATELIER_MYSQL_SCHEMA_TEST`, `DAILYATELIER_JWT_MYSQL_TEST` 조건의 테스트는 해당 CI에서 실행하지 않습니다. 입찰 timeout과 부하 fixture 검증은 각각 `DAILYATELIER_SESSION_TIMEOUT_TEST`, `DAILYATELIER_LOAD_TEST_FIXTURE` 및 전용 localhost MySQL을 요구합니다. 테스트 목적에 맞는 환경변수와 격리 DB가 필요합니다. 빈 DB migration 검증은 빈 스키마에서 실행하며, 다른 테스트는 각각의 DB 준비 조건을 따릅니다. 스키마를 자동 삭제하지 않습니다.
+
+## 테스트 및 프론트엔드 빌드 실행
 
 저장소 루트에서 해당 디렉터리로 이동해 실행합니다.
 
@@ -172,4 +178,4 @@ npm run build
 
 ## 후속 작업
 
-미구현 기능은 [BACKLOG](../BACKLOG.md)에서 관리합니다. 실제 PG 연동과 배송사 위치 조회는 현재 제공하지 않습니다. [부하 도구](../backend/load-test)와 [완료 기록](../PLAN_DONE.md)에서 관련 근거를 확인할 수 있습니다.
+미구현 기능은 [BACKLOG](../BACKLOG.md)에서 관리합니다. 실제 PG 연동과 배송사 위치 조회는 현재 제공하지 않습니다.
