@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.Art;
 import com.dailyatelier.dailyatelier.repository.ArtRepository;
+import com.dailyatelier.dailyatelier.repository.DueBatchCandidate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -23,6 +24,9 @@ public class AuctionCloseScheduler {
     private final Clock clock;
     private final int batchSize;
 
+    private LocalDateTime sweepCutoff;
+    private DueBatchCandidate lastAttempt;
+
     public AuctionCloseScheduler(
             AuctionCloseService auctionCloseService,
             ArtRepository artRepository,
@@ -43,11 +47,15 @@ public class AuctionCloseScheduler {
             fixedRateString = "${auction.close.interval-ms:10000}",
             initialDelayString = "${auction.close.interval-ms:10000}"
     )
-    public void closeExpiredAuctions() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        List<Long> artIds = artRepository.findExpiredActiveArtIds(
+    public synchronized void closeExpiredAuctions() {
+        if (sweepCutoff == null) {
+            sweepCutoff = LocalDateTime.now(clock);
+        }
+        List<DueBatchCandidate> candidates = artRepository.findExpiredActiveArtBatch(
                 Art.STATUS_ACTIVE,
-                now,
+                sweepCutoff,
+                lastAttempt == null ? null : lastAttempt.getDeadline(),
+                lastAttempt == null ? null : lastAttempt.getId(),
                 PageRequest.of(0, batchSize)
         );
 
@@ -56,7 +64,9 @@ public class AuctionCloseScheduler {
         int skippedCount = 0;
         int failedCount = 0;
 
-        for (Long artId : artIds) {
+        for (DueBatchCandidate candidate : candidates) {
+            Long artId = candidate.getId();
+            lastAttempt = candidate;
             try {
                 AuctionCloseResult result = auctionCloseService.closeAuction(artId);
                 switch (result) {
@@ -70,11 +80,16 @@ public class AuctionCloseScheduler {
             }
         }
 
-        if (!artIds.isEmpty() || failedCount > 0) {
+        if (candidates.size() < batchSize) {
+            sweepCutoff = null;
+            lastAttempt = null;
+        }
+
+        if (!candidates.isEmpty()) {
             log.info(
                     "경매 자동 마감 배치 완료: targetCount={}, soldCount={}, "
                             + "unsoldCount={}, skippedCount={}, failedCount={}",
-                    artIds.size(),
+                    candidates.size(),
                     soldCount,
                     unsoldCount,
                     skippedCount,

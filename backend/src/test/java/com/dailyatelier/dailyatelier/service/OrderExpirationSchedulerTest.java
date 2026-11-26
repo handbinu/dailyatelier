@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.DueBatchCandidate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,11 +53,13 @@ class OrderExpirationSchedulerTest {
 
     @Test
     void isolatesFailuresAndLogsBatchSummary(CapturedOutput output) {
-        when(orderRepository.findPaymentExpiredOrderIds(
+        when(orderRepository.findPaymentExpiredOrderBatch(
                 eq(OrderStatus.PAYMENT_PENDING),
-                any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 any(Pageable.class)
-        )).thenReturn(List.of(1L, 2L, 3L, 4L));
+        )).thenReturn(List.of(candidate(1L), candidate(2L), candidate(3L), candidate(4L)));
         when(expirationService.expireOrder(1L))
                 .thenReturn(OrderExpirationResult.EXPIRED);
         when(expirationService.expireOrder(2L))
@@ -83,17 +86,21 @@ class OrderExpirationSchedulerTest {
                 ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
-        when(orderRepository.findPaymentExpiredOrderIds(
+        when(orderRepository.findPaymentExpiredOrderBatch(
                 eq(OrderStatus.PAYMENT_PENDING),
-                any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 any(Pageable.class)
         )).thenReturn(List.of());
 
         scheduler.expireOrdersOnStartup();
 
-        verify(orderRepository).findPaymentExpiredOrderIds(
+        verify(orderRepository).findPaymentExpiredOrderBatch(
                 eq(OrderStatus.PAYMENT_PENDING),
                 nowCaptor.capture(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 pageableCaptor.capture()
         );
         assertThat(nowCaptor.getValue())
@@ -103,11 +110,13 @@ class OrderExpirationSchedulerTest {
 
     @Test
     void failedOrderIsRetriedOnNextCycle() {
-        when(orderRepository.findPaymentExpiredOrderIds(
+        when(orderRepository.findPaymentExpiredOrderBatch(
                 eq(OrderStatus.PAYMENT_PENDING),
-                any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 any(Pageable.class)
-        )).thenReturn(List.of(7L));
+        )).thenReturn(List.of(candidate(7L)));
         when(expirationService.expireOrder(7L))
                 .thenThrow(new IllegalStateException("temporary failure"));
 
@@ -115,5 +124,44 @@ class OrderExpirationSchedulerTest {
         scheduler.expireOrders();
 
         verify(expirationService, times(2)).expireOrder(7L);
+    }
+
+    @Test
+    void advancesPastFailedFullBatchAndRestartsAfterTail() {
+        LocalDateTime cutoff = LocalDateTime.now(CLOCK);
+        var head = candidate(7L);
+        var tail = candidate(8L);
+        var limit = org.springframework.data.domain.PageRequest.of(0, 1);
+        var onePerRun = new OrderExpirationScheduler(expirationService, orderRepository, CLOCK, 1);
+        when(orderRepository.findPaymentExpiredOrderBatch(OrderStatus.PAYMENT_PENDING, cutoff, null, null, limit))
+                .thenReturn(List.of(head));
+        when(orderRepository.findPaymentExpiredOrderBatch(OrderStatus.PAYMENT_PENDING, cutoff, cutoff, 7L, limit))
+                .thenReturn(List.of(tail));
+        when(orderRepository.findPaymentExpiredOrderBatch(OrderStatus.PAYMENT_PENDING, cutoff, cutoff, 8L, limit))
+                .thenReturn(List.of());
+        when(expirationService.expireOrder(7L))
+                .thenThrow(new IllegalStateException("fixture failure"))
+                .thenReturn(OrderExpirationResult.EXPIRED);
+        when(expirationService.expireOrder(8L)).thenReturn(OrderExpirationResult.EXPIRED);
+
+        onePerRun.expireOrders();
+        onePerRun.expireOrders();
+        onePerRun.expireOrders();
+        onePerRun.expireOrders();
+
+        var sequence = org.mockito.Mockito.inOrder(expirationService);
+        sequence.verify(expirationService).expireOrder(7L);
+        sequence.verify(expirationService).expireOrder(8L);
+        sequence.verify(expirationService).expireOrder(7L);
+        sequence.verifyNoMoreInteractions();
+    }
+
+    private static DueBatchCandidate candidate(long id) {
+        return new TestCandidate(id, LocalDateTime.now(CLOCK));
+    }
+
+    private record TestCandidate(Long id, LocalDateTime deadline) implements DueBatchCandidate {
+        @Override public Long getId() { return id; }
+        @Override public LocalDateTime getDeadline() { return deadline; }
     }
 }

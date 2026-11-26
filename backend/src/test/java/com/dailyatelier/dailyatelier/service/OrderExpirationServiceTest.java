@@ -17,6 +17,7 @@ import com.dailyatelier.dailyatelier.repository.OrderRepository;
 import com.dailyatelier.dailyatelier.repository.UserRepository;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointHoldRepository;
+import com.dailyatelier.dailyatelier.repository.DueBatchCandidate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,9 +142,11 @@ class OrderExpirationServiceTest {
 
         assertThat(expirationService.expireOrder(order.getOrderId()))
                 .isEqualTo(OrderExpirationResult.NOT_DUE);
-        assertThat(orderRepository.findPaymentExpiredOrderIds(
+        assertThat(orderRepository.findPaymentExpiredOrderBatch(
                 OrderStatus.PAYMENT_PENDING,
                 CREATED_AT.plusHours(24).minusNanos(1),
+                null,
+                null,
                 PageRequest.of(0, 10)
         )).isEmpty();
     }
@@ -152,11 +155,14 @@ class OrderExpirationServiceTest {
     void expiresAtExactDeadlineAndRepeatedCallIsIdempotent() {
         clock.setLocalDateTime(CREATED_AT.plusHours(24));
 
-        assertThat(orderRepository.findPaymentExpiredOrderIds(
+        assertThat(orderRepository.findPaymentExpiredOrderBatch(
                 OrderStatus.PAYMENT_PENDING,
                 CREATED_AT.plusHours(24),
+                null,
+                null,
                 PageRequest.of(0, 10)
-        )).containsExactly(order.getOrderId());
+        )).extracting(DueBatchCandidate::getId)
+                .containsExactly(order.getOrderId());
         assertThat(expirationService.expireOrder(order.getOrderId()))
                 .isEqualTo(OrderExpirationResult.EXPIRED);
         assertThat(expirationService.expireOrder(order.getOrderId()))

@@ -26,15 +26,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdForUpdate(@Param("orderId") Long orderId);
 
     @Query("""
-            select orders.orderId
+            select orders.orderId as id, orders.paymentDueAt as deadline
             from Order orders
             where orders.status = :status
-              and orders.paymentDueAt <= :now
+              and orders.paymentDueAt <= :cutoff
+              and (:afterDeadline is null or orders.paymentDueAt > :afterDeadline
+                   or (orders.paymentDueAt = :afterDeadline and orders.orderId > :afterId))
             order by orders.paymentDueAt asc, orders.orderId asc
             """)
-    List<Long> findPaymentExpiredOrderIds(
+    List<DueBatchCandidate> findPaymentExpiredOrderBatch(
             @Param("status") com.dailyatelier.dailyatelier.entity.OrderStatus status,
-            @Param("now") LocalDateTime now,
+            @Param("cutoff") LocalDateTime cutoff,
+            @Param("afterDeadline") LocalDateTime afterDeadline,
+            @Param("afterId") Long afterId,
             Pageable pageable);
 
     Page<Order> findByBuyer_UserId(String userId, Pageable pageable);

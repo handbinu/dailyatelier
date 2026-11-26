@@ -59,19 +59,23 @@ class ArtRepositoryExpiredAuctionTest {
         saveArt("이미 낙찰", NOW.minusMinutes(4), Art.STATUS_SOLD);
         saveArt("작가 취소", NOW.minusMinutes(5), Art.STATUS_CANCELED);
 
-        List<Long> firstBatch = artRepository.findExpiredActiveArtIds(
+        List<DueBatchCandidate> firstBatch = artRepository.findExpiredActiveArtBatch(
                 Art.STATUS_ACTIVE,
                 NOW,
+                null,
+                null,
                 PageRequest.of(0, 1)
         );
-        List<Long> allTargets = artRepository.findExpiredActiveArtIds(
+        List<DueBatchCandidate> allTargets = artRepository.findExpiredActiveArtBatch(
                 Art.STATUS_ACTIVE,
                 NOW,
+                null,
+                null,
                 PageRequest.of(0, 10)
         );
 
-        assertThat(firstBatch).containsExactly(oldest.getArtId());
-        assertThat(allTargets).containsExactly(
+        assertThat(firstBatch).extracting(DueBatchCandidate::getId).containsExactly(oldest.getArtId());
+        assertThat(allTargets).extracting(DueBatchCandidate::getId).containsExactly(
                 oldest.getArtId(),
                 sameBoundary.getArtId()
         );

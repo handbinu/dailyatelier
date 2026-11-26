@@ -2,6 +2,7 @@ package com.dailyatelier.dailyatelier.service;
 
 import com.dailyatelier.dailyatelier.entity.OrderStatus;
 import com.dailyatelier.dailyatelier.repository.OrderRepository;
+import com.dailyatelier.dailyatelier.repository.DueBatchCandidate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -21,6 +22,9 @@ public class OrderExpirationScheduler {
     private final OrderRepository orderRepository;
     private final Clock clock;
     private final int batchSize;
+
+    private LocalDateTime sweepCutoff;
+    private DueBatchCandidate lastAttempt;
 
     public OrderExpirationScheduler(
             OrderExpirationService expirationService,
@@ -42,11 +46,15 @@ public class OrderExpirationScheduler {
             fixedRateString = "${order.payment-expiration.interval-ms:60000}",
             initialDelayString = "${order.payment-expiration.interval-ms:60000}"
     )
-    public void expireOrders() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        List<Long> orderIds = orderRepository.findPaymentExpiredOrderIds(
+    public synchronized void expireOrders() {
+        if (sweepCutoff == null) {
+            sweepCutoff = LocalDateTime.now(clock);
+        }
+        List<DueBatchCandidate> candidates = orderRepository.findPaymentExpiredOrderBatch(
                 OrderStatus.PAYMENT_PENDING,
-                now,
+                sweepCutoff,
+                lastAttempt == null ? null : lastAttempt.getDeadline(),
+                lastAttempt == null ? null : lastAttempt.getId(),
                 PageRequest.of(0, batchSize)
         );
 
@@ -54,7 +62,9 @@ public class OrderExpirationScheduler {
         int skippedCount = 0;
         int failedCount = 0;
 
-        for (Long orderId : orderIds) {
+        for (DueBatchCandidate candidate : candidates) {
+            Long orderId = candidate.getId();
+            lastAttempt = candidate;
             try {
                 OrderExpirationResult result =
                         expirationService.expireOrder(orderId);
@@ -68,11 +78,16 @@ public class OrderExpirationScheduler {
             }
         }
 
-        if (!orderIds.isEmpty() || failedCount > 0) {
+        if (candidates.size() < batchSize) {
+            sweepCutoff = null;
+            lastAttempt = null;
+        }
+
+        if (!candidates.isEmpty()) {
             log.info(
                     "주문 결제 기한 만료 배치 완료: targetCount={}, "
                             + "expiredCount={}, skippedCount={}, failedCount={}",
-                    orderIds.size(),
+                    candidates.size(),
                     expiredCount,
                     skippedCount,
                     failedCount

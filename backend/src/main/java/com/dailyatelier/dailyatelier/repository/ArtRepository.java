@@ -106,15 +106,19 @@ public interface ArtRepository extends JpaRepository<Art, Long>, ArtSearchReposi
     Optional<Art> findByIdForClosing(@Param("artId") Long artId);
 
     @Query("""
-            select art.artId
+            select art.artId as id, art.closingTime as deadline
             from Art art
             where art.artStatus = :activeStatus
-              and art.closingTime <= :now
+              and art.closingTime <= :cutoff
+              and (:afterDeadline is null or art.closingTime > :afterDeadline
+                   or (art.closingTime = :afterDeadline and art.artId > :afterId))
             order by art.closingTime asc, art.artId asc
             """)
-    List<Long> findExpiredActiveArtIds(
+    List<DueBatchCandidate> findExpiredActiveArtBatch(
             @Param("activeStatus") Integer activeStatus,
-            @Param("now") LocalDateTime now,
+            @Param("cutoff") LocalDateTime cutoff,
+            @Param("afterDeadline") LocalDateTime afterDeadline,
+            @Param("afterId") Long afterId,
             Pageable pageable);
 
     @Query(
