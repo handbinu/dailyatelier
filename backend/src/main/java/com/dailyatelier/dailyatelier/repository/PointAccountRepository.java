@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface PointAccountRepository extends JpaRepository<PointAccount, String> {
 
+    @Query(value = "select user_id from point_account where user_id = :userId for update", nativeQuery = true)
+    Optional<String> lockUserId(@Param("userId") String userId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select account from PointAccount account where account.userId = :userId")
     Optional<PointAccount> findByUserIdForUpdate(@Param("userId") String userId);

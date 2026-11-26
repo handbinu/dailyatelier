@@ -6,12 +6,14 @@ import com.dailyatelier.dailyatelier.dto.PointSummaryResponseDto;
 import com.dailyatelier.dailyatelier.dto.PointTransactionResponseDto;
 import com.dailyatelier.dailyatelier.entity.PaymentProvider;
 import com.dailyatelier.dailyatelier.entity.PointCharge;
+import com.dailyatelier.dailyatelier.exception.PointApiException;
 import com.dailyatelier.dailyatelier.payment.PaymentApproval;
 import com.dailyatelier.dailyatelier.service.PointChargeService;
 import com.dailyatelier.dailyatelier.service.PointQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +51,10 @@ public class PointController {
             @AuthenticationPrincipal String userId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody PointChargeRequestDto request) {
+        if (idempotencyKey.isBlank() || idempotencyKey.codePointCount(0, idempotencyKey.length()) > 150) {
+            throw new PointApiException(HttpStatus.BAD_REQUEST, "INVALID_POINT_REQUEST",
+                    "충전 금액과 멱등성 키를 확인해 주세요.");
+        }
         PointCharge charge = pointChargeService.create(
                 userId, PaymentProvider.INTERNAL, request.amount(), idempotencyKey);
         PointCharge approved = pointChargeService.approve(

@@ -37,6 +37,7 @@ class PaymentCallbackTransactionService {
     public PaymentCallbackEvent recordFailure(PaymentProvider provider, String eventId,
                                               String error) {
         PaymentCallbackEvent event = findProcessableEvent(provider, eventId);
+        if (event.getStatus() == PaymentCallbackStatus.PROCESSED) return event;
         event.failed(error);
         return event;
     }

@@ -6,6 +6,8 @@ import com.dailyatelier.dailyatelier.payment.PointPaymentProvider;
 import com.dailyatelier.dailyatelier.repository.PointAccountRepository;
 import com.dailyatelier.dailyatelier.repository.PointChargeRepository;
 import com.dailyatelier.dailyatelier.repository.PointTransactionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import com.dailyatelier.dailyatelier.exception.PointApiException;
@@ -24,25 +26,29 @@ public class PointChargeService {
     private final List<PointPaymentProvider> paymentProviders;
     private final Clock clock;
     private final DemoPointChargePolicy demoChargePolicy;
+    private final EntityManager entityManager;
 
     public PointChargeService(PointChargeRepository chargeRepository,
                               PointAccountRepository accountRepository,
                               PointTransactionRepository transactionRepository,
                               List<PointPaymentProvider> paymentProviders,
                               Clock clock,
-                              DemoPointChargePolicy demoChargePolicy) {
+                              DemoPointChargePolicy demoChargePolicy,
+                              EntityManager entityManager) {
         this.chargeRepository = chargeRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.paymentProviders = paymentProviders;
         this.clock = clock;
         this.demoChargePolicy = demoChargePolicy;
+        this.entityManager = entityManager;
     }
 
     @Transactional
     public PointCharge create(String userId, PaymentProvider provider, long amount,
                               String idempotencyKey) {
-        accountRepository.findByUserIdForUpdate(userId)
+        // Only the row lock is needed here. Approval loads the account when it credits it.
+        accountRepository.lockUserId(userId)
                 .orElseThrow(() -> new IllegalStateException("포인트 계정이 없습니다"));
         PointCharge existing = chargeRepository
                 .findByUserIdAndIdempotencyKey(userId, idempotencyKey)
@@ -68,6 +74,8 @@ public class PointChargeService {
     @Transactional
     public PointCharge approve(Long chargeId, PaymentApproval approval) {
         PointCharge charge = lockedCharge(chargeId);
+        // The HTTP create phase may have left this charge managed as PENDING.
+        entityManager.refresh(charge, LockModeType.PESSIMISTIC_WRITE);
         if (charge.getStatus() == PointChargeStatus.PAID) {
             validateSameApproval(charge, approval);
             return charge;
