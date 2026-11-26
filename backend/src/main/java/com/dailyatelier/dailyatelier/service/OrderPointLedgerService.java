@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,19 +20,19 @@ public class OrderPointLedgerService {
     private final PointHoldRepository holdRepository;
     private final PointTransactionRepository transactionRepository;
 
-    public void commit(Order order, String idempotencyKey, LocalDateTime now) {
+    public void commit(Order order, LocalDateTime now) {
         requireInternalPoint(order);
         PointAccount account = lockedAccount(order);
         PointHold hold = lockedHold(order);
         validateHold(order, hold, PointHoldStatus.HELD);
         long amount = hold.getAmount();
         account.commit(amount, now);
-        PointTransaction transaction = transactionRepository.saveAndFlush(
+        transactionRepository.saveAndFlush(
                 PointTransaction.record(
                         account.getUserId(), PointTransactionType.COMMIT, amount,
                         0, -amount, account.getAvailableBalance(), account.getHeldBalance(),
                         PointReferenceType.ORDER, order.getOrderId().toString(),
-                        requireKey(idempotencyKey), null, "ORDER_PAID",
+                        orderLedgerKey("commit", order), null, "ORDER_PAID",
                         "낙찰 주문 포인트 결제", now));
         hold.commit(order.getOrderId(), now);
         holdRepository.save(hold);
@@ -62,7 +63,6 @@ public class OrderPointLedgerService {
 
     public void refund(
             Order order,
-            String idempotencyKey,
             OrderRefundReason reason,
             LocalDateTime now) {
         PointAccount account = lockedAccount(order);
@@ -80,7 +80,7 @@ public class OrderPointLedgerService {
                 hold.getAmount(), 0,
                 account.getAvailableBalance(), account.getHeldBalance(),
                 PointReferenceType.ORDER, order.getOrderId().toString(),
-                requireKey(idempotencyKey), commit.getTransactionId(), reason.name(),
+                orderLedgerKey("refund", order), commit.getTransactionId(), reason.name(),
                 "낙찰 주문 포인트 환불", now));
     }
 
@@ -118,6 +118,14 @@ public class OrderPointLedgerService {
             throw new IllegalArgumentException("멱등성 키는 필수입니다");
         }
         return key.trim();
+    }
+
+    private String orderLedgerKey(String operation, Order order) {
+        String key = "order:v2:" + operation + ":" + order.getOrderId();
+        // Historical order rows could store any client key.
+        return transactionRepository.existsByIdempotencyKey(key)
+                ? key + ":" + UUID.randomUUID()
+                : key;
     }
 
     private OrderApiException conflict(String code, String message) {

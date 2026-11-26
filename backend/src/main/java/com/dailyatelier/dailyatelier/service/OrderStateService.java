@@ -36,6 +36,7 @@ public class OrderStateService implements OrderPaymentService {
 
     @Transactional
     public Order markPaid(Long orderId, String buyerId, String idempotencyKey) {
+        validateIdempotencyKey(idempotencyKey);
         Order order = findForUpdate(orderId);
         if (buyerId != null) {
             verifyBuyer(order, buyerId);
@@ -59,7 +60,7 @@ public class OrderStateService implements OrderPaymentService {
                     "결제 전에 배송지를 확정해 주세요."
             );
         }
-        pointLedgerService.commit(order, idempotencyKey, now);
+        pointLedgerService.commit(order, now);
         transition(order, OrderStatus.PAID, now, null);
         return orderRepository.save(order);
     }
@@ -67,11 +68,12 @@ public class OrderStateService implements OrderPaymentService {
     @Override
     @Transactional
     public Order refund(Long orderId, OrderRefundReason reason, String idempotencyKey) {
+        validateIdempotencyKey(idempotencyKey);
         Order order = findForUpdate(orderId);
-        return refund(order, reason, idempotencyKey);
+        return refund(order, reason);
     }
 
-    private Order refund(Order order, OrderRefundReason reason, String idempotencyKey) {
+    private Order refund(Order order, OrderRefundReason reason) {
         if (order.getStatus() == OrderStatus.REFUNDED) {
             return order;
         }
@@ -85,7 +87,7 @@ public class OrderStateService implements OrderPaymentService {
                 reason,
                 "환불 사유는 필수입니다"
         );
-        pointLedgerService.refund(order, idempotencyKey, requiredReason, LocalDateTime.now(clock));
+        pointLedgerService.refund(order, requiredReason, LocalDateTime.now(clock));
         transition(
                 order,
                 OrderStatus.REFUNDED,
@@ -175,6 +177,7 @@ public class OrderStateService implements OrderPaymentService {
 
     @Transactional
     public Order approveRefund(Long orderId, String sellerId, String idempotencyKey) {
+        validateIdempotencyKey(idempotencyKey);
         Order order = findForUpdate(orderId);
         verifySeller(order, sellerId);
         if (order.getRefundRequestStatus() == OrderRefundRequestStatus.APPROVED
@@ -186,7 +189,14 @@ public class OrderStateService implements OrderPaymentService {
         } catch (IllegalStateException exception) {
             throw conflict("ORDER_STATUS_CONFLICT", exception.getMessage());
         }
-        return refund(order, OrderRefundReason.PAYMENT_CANCELED, idempotencyKey);
+        return refund(order, OrderRefundReason.PAYMENT_CANCELED);
+    }
+
+    private void validateIdempotencyKey(String key) {
+        String value = key == null ? "" : key.strip();
+        if (value.isEmpty() || value.codePointCount(0, value.length()) > 150) {
+            throw new IllegalArgumentException("멱등성 키는 1~150자여야 합니다.");
+        }
     }
 
     @Transactional
